@@ -13,6 +13,9 @@ describe("Processor", () => {
   const NORMAL_USER_1 = "0x3000000000000000000000000000000000000000";
   const NORMAL_USER_2 = "0x4000000000000000000000000000000000000000";
 
+  const ONE = "1000000000000000000";
+  const ONEn = 1000000000000000000n;
+
   // Create a mock client
   const mockClient = {
     readContract: async () => "0x0000000000000000000000000000000000000000",
@@ -33,7 +36,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: "1000000000000000000", // 1 token
+        value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -43,16 +46,16 @@ describe("Processor", () => {
 
       expect(balances.addresses).toContain(NORMAL_USER_1);
       const index = balances.addresses.indexOf(NORMAL_USER_1);
-      expect(balances.snapshot1Balances[index]).toBe(1000000000000000000n);
-      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n);
-      expect(balances.averageBalances[index]).toBe(1000000000000000000n);
+      expect(balances.snapshot1Balances[index]).toBe(ONEn);
+      expect(balances.snapshot2Balances[index]).toBe(ONEn);
+      expect(balances.averageBalances[index]).toBe(ONEn);
     });
 
     it("should not track unapproved transfers", async () => {
       const transfer: Transfer = {
         from: NORMAL_USER_1,
         to: NORMAL_USER_2,
-        value: "1000000000000000000",
+        value: ONE,
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -68,7 +71,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: "1000000000000000000",
+        value: ONE,
         blockNumber: 50, // Before snapshot 1
         timestamp: 1000,
       };
@@ -77,15 +80,15 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       const index = balances.addresses.indexOf(NORMAL_USER_1);
-      expect(balances.snapshot1Balances[index]).toBe(1000000000000000000n);
-      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n);
+      expect(balances.snapshot1Balances[index]).toBe(ONEn);
+      expect(balances.snapshot2Balances[index]).toBe(ONEn);
     });
 
     it("should handle transfers between snapshots", async () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: "1000000000000000000",
+        value: ONE,
         blockNumber: 150, // Between snapshots
         timestamp: 1000,
       };
@@ -95,14 +98,14 @@ describe("Processor", () => {
 
       const index = balances.addresses.indexOf(NORMAL_USER_1);
       expect(balances.snapshot1Balances[index]).toBe(0n);
-      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n);
+      expect(balances.snapshot2Balances[index]).toBe(ONEn);
     });
 
     it("should handle transfers after snapshot 2", async () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: "1000000000000000000",
+        value: ONE,
         blockNumber: 250, // After snapshot 2
         timestamp: 1000,
       };
@@ -112,7 +115,7 @@ describe("Processor", () => {
 
       const index = balances.addresses.indexOf(NORMAL_USER_1);
       expect(balances.snapshot1Balances[index]).toBe(0n);
-      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n); // Should match current balance
+      expect(balances.snapshot2Balances[index]).toBe(ONEn); // Should match current balance
     });
   });
 
@@ -125,7 +128,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: "1000000000000000000",
+        value: ONE,
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -135,8 +138,8 @@ describe("Processor", () => {
 
       const index = balances.addresses.indexOf(NORMAL_USER_1);
       expect(index).not.toBe(-1);
-      expect(balances.averageBalances[index]).toBe(1000000000000000000n);
-      expect(balances.penalties[index]).toBe(1000000000000000000n);
+      expect(balances.averageBalances[index]).toBe(ONEn);
+      expect(balances.penalties[index]).toBe(ONEn);
       expect(balances.finalBalances[index]).toBe(0n);
     });
   });
@@ -166,7 +169,7 @@ describe("Processor", () => {
       const transfer1: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_2,
-        value: "1000000000000000000", // 1 token
+        value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -175,7 +178,7 @@ describe("Processor", () => {
       const transfer2: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: "1000000000000000000", // 1 token
+        value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -189,7 +192,7 @@ describe("Processor", () => {
       const cheaterIndex = balances.addresses.indexOf(NORMAL_USER_2);
 
       expect(balances.bounties[reporterIndex]).toBe(100000000000000000n); // 10% bounty
-      expect(balances.penalties[cheaterIndex]).toBe(1000000000000000000n); // Full penalty
+      expect(balances.penalties[cheaterIndex]).toBe(ONEn); // Full penalty
       expect(balances.finalBalances[cheaterIndex]).toBe(0n);
       expect(balances.finalBalances[reporterIndex]).toBe(1100000000000000000n); // Original balance + bounty
     });
@@ -217,7 +220,7 @@ describe("Processor", () => {
       await processor.processTransfer(transfer1);
       await processor.processTransfer(transfer2);
 
-      const rewardPool = 1000000000000000000n; // 1 token reward pool
+      const rewardPool = ONEn; // 1 token reward pool
       const result = await processor.calculateRewards(rewardPool);
 
       const user1Index = result.addresses.indexOf(NORMAL_USER_1);
