@@ -13,9 +13,13 @@ describe("Processor", () => {
   const NORMAL_USER_1 = "0x3000000000000000000000000000000000000000";
   const NORMAL_USER_2 = "0x4000000000000000000000000000000000000000";
 
+  // Create a mock client
+  const mockClient = {
+    readContract: async () => "0x0000000000000000000000000000000000000000",
+  };
+
   beforeEach(() => {
-    processor = new Processor(SNAPSHOT_1, SNAPSHOT_2);
-    // Mock the isApprovedSource method
+    processor = new Processor(SNAPSHOT_1, SNAPSHOT_2, [], [], mockClient);
     processor.isApprovedSource = async (source: string) => {
       return (
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase() ||
@@ -35,14 +39,13 @@ describe("Processor", () => {
       };
 
       await processor.processTransfer(transfer);
-      const [addresses, snapshot1Balances, snapshot2Balances, avgBalances] =
-        await processor.getEligibleBalances([]);
+      const balances = await processor.getEligibleBalances();
 
-      expect(addresses).toContain(NORMAL_USER_1);
-      const index = addresses.indexOf(NORMAL_USER_1);
-      expect(snapshot1Balances[index]).toBe(1000000000000000000n);
-      expect(snapshot2Balances[index]).toBe(1000000000000000000n);
-      expect(avgBalances[index]).toBe(1000000000000000000n);
+      expect(balances.addresses).toContain(NORMAL_USER_1);
+      const index = balances.addresses.indexOf(NORMAL_USER_1);
+      expect(balances.snapshot1Balances[index]).toBe(1000000000000000000n);
+      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n);
+      expect(balances.averageBalances[index]).toBe(1000000000000000000n);
     });
 
     it("should not track unapproved transfers", async () => {
@@ -55,10 +58,8 @@ describe("Processor", () => {
       };
 
       await processor.processTransfer(transfer);
-      const [addresses, snapshot1Balances, snapshot2Balances, avgBalances] =
-        await processor.getEligibleBalances([]);
-
-      expect(addresses).toHaveLength(0);
+      const balances = await processor.getEligibleBalances();
+      expect(balances.addresses).toHaveLength(0);
     });
   });
 
@@ -73,12 +74,11 @@ describe("Processor", () => {
       };
 
       await processor.processTransfer(transfer);
-      const [addresses, snapshot1Balances, snapshot2Balances] =
-        await processor.getEligibleBalances([]);
+      const balances = await processor.getEligibleBalances();
 
-      const index = addresses.indexOf(NORMAL_USER_1);
-      expect(snapshot1Balances[index]).toBe(1000000000000000000n);
-      expect(snapshot2Balances[index]).toBe(1000000000000000000n);
+      const index = balances.addresses.indexOf(NORMAL_USER_1);
+      expect(balances.snapshot1Balances[index]).toBe(1000000000000000000n);
+      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n);
     });
 
     it("should handle transfers between snapshots", async () => {
@@ -91,12 +91,11 @@ describe("Processor", () => {
       };
 
       await processor.processTransfer(transfer);
-      const [addresses, snapshot1Balances, snapshot2Balances] =
-        await processor.getEligibleBalances([]);
+      const balances = await processor.getEligibleBalances();
 
-      const index = addresses.indexOf(NORMAL_USER_1);
-      expect(snapshot1Balances[index]).toBe(0n);
-      expect(snapshot2Balances[index]).toBe(1000000000000000000n);
+      const index = balances.addresses.indexOf(NORMAL_USER_1);
+      expect(balances.snapshot1Balances[index]).toBe(0n);
+      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n);
     });
 
     it("should handle transfers after snapshot 2", async () => {
@@ -109,17 +108,20 @@ describe("Processor", () => {
       };
 
       await processor.processTransfer(transfer);
-      const [addresses, snapshot1Balances, snapshot2Balances] =
-        await processor.getEligibleBalances([]);
+      const balances = await processor.getEligibleBalances();
 
-      const index = addresses.indexOf(NORMAL_USER_1);
-      expect(snapshot1Balances[index]).toBe(0n);
-      expect(snapshot2Balances[index]).toBe(1000000000000000000n); // Should match current balance
+      const index = balances.addresses.indexOf(NORMAL_USER_1);
+      expect(balances.snapshot1Balances[index]).toBe(0n);
+      expect(balances.snapshot2Balances[index]).toBe(1000000000000000000n); // Should match current balance
     });
   });
 
   describe("Blocklist", () => {
-    it("should exclude blocklisted addresses", async () => {
+    it("should include blocklisted addresses with penalties", async () => {
+      const processor = new Processor(100, 200, [NORMAL_USER_1.toLowerCase()]);
+      processor.isApprovedSource = async (source: string) =>
+        source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
+
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
@@ -129,11 +131,89 @@ describe("Processor", () => {
       };
 
       await processor.processTransfer(transfer);
-      const [addresses] = await processor.getEligibleBalances([
-        NORMAL_USER_1.toLowerCase(),
-      ]);
+      const balances = await processor.getEligibleBalances();
 
-      expect(addresses).not.toContain(NORMAL_USER_1);
+      const index = balances.addresses.indexOf(NORMAL_USER_1);
+      expect(index).not.toBe(-1);
+      expect(balances.averageBalances[index]).toBe(1000000000000000000n);
+      expect(balances.penalties[index]).toBe(1000000000000000000n);
+      expect(balances.finalBalances[index]).toBe(0n);
+    });
+  });
+
+  describe("Blocklist Penalties", () => {
+    it("should include blocklisted addresses with 100% penalty", async () => {
+      const processor = new Processor(
+        100,
+        200,
+        [NORMAL_USER_1.toLowerCase()],
+        [], // Empty reports array
+        mockClient
+      );
+
+      processor.isApprovedSource = async (source: string) =>
+        source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
+
+      const transfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "1000000000000000000", // 1 token
+        blockNumber: 50,
+        timestamp: 1000,
+      };
+
+      await processor.processTransfer(transfer);
+      const balances = await processor.getEligibleBalances();
+
+      const index = balances.addresses.indexOf(NORMAL_USER_1);
+      expect(index).not.toBe(-1); // Address should be included
+      expect(balances.averageBalances[index]).toBe(1000000000000000000n);
+      expect(balances.penalties[index]).toBe(1000000000000000000n); // Full penalty
+      expect(balances.finalBalances[index]).toBe(0n); // No final balance
+    });
+
+    it("should calculate bounties for reporters", async () => {
+      const reports = [
+        {
+          reporter: NORMAL_USER_1,
+          cheater: NORMAL_USER_2,
+        },
+      ];
+
+      const processor = new Processor(100, 200, [], reports, mockClient);
+      processor.isApprovedSource = async (source: string) =>
+        source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
+
+      // Give NORMAL_USER_2 some balance to be penalized
+      const transfer1: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_2,
+        value: "1000000000000000000", // 1 token
+        blockNumber: 50,
+        timestamp: 1000,
+      };
+
+      // Give NORMAL_USER_1 (reporter) some balance too
+      const transfer2: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "1000000000000000000", // 1 token
+        blockNumber: 50,
+        timestamp: 1000,
+      };
+
+      await processor.processTransfer(transfer1);
+      await processor.processTransfer(transfer2);
+
+      const balances = await processor.getEligibleBalances();
+
+      const reporterIndex = balances.addresses.indexOf(NORMAL_USER_1);
+      const cheaterIndex = balances.addresses.indexOf(NORMAL_USER_2);
+
+      expect(balances.bounties[reporterIndex]).toBe(100000000000000000n); // 10% bounty
+      expect(balances.penalties[cheaterIndex]).toBe(1000000000000000000n); // Full penalty
+      expect(balances.finalBalances[cheaterIndex]).toBe(0n);
+      expect(balances.finalBalances[reporterIndex]).toBe(1100000000000000000n); // Original balance + bounty
     });
   });
 
@@ -160,18 +240,18 @@ describe("Processor", () => {
       await processor.processTransfer(transfer2);
 
       const rewardPool = 1000000000000000000n; // 1 token reward pool
-      const [addresses, rewards] = await processor.calculateRewards(rewardPool);
+      const result = await processor.calculateRewards(rewardPool);
 
-      // NORMAL_USER_1 should get 40% of rewards (2/(2+3))
-      // NORMAL_USER_2 should get 60% of rewards (3/(2+3))
-      const user1Index = addresses.indexOf(NORMAL_USER_1);
-      const user2Index = addresses.indexOf(NORMAL_USER_2);
+      const user1Index = result.addresses.indexOf(NORMAL_USER_1);
+      const user2Index = result.addresses.indexOf(NORMAL_USER_2);
 
-      expect(rewards[user1Index]).toBe(400000000000000000n); // 0.4 tokens
-      expect(rewards[user2Index]).toBe(600000000000000000n); // 0.6 tokens
+      expect(result.rewards[user1Index]).toBe(400000000000000000n); // 0.4 tokens
+      expect(result.rewards[user2Index]).toBe(600000000000000000n); // 0.6 tokens
 
       // Total should equal reward pool
-      expect(rewards.reduce((a, b) => a + b, 0n)).toBe(rewardPool);
+      expect(
+        result.rewards.reduce((sum: bigint, reward: bigint) => sum + reward, 0n)
+      ).toBe(rewardPool);
     });
   });
 });
