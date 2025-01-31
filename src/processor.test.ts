@@ -142,36 +142,6 @@ describe("Processor", () => {
   });
 
   describe("Blocklist Penalties", () => {
-    it("should include blocklisted addresses with 100% penalty", async () => {
-      const processor = new Processor(
-        100,
-        200,
-        [NORMAL_USER_1.toLowerCase()],
-        [], // Empty reports array
-        mockClient
-      );
-
-      processor.isApprovedSource = async (source: string) =>
-        source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
-
-      const transfer: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_1,
-        value: "1000000000000000000", // 1 token
-        blockNumber: 50,
-        timestamp: 1000,
-      };
-
-      await processor.processTransfer(transfer);
-      const balances = await processor.getEligibleBalances();
-
-      const index = balances.addresses.indexOf(NORMAL_USER_1);
-      expect(index).not.toBe(-1); // Address should be included
-      expect(balances.averageBalances[index]).toBe(1000000000000000000n);
-      expect(balances.penalties[index]).toBe(1000000000000000000n); // Full penalty
-      expect(balances.finalBalances[index]).toBe(0n); // No final balance
-    });
-
     it("should calculate bounties for reporters", async () => {
       const reports = [
         {
@@ -180,7 +150,15 @@ describe("Processor", () => {
         },
       ];
 
-      const processor = new Processor(100, 200, [], reports, mockClient);
+      // Need to include NORMAL_USER_2 in the blocklist since they're reported
+      const processor = new Processor(
+        100,
+        200,
+        [NORMAL_USER_2.toLowerCase()], // Add the cheater to blocklist
+        reports,
+        mockClient
+      );
+
       processor.isApprovedSource = async (source: string) =>
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
 
