@@ -4,8 +4,10 @@ import { Transfer } from "./types";
 
 describe("Processor", () => {
   let processor: Processor;
-  const SNAPSHOT_1 = 100;
-  const SNAPSHOT_2 = 200;
+  // Jan-16-2025 23:45:56 UTC
+  const SNAPSHOT_1 = 36184881;
+  // Jan-30-2025 05:56:43 UTC
+  const SNAPSHOT_2 = 36784881;
 
   // Test addresses
   const APPROVED_SOURCE = "0x1000000000000000000000000000000000000000";
