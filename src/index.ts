@@ -125,7 +125,7 @@ async function main() {
         `${balances.finalBalances[i]}`
     );
   }
-  await writeFile("output/balances.csv", balancesOutput.join("\n"));
+  await writeFile("output/balances-" + SNAPSHOT_BLOCK_1 + "-" + SNAPSHOT_BLOCK_2 + ".csv", balancesOutput.join("\n"));
   console.log(
     `Wrote ${balances.addresses.length} balances to output/balances.csv`
   );
@@ -137,7 +137,7 @@ async function main() {
   for (let i = 0; i < addresses.length; i++) {
     rewardsOutput.push(`${addresses[i]},${rewards[i]}`);
   }
-  await writeFile("output/rewards.csv", rewardsOutput.join("\n"));
+  await writeFile("output/rewards-" + SNAPSHOT_BLOCK_1 + "-" + SNAPSHOT_BLOCK_2 + ".csv", rewardsOutput.join("\n"));
   console.log(`Wrote ${addresses.length} rewards to output/rewards.csv`);
 
   // Verify total rewards equals reward pool
