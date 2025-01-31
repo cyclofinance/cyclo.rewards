@@ -4,10 +4,8 @@ import { Transfer } from "./types";
 
 describe("Processor", () => {
   let processor: Processor;
-  // Jan-16-2025 23:45:56 UTC
-  const SNAPSHOT_1 = 36184881;
-  // Jan-30-2025 05:56:43 UTC
-  const SNAPSHOT_2 = 36784881;
+  const SNAPSHOT_1 = 100;
+  const SNAPSHOT_2 = 200;
 
   // Test addresses
   const APPROVED_SOURCE = "0x1000000000000000000000000000000000000000";
@@ -57,7 +55,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: NORMAL_USER_1,
         to: NORMAL_USER_2,
-        value: ONE,
+        value: "1000000000000000000",
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -73,7 +71,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: ONE,
+        value: "1000000000000000000",
         blockNumber: 50, // Before snapshot 1
         timestamp: 1000,
       };
@@ -90,7 +88,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: ONE,
+        value: "1000000000000000000",
         blockNumber: 150, // Between snapshots
         timestamp: 1000,
       };
@@ -107,7 +105,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: ONE,
+        value: "1000000000000000000",
         blockNumber: 250, // After snapshot 2
         timestamp: 1000,
       };
@@ -130,7 +128,7 @@ describe("Processor", () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: ONE,
+        value: "1000000000000000000",
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -171,7 +169,7 @@ describe("Processor", () => {
       const transfer1: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_2,
-        value: ONE, // 1 token
+        value: "1000000000000000000", // 1 token
         blockNumber: 50,
         timestamp: 1000,
       };
@@ -180,7 +178,7 @@ describe("Processor", () => {
       const transfer2: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
-        value: ONE, // 1 token
+        value: "1000000000000000000", // 1 token
         blockNumber: 50,
         timestamp: 1000,
       };
