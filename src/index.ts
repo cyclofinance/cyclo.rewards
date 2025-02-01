@@ -9,7 +9,6 @@ config();
 const SNAPSHOT_BLOCK_1 = parseInt(process.env.SNAPSHOT_BLOCK_1 || "0");
 const SNAPSHOT_BLOCK_2 = parseInt(process.env.SNAPSHOT_BLOCK_2 || "0");
 const REWARD_POOL = 1000000000000000000000000n; // 1M rFLR (1e6 * 1e18)
-// const REWARD_POOL = 5000000000000000000000n; // 5k test rFLR (5k * 1e18)
 
 async function main() {
   console.log("Starting processor...");
