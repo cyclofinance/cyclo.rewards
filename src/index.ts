@@ -13,7 +13,7 @@ const REWARD_POOL = 1000000000000000000000000n; // 1M rFLR (1e6 * 1e18)
 // Must match expected structure
 // https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data
 const REWARDS_CSV_COLUMN_HEADER_ADDRESS = "recipient address";
-const REWARDS_CSV_COLUMN_HEADER_REWARD = "reward amount";
+const REWARDS_CSV_COLUMN_HEADER_REWARD = "amount wei";
 
 async function main() {
   console.log("Starting processor...");
