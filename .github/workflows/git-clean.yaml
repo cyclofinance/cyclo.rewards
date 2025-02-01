@@ -18,3 +18,4 @@ jobs:
         env:
           SNAPSHOT_BLOCK_1: 36184881
           SNAPSHOT_BLOCK_2: 36784881
+      - run: git diff --exit-code
