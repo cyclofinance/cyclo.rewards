@@ -10,6 +10,11 @@ const SNAPSHOT_BLOCK_1 = parseInt(process.env.SNAPSHOT_BLOCK_1 || "0");
 const SNAPSHOT_BLOCK_2 = parseInt(process.env.SNAPSHOT_BLOCK_2 || "0");
 const REWARD_POOL = 1000000000000000000000000n; // 1M rFLR (1e6 * 1e18)
 
+// Must match expected structure
+// https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data
+const REWARDS_CSV_COLUMN_HEADER_ADDRESS = "recipient address";
+const REWARDS_CSV_COLUMN_HEADER_REWARD = "reward amount";
+
 async function main() {
   console.log("Starting processor...");
   console.log(`Snapshot blocks: ${SNAPSHOT_BLOCK_1}, ${SNAPSHOT_BLOCK_2}`);
@@ -133,7 +138,7 @@ async function main() {
   // Calculate and write rewards
   console.log("Calculating rewards...");
   const { addresses, rewards } = await processor.calculateRewards(REWARD_POOL);
-  const rewardsOutput = ["address,reward"];
+  const rewardsOutput = [REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD];
   for (let i = 0; i < addresses.length; i++) {
     rewardsOutput.push(`${addresses[i]},${rewards[i]}`);
   }
