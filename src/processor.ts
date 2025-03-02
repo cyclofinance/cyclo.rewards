@@ -1,15 +1,18 @@
 import { createPublicClient, http, Address } from "viem";
-import { REWARDS_SOURCES, FACTORIES, RPC_URL, isSameAddress } from "./config";
+import {
+  REWARDS_SOURCES,
+  FACTORIES,
+  RPC_URL,
+  isSameAddress,
+  CYTOKENS,
+} from "./config";
 import {
   Transfer,
   AccountBalance,
-  Report,
-  AccountSummary,
   EligibleBalances,
-  TransferRecord,
   AccountTransfers,
+  TokenBalances,
 } from "./types";
-import { writeFile } from "fs/promises";
 
 interface TransferDetail {
   value: string;
@@ -25,7 +28,10 @@ interface AccountData {
 
 export class Processor {
   private approvedSourceCache = new Map<string, boolean>();
-  private accountBalances = new Map<string, AccountBalance>();
+  private accountBalancesPerToken = new Map<
+    string,
+    Map<string, AccountBalance>
+  >();
   private accountTransfers = new Map<string, AccountTransfers>();
   private client;
   private reportsList: { reporter: string; cheater: string }[];
@@ -33,17 +39,21 @@ export class Processor {
   constructor(
     private snapshot1: number,
     private snapshot2: number,
-    private blocklist: string[] = [],
     private reports: { reporter: string; cheater: string }[] = [],
     client?: any
   ) {
-    this.blocklist = blocklist.map((addr) => addr.toLowerCase());
     this.reportsList = reports;
     this.client =
       client ||
       createPublicClient({
         transport: http(RPC_URL),
       });
+
+    // Initialize token balances maps
+    for (const token of CYTOKENS) {
+      const balanceMap = new Map<string, AccountBalance>();
+      this.accountBalancesPerToken.set(token.address.toLowerCase(), balanceMap);
+    }
   }
 
   async isApprovedSource(source: string): Promise<boolean> {
@@ -110,9 +120,17 @@ export class Processor {
       value: transfer.value,
     });
 
+    const accountBalances = this.accountBalancesPerToken.get(
+      transfer.tokenAddress
+    );
+
+    if (!accountBalances) {
+      throw new Error("No account balances found for token");
+    }
+
     // Initialize balances if needed
-    if (!this.accountBalances.has(transfer.to)) {
-      this.accountBalances.set(transfer.to, {
+    if (!accountBalances.has(transfer.to)) {
+      accountBalances.set(transfer.to, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshot1: 0n,
@@ -120,8 +138,8 @@ export class Processor {
         currentNetBalance: 0n,
       });
     }
-    if (!this.accountBalances.has(transfer.from)) {
-      this.accountBalances.set(transfer.from, {
+    if (!accountBalances.has(transfer.from)) {
+      accountBalances.set(transfer.from, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshot1: 0n,
@@ -132,7 +150,7 @@ export class Processor {
 
     // Update balances
     if (isApproved) {
-      const toBalance = this.accountBalances.get(transfer.to)!;
+      const toBalance = accountBalances.get(transfer.to)!;
       toBalance.transfersInFromApproved += value;
       toBalance.currentNetBalance =
         toBalance.transfersInFromApproved - toBalance.transfersOut;
@@ -146,11 +164,11 @@ export class Processor {
         toBalance.netBalanceAtSnapshot2 = toBalance.currentNetBalance;
       }
 
-      this.accountBalances.set(transfer.to, toBalance);
+      accountBalances.set(transfer.to, toBalance);
     }
 
     // Always track transfers out
-    const fromBalance = this.accountBalances.get(transfer.from)!;
+    const fromBalance = accountBalances.get(transfer.from)!;
     fromBalance.transfersOut += value;
     fromBalance.currentNetBalance =
       fromBalance.transfersInFromApproved - fromBalance.transfersOut;
@@ -164,192 +182,141 @@ export class Processor {
       fromBalance.netBalanceAtSnapshot2 = fromBalance.currentNetBalance;
     }
 
-    this.accountBalances.set(transfer.from, fromBalance);
-  }
-
-  async writeAccountData(address: string) {
-    const balance = this.accountBalances.get(address);
-    const transfers = this.accountTransfers.get(address);
-
-    if (!balance || !transfers) return;
-
-    const accountData: AccountData = {
-      id: address,
-      netBalance: balance.currentNetBalance.toString(),
-      transfersIn: transfers.transfersIn,
-      transfersOut: transfers.transfersOut,
-    };
-
-    await writeFile(
-      `output/${address}.json`,
-      JSON.stringify({ data: { account: accountData } }, null, 2)
-    );
-  }
-
-  private calculatePenaltiesAndBounties(reports: Report[]): Map<
-    string,
-    {
-      penalty: bigint;
-      bounty: bigint;
-      reportsMade: {
-        cheater: string;
-        penalizedAmount: bigint;
-        bountyAwarded: bigint;
-      }[];
-      reportsReceived: {
-        reporter: string;
-        penalizedAmount: bigint;
-        bountyAwarded: bigint;
-      }[];
-    }
-  > {
-    const results = new Map<
-      string,
-      {
-        penalty: bigint;
-        bounty: bigint;
-        reportsMade: {
-          cheater: string;
-          penalizedAmount: bigint;
-          bountyAwarded: bigint;
-        }[];
-        reportsReceived: {
-          reporter: string;
-          penalizedAmount: bigint;
-          bountyAwarded: bigint;
-        }[];
-      }
-    >();
-
-    // Initialize all accounts
-    for (const [address] of this.accountBalances) {
-      results.set(address, {
-        penalty: 0n,
-        bounty: 0n,
-        reportsMade: [],
-        reportsReceived: [],
-      });
-    }
-
-    // Process each report
-    for (const report of reports) {
-      const cheaterBalance = this.accountBalances.get(report.cheater);
-      if (!cheaterBalance) continue;
-
-      const averageBalance =
-        (cheaterBalance.netBalanceAtSnapshot1 +
-          cheaterBalance.netBalanceAtSnapshot2) /
-        2n;
-      const bountyAmount = averageBalance / 10n; // 10% bounty
-
-      // Update cheater's penalty
-      const cheaterResult = results.get(report.cheater)!;
-      cheaterResult.penalty += averageBalance;
-      cheaterResult.reportsReceived.push({
-        reporter: report.reporter,
-        penalizedAmount: averageBalance,
-        bountyAwarded: bountyAmount,
-      });
-
-      // Update reporter's bounty
-      const reporterResult = results.get(report.reporter);
-      if (reporterResult) {
-        reporterResult.bounty += bountyAmount;
-        reporterResult.reportsMade.push({
-          cheater: report.cheater,
-          penalizedAmount: averageBalance,
-          bountyAwarded: bountyAmount,
-        });
-      }
-    }
-
-    return results;
+    accountBalances.set(transfer.from, fromBalance);
   }
 
   async getEligibleBalances(): Promise<EligibleBalances> {
-    const addresses: string[] = [];
-    const snapshot1Balances: bigint[] = [];
-    const snapshot2Balances: bigint[] = [];
-    const averageBalances: bigint[] = [];
-    const penalties: bigint[] = [];
-    const bounties: bigint[] = [];
-    const finalBalances: bigint[] = [];
-
-    // First update all final snapshot2 balances to match current
-    for (const [address, balance] of this.accountBalances.entries()) {
-      if (balance.currentNetBalance > 0n) {
-        balance.netBalanceAtSnapshot2 = balance.currentNetBalance;
-      }
+    const balancesByToken = new Map<string, TokenBalances[]>();
+    // Initialize balancesByToken map
+    for (const token of CYTOKENS) {
+      balancesByToken.set(token.address.toLowerCase(), []);
     }
 
-    // Get all unique addresses (from balances and reports)
-    const allAddresses = new Set<string>([
-      ...Array.from(this.accountBalances.keys()),
-      ...this.reports.map((r) => r.reporter.toLowerCase()),
-    ]);
+    interface AddressRow {
+      address: string;
+      tokenBalances: Map<string, TokenBalances>;
+      totalSnapshot1: bigint;
+      totalSnapshot2: bigint;
+      totalAverage: bigint;
+      penalty: bigint;
+      bounty: bigint;
+      finalBalance: bigint;
+      isCheat: boolean;
+    }
 
-    for (const address of allAddresses) {
-      const balance = this.accountBalances.get(address);
-      const isReporter = this.reports.some(
-        (r) => r.reporter.toLowerCase() === address.toLowerCase()
+    let rows: AddressRow[] = [];
+
+    // Get all unique addresses and process each one
+    const allAddresses = new Set<string>();
+    for (const report of this.reports) {
+      allAddresses.add(report.reporter.toLowerCase());
+    }
+    for (const token of CYTOKENS) {
+      const accountBalances = this.accountBalancesPerToken.get(
+        token.address.toLowerCase()
       );
-
-      // Skip if not a reporter and has no balance
-      if (!balance && !isReporter) continue;
-      if (balance && balance.currentNetBalance === 0n && !isReporter) continue;
-
-      const avgBalance = balance
-        ? (balance.netBalanceAtSnapshot1 + balance.netBalanceAtSnapshot2) / 2n
-        : 0n;
-
-      const isBlocklisted = this.blocklist.includes(address.toLowerCase());
-
-      // Calculate bounty if this address is a reporter
-      const bounty = this.reports
-        .filter(
-          (report) => report.reporter.toLowerCase() === address.toLowerCase()
-        )
-        .reduce((sum, report) => {
-          const reportedBalance = this.accountBalances.get(report.cheater);
-          if (!reportedBalance) return sum;
-          const reportedAvgBalance =
-            (reportedBalance.netBalanceAtSnapshot1 +
-              reportedBalance.netBalanceAtSnapshot2) /
-            2n;
-          return sum + reportedAvgBalance / 10n;
-        }, 0n);
-
-      // Only include if there's a bounty or a real balance
-      if (bounty > 0n || (balance && balance.currentNetBalance > 0n)) {
-        addresses.push(address);
-        snapshot1Balances.push(balance ? balance.netBalanceAtSnapshot1 : 0n);
-        snapshot2Balances.push(balance ? balance.netBalanceAtSnapshot2 : 0n);
-        averageBalances.push(avgBalance);
-        penalties.push(isBlocklisted ? avgBalance : 0n);
-        bounties.push(bounty);
-        finalBalances.push(
-          avgBalance - (isBlocklisted ? avgBalance : 0n) + bounty
-        );
+      if (!accountBalances) continue;
+      for (const [address] of accountBalances) {
+        allAddresses.add(address);
       }
     }
 
-    // Sort by final balance (highest to lowest)
-    const sortedIndices = finalBalances
-      .map((_, i) => i)
-      .sort((a, b) => {
-        if (finalBalances[b] > finalBalances[a]) return 1;
-        if (finalBalances[b] < finalBalances[a]) return -1;
-        return 0;
+    // First pass - calculate base balances and penalties
+    for (const address of allAddresses) {
+      const tokenBalances = new Map<string, TokenBalances>();
+      let totalSnapshot1 = 0n;
+      let totalSnapshot2 = 0n;
+      let hasPositiveBalance = false;
+
+      // Calculate balances for each token
+      for (const token of CYTOKENS) {
+        const accountBalances = this.accountBalancesPerToken.get(
+          token.address.toLowerCase()
+        );
+        if (!accountBalances) continue;
+
+        const balance = accountBalances.get(address);
+        const snapshot1 = balance?.netBalanceAtSnapshot1 || 0n;
+        const snapshot2 = balance?.netBalanceAtSnapshot2 || 0n;
+        const average = (snapshot1 + snapshot2) / 2n;
+
+        tokenBalances.set(token.address.toLowerCase(), {
+          snapshot1,
+          snapshot2,
+          average,
+        });
+
+        if (snapshot1 > 0n) {
+          totalSnapshot1 += snapshot1;
+          hasPositiveBalance = true;
+        }
+        if (snapshot2 > 0n) {
+          totalSnapshot2 += snapshot2;
+          hasPositiveBalance = true;
+        }
+      }
+
+      const isCheater = this.reports.some(
+        (r) => r.cheater.toLowerCase() === address.toLowerCase()
+      );
+      const totalAverage = (totalSnapshot1 + totalSnapshot2) / 2n;
+      const penalty = isCheater ? totalAverage : 0n;
+
+      rows.push({
+        address,
+        tokenBalances,
+        totalSnapshot1,
+        totalSnapshot2,
+        totalAverage,
+        penalty,
+        bounty: 0n,
+        finalBalance: 0n,
+        isCheat: isCheater,
       });
+    }
+
+    // Second pass - calculate bounties based on penalties
+    for (const report of this.reports) {
+      const cheaterRow = rows.find(
+        (row) => row.address.toLowerCase() === report.cheater.toLowerCase()
+      );
+      if (!cheaterRow) continue;
+
+      const reporterRow = rows.find(
+        (row) => row.address.toLowerCase() === report.reporter.toLowerCase()
+      );
+      if (!reporterRow) continue;
+
+      // Add 10% of cheater's penalty to reporter's bounty
+      reporterRow.bounty += cheaterRow.penalty / 10n;
+    }
+
+    // Final pass - calculate final balances
+    for (const row of rows) {
+      row.finalBalance = row.totalAverage - row.penalty + row.bounty;
+    }
+
+    // Sort rows by final balance and remove zero balances
+    rows.sort((a, b) => (b.finalBalance > a.finalBalance ? 1 : -1));
+    rows = rows.filter((row) => row.finalBalance > 0n || row.isCheat);
+
+    // Convert back to expected return format
+    for (const token of CYTOKENS) {
+      balancesByToken.set(
+        token.address.toLowerCase(),
+        rows.map((row) => row.tokenBalances.get(token.address.toLowerCase())!)
+      );
+    }
 
     return {
-      addresses: sortedIndices.map((i) => addresses[i]),
-      snapshot1Balances: sortedIndices.map((i) => snapshot1Balances[i]),
-      snapshot2Balances: sortedIndices.map((i) => snapshot2Balances[i]),
-      averageBalances: sortedIndices.map((i) => averageBalances[i]),
-      penalties: sortedIndices.map((i) => penalties[i]),
-      bounties: sortedIndices.map((i) => bounties[i]),
-      finalBalances: sortedIndices.map((i) => finalBalances[i]),
+      addresses: rows.map((row) => row.address),
+      balancesByToken,
+      totalSnapshot1Balances: rows.map((row) => row.totalSnapshot1),
+      totalSnapshot2Balances: rows.map((row) => row.totalSnapshot2),
+      totalAverageBalances: rows.map((row) => row.totalAverage),
+      penalties: rows.map((row) => row.penalty),
+      bounties: rows.map((row) => row.bounty),
+      finalBalances: rows.map((row) => row.finalBalance),
     };
   }
 
@@ -370,38 +337,5 @@ export class Processor {
     });
 
     return { addresses, rewards };
-  }
-
-  async generateAccountSummaries(reports: Report[]): Promise<AccountSummary[]> {
-    const balances = await this.getEligibleBalances();
-    const penaltiesAndBounties = this.calculatePenaltiesAndBounties(reports);
-
-    return balances.addresses.map((address: string, i: number) => ({
-      address,
-      balanceAtSnapshot1: balances.snapshot1Balances[i].toString(),
-      balanceAtSnapshot2: balances.snapshot2Balances[i].toString(),
-      averageBalance: balances.averageBalances[i].toString(),
-      penalty: balances.penalties[i].toString(),
-      bounty: penaltiesAndBounties.get(address)?.bounty.toString() || "0",
-      finalBalance: balances.finalBalances[i].toString(),
-      reports: {
-        asReporter:
-          penaltiesAndBounties.get(address)?.reportsMade.map((r) => ({
-            cheater: r.cheater,
-            penalizedAmount: r.penalizedAmount.toString(),
-            bountyAwarded: r.bountyAwarded.toString(),
-          })) || [],
-        asCheater:
-          penaltiesAndBounties.get(address)?.reportsReceived.map((r) => ({
-            reporter: r.reporter,
-            penalizedAmount: r.penalizedAmount.toString(),
-            bountyAwarded: r.bountyAwarded.toString(),
-          })) || [],
-      },
-      transfers: this.accountTransfers.get(address) || {
-        transfersIn: [],
-        transfersOut: [],
-      },
-    }));
   }
 }

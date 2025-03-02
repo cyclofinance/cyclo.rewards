@@ -4,6 +4,7 @@ export interface Transfer {
   value: string;
   blockNumber: number;
   timestamp: number;
+  tokenAddress: string;
 }
 
 export interface TransferDetail {
@@ -47,11 +48,18 @@ export interface AccountSummary {
   transfers: AccountTransfers;
 }
 
+export interface TokenBalances {
+  snapshot1: bigint;
+  snapshot2: bigint;
+  average: bigint;
+}
+
 export interface EligibleBalances {
   addresses: string[];
-  snapshot1Balances: bigint[];
-  snapshot2Balances: bigint[];
-  averageBalances: bigint[];
+  balancesByToken: Map<string, TokenBalances[]>; // token address -> array of balances (one per address)
+  totalSnapshot1Balances: bigint[];
+  totalSnapshot2Balances: bigint[];
+  totalAverageBalances: bigint[];
   penalties: bigint[];
   bounties: bigint[];
   finalBalances: bigint[];
