@@ -1,7 +1,7 @@
-import { createPublicClient, http } from "viem";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
+import { CYTOKENS } from "./config.js";
 
 // Load environment variables
 config();
@@ -46,18 +46,9 @@ async function main() {
     });
   console.log(`Found ${reports.length} reports`);
 
-  // Get just the blocklisted addresses for the processor
-  const blocklist = reports.map((report) => report.cheater);
-  console.log(`Found ${blocklist.length} unique blocklisted addresses`);
-
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
-  const processor = new Processor(
-    SNAPSHOT_BLOCK_1,
-    SNAPSHOT_BLOCK_2,
-    blocklist,
-    reports
-  );
+  const processor = new Processor(SNAPSHOT_BLOCK_1, SNAPSHOT_BLOCK_2, reports);
 
   // Process transfers
   console.log(`Processing ${transfers.length} transfers...`);
@@ -76,16 +67,16 @@ async function main() {
   const balances = await processor.getEligibleBalances();
 
   // Calculate totals
-  const totalSnapshot1 = balances.snapshot1Balances.reduce(
-    (sum, bal) => sum + bal,
+  const totalSnapshot1 = balances.totalSnapshot1Balances.reduce(
+    (sum: bigint, bal: bigint) => sum + bal,
     0n
   );
-  const totalSnapshot2 = balances.snapshot2Balances.reduce(
-    (sum, bal) => sum + bal,
+  const totalSnapshot2 = balances.totalSnapshot2Balances.reduce(
+    (sum: bigint, bal: bigint) => sum + bal,
     0n
   );
-  const totalAverage = balances.averageBalances.reduce(
-    (sum, bal) => sum + bal,
+  const totalAverage = balances.totalAverageBalances.reduce(
+    (sum: bigint, bal: bigint) => sum + bal,
     0n
   );
   const totalPenalties = balances.penalties.reduce(
@@ -102,6 +93,21 @@ async function main() {
   console.log(`Snapshot 1 Total: ${totalSnapshot1.toString()}`);
   console.log(`Snapshot 2 Total: ${totalSnapshot2.toString()}`);
   console.log(`Average Total: ${totalAverage.toString()}`);
+
+  // Add per-token balance logging
+  for (const token of CYTOKENS) {
+    const tokenBalances = balances.balancesByToken.get(
+      token.address.toLowerCase()
+    );
+    if (!tokenBalances) continue;
+
+    const tokenTotal = tokenBalances.reduce(
+      (sum, bal) => sum + bal.average,
+      0n
+    );
+    console.log(`${token.name} Average Total: ${tokenTotal.toString()}`);
+  }
+
   console.log(`Total Penalties: ${totalPenalties.toString()}`);
   console.log(`Total Bounties: ${totalBounties.toString()}`);
   console.log(`Final Total: ${totalFinal.toString()}`);
@@ -114,23 +120,40 @@ async function main() {
     }`
   );
 
-  // Write balances
+  // Write balances with per-token data
   console.log("Writing balances...");
+  const tokenColumns = CYTOKENS.map(
+    (token) =>
+      `${token.name}_snapshot1,${token.name}_snapshot2,${token.name}_average`
+  ).join(",");
+
   const balancesOutput = [
-    "address,balance_snapshot1,balance_snapshot2,average_balance,penalty,bounty,final_balance",
+    `address,${tokenColumns},total_snapshot1,total_snapshot2,total_average,penalty,bounty,final_balance`,
   ];
+
   for (let i = 0; i < balances.addresses.length; i++) {
+    const tokenValues = CYTOKENS.map((token) => {
+      const tokenBalance = balances.balancesByToken.get(
+        token.address.toLowerCase()
+      )![i];
+      return `${tokenBalance.snapshot1},${tokenBalance.snapshot2},${tokenBalance.average}`;
+    }).join(",");
+
     balancesOutput.push(
       `${balances.addresses[i]},` +
-        `${balances.snapshot1Balances[i]},` +
-        `${balances.snapshot2Balances[i]},` +
-        `${balances.averageBalances[i]},` +
+        `${tokenValues},` +
+        `${balances.totalSnapshot1Balances[i]},` +
+        `${balances.totalSnapshot2Balances[i]},` +
+        `${balances.totalAverageBalances[i]},` +
         `${balances.penalties[i]},` +
         `${balances.bounties[i]},` +
         `${balances.finalBalances[i]}`
     );
   }
-  await writeFile("output/balances-" + SNAPSHOT_BLOCK_1 + "-" + SNAPSHOT_BLOCK_2 + ".csv", balancesOutput.join("\n"));
+  await writeFile(
+    "output/balances-" + SNAPSHOT_BLOCK_1 + "-" + SNAPSHOT_BLOCK_2 + ".csv",
+    balancesOutput.join("\n")
+  );
   console.log(
     `Wrote ${balances.addresses.length} balances to output/balances.csv`
   );
@@ -138,11 +161,16 @@ async function main() {
   // Calculate and write rewards
   console.log("Calculating rewards...");
   const { addresses, rewards } = await processor.calculateRewards(REWARD_POOL);
-  const rewardsOutput = [REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD];
+  const rewardsOutput = [
+    REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD,
+  ];
   for (let i = 0; i < addresses.length; i++) {
     rewardsOutput.push(`${addresses[i]},${rewards[i]}`);
   }
-  await writeFile("output/rewards-" + SNAPSHOT_BLOCK_1 + "-" + SNAPSHOT_BLOCK_2 + ".csv", rewardsOutput.join("\n"));
+  await writeFile(
+    "output/rewards-" + SNAPSHOT_BLOCK_1 + "-" + SNAPSHOT_BLOCK_2 + ".csv",
+    rewardsOutput.join("\n")
+  );
   console.log(`Wrote ${addresses.length} rewards to output/rewards.csv`);
 
   // Verify total rewards equals reward pool

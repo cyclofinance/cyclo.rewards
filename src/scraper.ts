@@ -3,11 +3,12 @@ import { writeFile } from "fs/promises";
 import { Transfer } from "./types";
 
 const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.25/gn";
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.28/gn";
 const BATCH_SIZE = 1000;
 
 interface SubgraphTransfer {
   id: string;
+  tokenAddress: string;
   from: { id: string };
   to: { id: string };
   value: string;
@@ -33,6 +34,7 @@ async function main() {
           orderDirection: asc
         ) {
           id
+          tokenAddress
           from {
             id
           }
@@ -56,6 +58,7 @@ async function main() {
     );
 
     const batchTransfers = response.transfers.map((t) => ({
+      tokenAddress: t.tokenAddress,
       from: t.from.id,
       to: t.to.id,
       value: t.value,
