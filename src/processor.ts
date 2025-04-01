@@ -12,19 +12,10 @@ import {
   EligibleBalances,
   AccountTransfers,
   TokenBalances,
+  RewardsPerToken,
+  CyToken,
 } from "./types";
-
-interface TransferDetail {
-  value: string;
-  fromIsApprovedSource: boolean;
-}
-
-interface AccountData {
-  id: string;
-  netBalance: string;
-  transfersIn: TransferDetail[];
-  transfersOut: { value: string }[];
-}
+import { ONE } from "./constants";
 
 export class Processor {
   private approvedSourceCache = new Map<string, boolean>();
@@ -34,7 +25,6 @@ export class Processor {
   >();
   private accountTransfers = new Map<string, AccountTransfers>();
   private client;
-  private reportsList: { reporter: string; cheater: string }[];
 
   constructor(
     private snapshot1: number,
@@ -42,7 +32,6 @@ export class Processor {
     private reports: { reporter: string; cheater: string }[] = [],
     client?: any
   ) {
-    this.reportsList = reports;
     this.client =
       client ||
       createPublicClient({
@@ -185,28 +174,8 @@ export class Processor {
     accountBalances.set(transfer.from, fromBalance);
   }
 
-  async getEligibleBalances(): Promise<EligibleBalances> {
-    const balancesByToken = new Map<string, TokenBalances[]>();
-    // Initialize balancesByToken map
-    for (const token of CYTOKENS) {
-      balancesByToken.set(token.address.toLowerCase(), []);
-    }
-
-    interface AddressRow {
-      address: string;
-      tokenBalances: Map<string, TokenBalances>;
-      totalSnapshot1: bigint;
-      totalSnapshot2: bigint;
-      totalAverage: bigint;
-      penalty: bigint;
-      bounty: bigint;
-      finalBalance: bigint;
-      isCheat: boolean;
-    }
-
-    let rows: AddressRow[] = [];
-
-    // Get all unique addresses and process each one
+  async getUniqueAddresses(): Promise<Set<string>> {
+    // Get all unique addresses, include reporters as they may have no balance from transfers
     const allAddresses = new Set<string>();
     for (const report of this.reports) {
       allAddresses.add(report.reporter.toLowerCase());
@@ -220,122 +189,183 @@ export class Processor {
         allAddresses.add(address);
       }
     }
+    return allAddresses;
+  }
 
-    // First pass - calculate base balances and penalties
-    for (const address of allAddresses) {
-      const tokenBalances = new Map<string, TokenBalances>();
-      let totalSnapshot1 = 0n;
-      let totalSnapshot2 = 0n;
-      let hasPositiveBalance = false;
+  async getEligibleBalances(): Promise<EligibleBalances> {
+    const allAddresses = await this.getUniqueAddresses();
 
-      // Calculate balances for each token
-      for (const token of CYTOKENS) {
+    const tokenBalances = new Map<string, Map<string, TokenBalances>>();
+
+    for (const token of CYTOKENS) {
+      // First pass - calculate base balances and penalties
+      const userBalances = new Map<string, TokenBalances>();
+
+      for (const address of allAddresses) {
+        // Calculate balances for each token
         const accountBalances = this.accountBalancesPerToken.get(
           token.address.toLowerCase()
         );
         if (!accountBalances) continue;
 
-        const balance = accountBalances.get(address);
+        const balance = accountBalances.get(address.toLowerCase());
         const snapshot1 = balance?.netBalanceAtSnapshot1 || 0n;
         const snapshot2 = balance?.netBalanceAtSnapshot2 || 0n;
         const average = (snapshot1 + snapshot2) / 2n;
 
-        tokenBalances.set(token.address.toLowerCase(), {
+        userBalances.set(address, {
           snapshot1,
           snapshot2,
           average,
+          penalty: 0n,
+          bounty: 0n,
+          final: 0n,
         });
-
-        if (snapshot1 > 0n) {
-          totalSnapshot1 += snapshot1;
-          hasPositiveBalance = true;
-        }
-        if (snapshot2 > 0n) {
-          totalSnapshot2 += snapshot2;
-          hasPositiveBalance = true;
-        }
       }
 
-      const isCheater = this.reports.some(
-        (r) => r.cheater.toLowerCase() === address.toLowerCase()
-      );
-      const totalAverage = (totalSnapshot1 + totalSnapshot2) / 2n;
-      const penalty = isCheater ? totalAverage : 0n;
-
-      rows.push({
-        address,
-        tokenBalances,
-        totalSnapshot1,
-        totalSnapshot2,
-        totalAverage,
-        penalty,
-        bounty: 0n,
-        finalBalance: 0n,
-        isCheat: isCheater,
-      });
+      tokenBalances.set(token.address.toLowerCase(), userBalances);
     }
 
     // Second pass - calculate bounties based on penalties
-    for (const report of this.reports) {
-      const cheaterRow = rows.find(
-        (row) => row.address.toLowerCase() === report.cheater.toLowerCase()
-      );
-      if (!cheaterRow) continue;
-
-      const reporterRow = rows.find(
-        (row) => row.address.toLowerCase() === report.reporter.toLowerCase()
-      );
-      if (!reporterRow) continue;
-
-      // Add 10% of cheater's penalty to reporter's bounty
-      reporterRow.bounty += cheaterRow.penalty / 10n;
-    }
-
-    // Final pass - calculate final balances
-    for (const row of rows) {
-      row.finalBalance = row.totalAverage - row.penalty + row.bounty;
-    }
-
-    // Sort rows by final balance and remove zero balances
-    rows.sort((a, b) => (b.finalBalance > a.finalBalance ? 1 : -1));
-    rows = rows.filter((row) => row.finalBalance > 0n || row.isCheat);
-
-    // Convert back to expected return format
     for (const token of CYTOKENS) {
-      balancesByToken.set(
-        token.address.toLowerCase(),
-        rows.map((row) => row.tokenBalances.get(token.address.toLowerCase())!)
-      );
+      for (const report of this.reports) {
+        const userBalances = tokenBalances.get(token.address.toLowerCase());
+        if (!userBalances) continue;
+
+        const cheater = report.cheater.toLowerCase();
+        const reporter = report.reporter.toLowerCase();
+
+        const cheaterBalance = userBalances.get(cheater);
+        const reporterBalance = userBalances.get(reporter);
+
+        if (!cheaterBalance || reporterBalance === undefined) continue;
+
+        const penalty = cheaterBalance.average;
+        const bounty = (penalty * 10n) / 100n;
+
+        cheaterBalance.penalty += penalty;
+        reporterBalance.bounty += bounty;
+      }
     }
 
-    return {
-      addresses: rows.map((row) => row.address),
-      balancesByToken,
-      totalSnapshot1Balances: rows.map((row) => row.totalSnapshot1),
-      totalSnapshot2Balances: rows.map((row) => row.totalSnapshot2),
-      totalAverageBalances: rows.map((row) => row.totalAverage),
-      penalties: rows.map((row) => row.penalty),
-      bounties: rows.map((row) => row.bounty),
-      finalBalances: rows.map((row) => row.finalBalance),
-    };
+    // Third pass - calculate final balances
+    for (const token of CYTOKENS) {
+      const userBalances = tokenBalances.get(token.address.toLowerCase());
+      if (!userBalances) continue;
+
+      for (const address of allAddresses) {
+        const balance = userBalances.get(address);
+        if (!balance) continue;
+
+        balance.final = balance.average - balance.penalty + balance.bounty;
+      }
+    }
+
+    return tokenBalances;
   }
 
-  async calculateRewards(
-    rewardPool: bigint
-  ): Promise<{ addresses: string[]; rewards: bigint[] }> {
-    const { addresses, finalBalances } = await this.getEligibleBalances();
+  calculateTotalEligibleBalances(
+    balances: EligibleBalances
+  ): Map<string, bigint> {
+    // Calculate total of all final balances per token (after penalties)
+    const totalBalances = new Map<string, bigint>();
+    for (const token of CYTOKENS) {
+      const tokenBalances = balances.get(token.address.toLowerCase());
+      if (!tokenBalances) continue;
+      const totalBalance = Array.from(tokenBalances.values()).reduce(
+        (acc, balance) => acc + balance.final,
+        0n
+      );
+      totalBalances.set(token.address.toLowerCase(), totalBalance);
+    }
+    return totalBalances;
+  }
 
-    // Calculate total of all final balances (after penalties)
-    const totalBalance = finalBalances.reduce(
-      (sum, balance) => sum + balance,
+  getTokensWithBalance(balances: EligibleBalances): CyToken[] {
+    const tokensWithBalance: CyToken[] = [];
+    const totalBalances = this.calculateTotalEligibleBalances(balances);
+    for (const token of CYTOKENS) {
+      if (totalBalances.get(token.address.toLowerCase())! > 0n) {
+        tokensWithBalance.push(token);
+      }
+    }
+    return tokensWithBalance;
+  }
+
+  calculateRewardsPoolsPertoken(
+    balances: EligibleBalances,
+    rewardPool: bigint
+  ): Map<string, bigint> {
+    const totalBalances = this.calculateTotalEligibleBalances(balances);
+
+    // we only want to calculate rewards for tokens that have a balance
+    const tokensWithBalance = this.getTokensWithBalance(balances);
+
+    const sumOfAllBalances = Array.from(totalBalances.values()).reduce(
+      (acc, balance) => acc + balance,
       0n
     );
 
-    // Calculate each address's share of the reward pool
-    const rewards = finalBalances.map((balance) => {
-      return (balance * rewardPool) / totalBalance;
-    });
+    // Calculate the inverse fractions for each token
+    const tokenInverseFractions = new Map<string, bigint>();
+    for (const token of tokensWithBalance) {
+      const tokenInverseFraction =
+        (sumOfAllBalances * ONE) /
+        totalBalances.get(token.address.toLowerCase())!;
+      tokenInverseFractions.set(
+        token.address.toLowerCase(),
+        tokenInverseFraction
+      );
+    }
 
-    return { addresses, rewards };
+    // Sum of all inverse fractions
+    const sumOfInverseFractions = Array.from(
+      tokenInverseFractions.values()
+    ).reduce((acc, inverseFraction) => acc + inverseFraction, 0n);
+
+    // Calculate each token's share of the reward pool
+    const totalRewardsPerToken = new Map<string, bigint>();
+    for (const token of tokensWithBalance) {
+      const tokenInverseFraction = tokenInverseFractions.get(
+        token.address.toLowerCase()
+      )!;
+      const tokenReward =
+        (tokenInverseFraction * rewardPool) / sumOfInverseFractions;
+      console.log(`Total rewards for ${token.name}: ${tokenReward}`);
+      totalRewardsPerToken.set(token.address.toLowerCase(), tokenReward);
+    }
+
+    return totalRewardsPerToken;
+  }
+
+  async calculateRewards(rewardPool: bigint): Promise<RewardsPerToken> {
+    const balances = await this.getEligibleBalances();
+
+    const totalRewardsPerToken = this.calculateRewardsPoolsPertoken(
+      balances,
+      rewardPool
+    );
+
+    const totalBalances = this.calculateTotalEligibleBalances(balances);
+
+    const tokensWithBalance = this.getTokensWithBalance(balances);
+    // Calculate each address's share of the rewards
+    const rewards = new Map<string, Map<string, bigint>>();
+    for (const token of tokensWithBalance) {
+      const tokenBalances = balances.get(token.address.toLowerCase());
+      if (!tokenBalances) continue;
+
+      const tokenRewards = new Map<string, bigint>();
+      for (const [address, balance] of tokenBalances) {
+        const reward =
+          (balance.final *
+            totalRewardsPerToken.get(token.address.toLowerCase())!) /
+          totalBalances.get(token.address.toLowerCase())!;
+        tokenRewards.set(address, reward);
+      }
+      rewards.set(token.address.toLowerCase(), tokenRewards);
+    }
+
+    return rewards;
   }
 }
