@@ -72,19 +72,23 @@ async function main() {
     const tokenBalances = balances.get(token.address.toLowerCase());
     if (!tokenBalances) continue;
 
-    const totalAverage = tokenBalances
-      .values()
-      .reduce((sum, bal) => sum + bal.average, 0n);
+    const totalAverage = Array.from(tokenBalances.values()).reduce(
+      (sum, bal) => sum + bal.average,
+      0n
+    );
 
-    const totalPenalties = tokenBalances
-      .values()
-      .reduce((sum, bal) => sum + bal.penalty, 0n);
-    const totalBounties = tokenBalances
-      .values()
-      .reduce((sum, bal) => sum + bal.bounty, 0n);
-    const totalFinal = tokenBalances
-      .values()
-      .reduce((sum, bal) => sum + bal.final, 0n);
+    const totalPenalties = Array.from(tokenBalances.values()).reduce(
+      (sum, bal) => sum + bal.penalty,
+      0n
+    );
+    const totalBounties = Array.from(tokenBalances.values()).reduce(
+      (sum, bal) => sum + bal.bounty,
+      0n
+    );
+    const totalFinal = Array.from(tokenBalances.values()).reduce(
+      (sum, bal) => sum + bal.final,
+      0n
+    );
 
     console.log(
       `Note: Final Total for ${token.name} should equal Average Total - Penalties + Bounties`
