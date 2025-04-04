@@ -45,7 +45,7 @@ export class Processor {
     }
   }
 
-  async isApprovedSource(source: string): Promise<boolean> {
+  async isApprovedSource(source: string, retries = 8): Promise<boolean> {
     // Check cache first
     if (this.approvedSourceCache.has(source.toLowerCase())) {
       return this.approvedSourceCache.get(source.toLowerCase())!;
@@ -58,28 +58,55 @@ export class Processor {
     }
 
     // Check factory sources
-    try {
-      const factory = (await this.client.readContract({
-        address: source as Address,
-        abi: [
-          {
-            name: "factory",
-            type: "function",
-            stateMutability: "view",
-            inputs: [],
-            outputs: [{ type: "address" }],
-          },
-        ],
-        functionName: "factory",
-      })) as Address;
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const factory = (await this.client.readContract({
+          address: source as Address,
+          abi: [
+            {
+              name: "factory",
+              type: "function",
+              stateMutability: "view",
+              inputs: [],
+              outputs: [{ type: "address" }],
+            },
+          ],
+          functionName: "factory",
+        })) as Address;
 
-      const isApproved = FACTORIES.some((addr) => isSameAddress(addr, factory));
-      this.approvedSourceCache.set(source.toLowerCase(), isApproved);
-      return isApproved;
-    } catch {
-      this.approvedSourceCache.set(source.toLowerCase(), false);
-      return false;
+        const isApproved = FACTORIES.some((addr) =>
+          isSameAddress(addr, factory)
+        );
+        this.approvedSourceCache.set(source.toLowerCase(), isApproved);
+        return isApproved;
+      } catch (e: any) {
+        // Check if this is a "no data returned" error (contract doesn't have factory function)
+        if (
+          e.shortMessage &&
+          (e.shortMessage.includes('returned no data ("0x")') ||
+            e.shortMessage.includes("reverted") ||
+            e.shortMessage.includes("invalid parameters"))
+        ) {
+          this.approvedSourceCache.set(source.toLowerCase(), false);
+          return false;
+        }
+
+        // For other errors (like rate limits), retry if we have attempts left
+        if (attempt < retries - 1) {
+          // Add exponential backoff
+          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s, etc.
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+
+        // If we've exhausted all retries, log and return false
+        console.log(`Failed to check factory after ${retries} attempts:`, e);
+        this.approvedSourceCache.set(source.toLowerCase(), false);
+        return false;
+      }
     }
+
+    return false;
   }
 
   async processTransfer(transfer: Transfer) {
