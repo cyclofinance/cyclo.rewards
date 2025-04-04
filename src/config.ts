@@ -1,3 +1,5 @@
+import { CyToken } from "./types";
+
 export const REWARDS_SOURCES = [
   "0xCEe8Cd002F151A536394E564b84076c41bBBcD4d", // orderbook
   "0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3", // Sparkdex Universal Router
@@ -9,7 +11,7 @@ export const FACTORIES = [
   "0x440602f459D7Dd500a74528003e6A20A46d6e2A6", // Blazeswap
 ];
 
-export const CYTOKENS = [
+export const CYTOKENS: CyToken[] = [
   {
     name: "cysFLR",
     address: "0x19831cfB53A0dbeAD9866C43557C1D48DfF76567",
@@ -28,7 +30,6 @@ export const CYTOKENS = [
 
 export const RPC_URL = "https://flare-api.flare.network/ext/C/rpc";
 
-// Let's add case-insensitive comparison
 export function isSameAddress(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
 }

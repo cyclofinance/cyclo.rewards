@@ -46,19 +46,20 @@ describe("Processor", () => {
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
-      expect(balances.addresses).toContain(NORMAL_USER_1);
-      const index = balances.addresses.indexOf(NORMAL_USER_1);
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .snapshot1
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+      ).toBeDefined();
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.snapshot1
       ).toBe(ONEn);
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .snapshot2
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.snapshot2
       ).toBe(ONEn);
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .average
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.average
       ).toBe(ONEn);
     });
 
@@ -74,7 +75,11 @@ describe("Processor", () => {
 
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
-      expect(balances.addresses).toHaveLength(0);
+
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.average
+      ).toBe(0n);
     });
   });
 
@@ -92,14 +97,13 @@ describe("Processor", () => {
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
-      const index = balances.addresses.indexOf(NORMAL_USER_1);
+      const index = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_1)?.snapshot1;
+      expect(index).toBe(ONEn);
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .snapshot1
-      ).toBe(ONEn);
-      expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .snapshot2
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.snapshot2
       ).toBe(ONEn);
     });
 
@@ -116,14 +120,15 @@ describe("Processor", () => {
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
-      const index = balances.addresses.indexOf(NORMAL_USER_1);
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .snapshot1
+        balances
+          .get(CYTOKENS[0].address.toLowerCase())
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot1
       ).toBe(0n);
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .snapshot2
+        balances
+          .get(CYTOKENS[0].address.toLowerCase())
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot2
       ).toBe(ONEn);
     });
 
@@ -140,13 +145,17 @@ describe("Processor", () => {
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
-      const index = balances.addresses.indexOf(NORMAL_USER_1);
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-      ).toBeUndefined();
+        balances
+          .get(CYTOKENS[0].address.toLowerCase())
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot1
+      ).toBe(0n);
+
       expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-      ).toBeUndefined();
+        balances
+          .get(CYTOKENS[0].address.toLowerCase())
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot2
+      ).toBe(0n);
     });
   });
 
@@ -170,14 +179,19 @@ describe("Processor", () => {
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
-      const index = balances.addresses.indexOf(NORMAL_USER_2);
-      expect(index).not.toBe(-1);
-      expect(
-        balances.balancesByToken.get(CYTOKENS[0].address.toLowerCase())?.[index]
-          .average
-      ).toBe(ONEn);
-      expect(balances.penalties[index]).toBe(ONEn);
-      expect(balances.finalBalances[index]).toBe(0n);
+      const index = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2)?.average;
+      expect(index).not.toBe(0n);
+      expect(index).toBe(ONEn);
+      const penalty = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2)?.penalty;
+      expect(penalty).toBe(ONEn);
+      const final = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2)?.final;
+      expect(final).toBe(0n);
     });
   });
 
@@ -221,18 +235,30 @@ describe("Processor", () => {
 
       const balances = await processor.getEligibleBalances();
 
-      const reporterIndex = balances.addresses.indexOf(NORMAL_USER_1);
-      const cheaterIndex = balances.addresses.indexOf(NORMAL_USER_2);
+      const reporterBounty = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_1)?.bounty;
+      const cheaterPenalty = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2)?.penalty;
 
-      expect(balances.bounties[reporterIndex]).toBe(100000000000000000n); // 10% bounty
-      expect(balances.penalties[cheaterIndex]).toBe(ONEn); // Full penalty
-      expect(balances.finalBalances[cheaterIndex]).toBe(0n);
-      expect(balances.finalBalances[reporterIndex]).toBe(1100000000000000000n); // Original balance + bounty
+      expect(reporterBounty).toBe(ONEn / 10n); // 10% bounty
+      expect(cheaterPenalty).toBe(ONEn); // Full penalty
+
+      const final = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2)?.final;
+      expect(final).toBe(0n);
+
+      const reporterFinal = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_1)?.final;
+      expect(reporterFinal).toBe(ONEn + ONEn / 10n); // Original balance + bounty
     });
   });
 
   describe("Reward Calculation", () => {
-    it("should calculate rewards proportionally", async () => {
+    it("should calculate rewards proportionally for single token", async () => {
       // Setup two accounts with different balances
       const transfer1: Transfer = {
         from: APPROVED_SOURCE,
@@ -252,22 +278,35 @@ describe("Processor", () => {
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
+      // we need at least one transfer for the second token so we don't divide by 0 later
+      const transfer3: Transfer = {
+        from: NORMAL_USER_1,
+        to: NORMAL_USER_2,
+        value: "3000000000000000000", // 3 tokens
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[1].address.toLowerCase(),
+      };
+
       await processor.processTransfer(transfer1);
       await processor.processTransfer(transfer2);
+      await processor.processTransfer(transfer3);
 
       const rewardPool = ONEn; // 1 token reward pool
       const result = await processor.calculateRewards(rewardPool);
 
-      const user1Index = result.addresses.indexOf(NORMAL_USER_1);
-      const user2Index = result.addresses.indexOf(NORMAL_USER_2);
+      const user1Reward = result
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_1);
+      const user2Reward = result
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2);
 
-      expect(result.rewards[user1Index]).toBe(400000000000000000n); // 0.4 tokens
-      expect(result.rewards[user2Index]).toBe(600000000000000000n); // 0.6 tokens
+      expect(user1Reward).toBe(400000000000000000n); // 0.4 tokens
+      expect(user2Reward).toBe(600000000000000000n); // 0.6 tokens
 
       // Total should equal reward pool
-      expect(
-        result.rewards.reduce((sum: bigint, reward: bigint) => sum + reward, 0n)
-      ).toBe(rewardPool);
+      expect(user1Reward! + user2Reward!).toBe(rewardPool);
     });
 
     it("should treat negative balances as zero when calculating eligible amounts", async () => {
@@ -335,60 +374,81 @@ describe("Processor", () => {
       const rewardPool = 1_000_000n * ONEn; // 1m token reward pool
       const result = await processor.calculateRewards(rewardPool);
 
-      const user1Index = result.addresses.indexOf(NORMAL_USER_1);
-      const user2Index = result.addresses.indexOf(NORMAL_USER_2);
+      const user1Reward = result
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_1);
+      const user2Reward = result
+        .get(CYTOKENS[1].address.toLowerCase())
+        ?.get(NORMAL_USER_2);
 
       // Both users should be included in results
-      expect(user1Index).not.toBe(-1);
-      expect(user2Index).not.toBe(-1);
+      expect(user1Reward).not.toBeUndefined();
+      expect(user2Reward).not.toBeUndefined();
 
       // Check eligible balances
       const balances = await processor.getEligibleBalances();
       console.log("balances", balances);
-      expect(balances.addresses).toContain(NORMAL_USER_1);
-      expect(balances.addresses).toContain(NORMAL_USER_2);
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+      ).toBeDefined();
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_2)
+      ).toBeDefined();
 
       // Verify User 1 has 50 tokens in cyA and 0 in cyB (negative balance treated as 0)
-      const user1CyABalance = balances.balancesByToken.get(
-        CYTOKENS[0].address.toLowerCase()
-      )?.[balances.addresses.indexOf(NORMAL_USER_1)]?.average;
-      const user1CyBBalance = balances.balancesByToken.get(
-        CYTOKENS[1].address.toLowerCase()
-      )?.[balances.addresses.indexOf(NORMAL_USER_1)]?.average;
+      const user1CyABalance = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_1)?.average;
+      const user1CyBBalance = balances
+        .get(CYTOKENS[1].address.toLowerCase())
+        ?.get(NORMAL_USER_1)?.average;
       expect(user1CyABalance).toBe(50000000000000000000n);
       expect(user1CyBBalance).toBe(0n); // -30 treated as 0
 
       // Verify User 2 has 0 tokens in cyA (negative balance treated as 0) and 88 in cyB
-      const user2CyABalance = balances.balancesByToken.get(
-        CYTOKENS[0].address.toLowerCase()
-      )?.[balances.addresses.indexOf(NORMAL_USER_2)]?.average;
-      const user2CyBBalance = balances.balancesByToken.get(
-        CYTOKENS[1].address.toLowerCase()
-      )?.[balances.addresses.indexOf(NORMAL_USER_2)]?.average;
+      const user2CyABalance = balances
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2)?.average;
+      const user2CyBBalance = balances
+        .get(CYTOKENS[1].address.toLowerCase())
+        ?.get(NORMAL_USER_2)?.average;
       expect(user2CyABalance).toBe(0n); // -10 treated as 0
       expect(user2CyBBalance).toBe(88000000000000000000n);
 
       // Verify total balances
       expect(
-        balances.totalAverageBalances[balances.addresses.indexOf(NORMAL_USER_1)]
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.average
       ).toBe(50000000000000000000n);
       expect(
-        balances.totalAverageBalances[balances.addresses.indexOf(NORMAL_USER_2)]
+        balances.get(CYTOKENS[1].address.toLowerCase())?.get(NORMAL_USER_2)
+          ?.average
       ).toBe(88000000000000000000n);
 
-      // Calculate expected rewards based on the proportion of balances
-      const totalEligible = 50n + 88n; // 138 tokens
-      const expectedUser1Reward = (rewardPool * 50n) / totalEligible;
-      const expectedUser2Reward = (rewardPool * 88n) / totalEligible;
+      // Calculate the rewards pool for each token
+      const rewardsPools = processor.calculateRewardsPoolsPertoken(
+        balances,
+        rewardPool
+      );
+
+      console.log("rewardsPools", rewardsPools);
+
+      //
+      const expectedUser1Reward = rewardsPools.get(
+        CYTOKENS[0].address.toLowerCase()
+      )!;
+      const expectedUser2Reward = rewardsPools.get(
+        CYTOKENS[1].address.toLowerCase()
+      )!;
 
       // Check that rewards match expected values
-      expect(result.rewards[user1Index]).toBe(expectedUser1Reward);
-      expect(result.rewards[user2Index]).toBe(expectedUser2Reward);
+      expect(user1Reward).toBe(expectedUser1Reward);
+      expect(user2Reward).toBe(expectedUser2Reward);
 
       // Total should equal reward pool
-      expect(
-        result.rewards.reduce((sum: bigint, reward: bigint) => sum + reward, 0n)
-      ).toBeGreaterThanOrEqual(rewardPool - 10n);
+      expect(user1Reward! + user2Reward!).toBeGreaterThanOrEqual(
+        rewardPool - 10n
+      );
     });
   });
 
@@ -419,16 +479,18 @@ describe("Processor", () => {
       const rewardPool = ONEn; // 1 token reward pool
       const result = await processor.calculateRewards(rewardPool);
 
-      const user1Index = result.addresses.indexOf(NORMAL_USER_1);
-      const user2Index = result.addresses.indexOf(NORMAL_USER_2);
+      const user1Reward = result
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_1);
+      const user2Reward = result
+        .get(CYTOKENS[0].address.toLowerCase())
+        ?.get(NORMAL_USER_2);
 
-      expect(result.rewards[user1Index]).toBe(400000000000000000n); // 0.4 tokens
-      expect(result.rewards[user2Index]).toBe(600000000000000000n); // 0.6 tokens
+      expect(user1Reward).toBe(400000000000000000n); // 0.4 tokens
+      expect(user2Reward).toBe(600000000000000000n); // 0.6 tokens
 
       // Total should equal reward pool
-      expect(
-        result.rewards.reduce((sum: bigint, reward: bigint) => sum + reward, 0n)
-      ).toBe(rewardPool);
+      expect(user1Reward! + user2Reward!).toBe(rewardPool);
     });
   });
 });

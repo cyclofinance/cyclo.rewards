@@ -1,3 +1,11 @@
+export interface CyToken {
+  name: string;
+  address: string;
+  underlyingAddress: string;
+  underlyingSymbol: string;
+  receiptAddress: string;
+}
+
 export interface Transfer {
   from: string;
   to: string;
@@ -52,18 +60,14 @@ export interface TokenBalances {
   snapshot1: bigint;
   snapshot2: bigint;
   average: bigint;
+  penalty: bigint;
+  bounty: bigint;
+  final: bigint;
 }
 
-export interface EligibleBalances {
-  addresses: string[];
-  balancesByToken: Map<string, TokenBalances[]>; // token address -> array of balances (one per address)
-  totalSnapshot1Balances: bigint[];
-  totalSnapshot2Balances: bigint[];
-  totalAverageBalances: bigint[];
-  penalties: bigint[];
-  bounties: bigint[];
-  finalBalances: bigint[];
-}
+export type EligibleBalances = Map<string, Map<string, TokenBalances>>; // token address -> user address -> balances
+
+export type RewardsPerToken = Map<string, Map<string, bigint>>; // token address -> user address -> reward
 
 export interface TransferRecord {
   from: string;
