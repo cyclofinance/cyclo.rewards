@@ -11,7 +11,7 @@ const BATCH_SIZE = 1000;
 // ensure SNAPSHOT_BLOCK_2 env is set for deterministic transfers.dat,
 // as we will fetch transfers up until the end of the snapshot block numbers
 assert(process.env.SNAPSHOT_BLOCK_2, "undefined SNAPSHOT_BLOCK_2 env variable")
-const UNTIL_SNAPSHOT = parseInt(process.env.SNAPSHOT_BLOCK_2);
+const UNTIL_SNAPSHOT = parseInt(process.env.SNAPSHOT_BLOCK_2) + 1; // +1 just to make sure every tranfer is gathered
 
 interface SubgraphTransfer {
   id: string;
@@ -33,14 +33,14 @@ async function main() {
     console.log(`Fetching transfers batch starting at ${skip}`);
 
     const query = gql`
-      query getTransfers($skip: Int!, $first: Int!, $snapshot_block: Int!) {
+      query getTransfers($skip: Int!, $first: Int!, $untilSnapshot: Int!) {
         transfers(
           skip: $skip
           first: $first
           orderBy: blockNumber
           orderDirection: asc
           where: {
-            blockNumber_lte: $snapshot_block
+            blockNumber_lte: $untilSnapshot
           }
         ) {
           id
@@ -64,7 +64,7 @@ async function main() {
       {
         skip,
         first: BATCH_SIZE,
-        snapshot_block: UNTIL_SNAPSHOT,
+        untilSnapshot: UNTIL_SNAPSHOT,
       }
     );
 
