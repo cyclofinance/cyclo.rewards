@@ -1,10 +1,17 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { Transfer } from "./types";
+import { snapshot } from "viem/actions";
+import assert from "assert";
 
 const SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.28/gn";
 const BATCH_SIZE = 1000;
+
+// ensure SNAPSHOT_BLOCK_2 env is set for deterministic transfers.dat,
+// as we will fetch transfers up until the end of the snapshot block numbers
+assert(process.env.SNAPSHOT_BLOCK_2, "undefined SNAPSHOT_BLOCK_2 env variable")
+const UNTIL_SNAPSHOT = parseInt(process.env.SNAPSHOT_BLOCK_2) + 1; // +1 to make sure every transfer is gathered
 
 interface SubgraphTransfer {
   id: string;
@@ -26,12 +33,15 @@ async function main() {
     console.log(`Fetching transfers batch starting at ${skip}`);
 
     const query = gql`
-      query getTransfers($skip: Int!, $first: Int!) {
+      query getTransfers($skip: Int!, $first: Int!, $untilSnapshot: Int!) {
         transfers(
           skip: $skip
           first: $first
           orderBy: blockNumber
           orderDirection: asc
+          where: {
+            blockNumber_lte: $untilSnapshot
+          }
         ) {
           id
           tokenAddress
@@ -54,6 +64,7 @@ async function main() {
       {
         skip,
         first: BATCH_SIZE,
+        untilSnapshot: UNTIL_SNAPSHOT,
       }
     );
 
