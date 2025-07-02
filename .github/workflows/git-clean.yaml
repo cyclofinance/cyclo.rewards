@@ -30,7 +30,7 @@ jobs:
       - run: nix develop -c npm i
       - run: nix develop -c npm run start
         env:
-          SNAPSHOT_BLOCK_1: 41280134
-          SNAPSHOT_BLOCK_2: 41900134
+          SNAPSHOT_BLOCK_1: 43180134
+          SNAPSHOT_BLOCK_2: 43190134
       - run: git add .
       - run: git diff --exit-code --cached
