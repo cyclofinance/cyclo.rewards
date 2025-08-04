@@ -1,13 +1,16 @@
 import { CyToken } from "./types";
 
 export const REWARDS_SOURCES = [
-  "0xCEe8Cd002F151A536394E564b84076c41bBBcD4d", // orderbook
+  "0xcee8cd002f151a536394e564b84076c41bbbcd4d", // orderbook
   "0x0f3D8a38D4c74afBebc2c42695642f0e3acb15D3", // Sparkdex Universal Router
+  "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64", // OpenOcean Exchange Proxy
+  "0xeD85325119cCFc6aCB16FA931bAC6378B76e4615", // OpenOcean Exchange Impl
 ];
 
 export const FACTORIES = [
   "0x16b619B04c961E8f4F06C10B42FDAbb328980A89", // Sparkdex V2
-  "0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652", // Sparkdex V3
+  "0xb3fB4f96175f6f9D716c17744e5A6d4BA9da8176", // Sparkdex V3
+  "0x8A2578d23d4C532cC9A98FaD91C0523f5efDE652", // Sparkdex V3.1
   "0x440602f459D7Dd500a74528003e6A20A46d6e2A6", // Blazeswap
 ];
 
