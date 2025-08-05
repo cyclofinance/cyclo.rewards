@@ -7,7 +7,7 @@ import assert from "assert";
 config();
 
 const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.29/gn";
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.30/gn";
 const BATCH_SIZE = 1000;
 
 // ensure SNAPSHOT_BLOCK_2 env is set for deterministic transfers.dat,
