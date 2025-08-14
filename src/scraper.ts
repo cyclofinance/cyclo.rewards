@@ -1,11 +1,13 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { Transfer } from "./types";
-import { snapshot } from "viem/actions";
+import { config } from "dotenv";
 import assert from "assert";
 
+config();
+
 const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.28/gn";
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.30/gn";
 const BATCH_SIZE = 1000;
 
 // ensure SNAPSHOT_BLOCK_2 env is set for deterministic transfers.dat,
