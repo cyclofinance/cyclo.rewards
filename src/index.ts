@@ -31,6 +31,15 @@ async function main() {
     .map((line) => JSON.parse(line));
   console.log(`Found ${transfers.length} transfers`);
 
+  // Read liquidity file
+  console.log("Reading transfers file...");
+  const liquidityData = await readFile("data/liquidity.dat", "utf8");
+  const liquidities = liquidityData
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  console.log(`Found ${liquidities.length} liquidity changes`);
+
   // Read blocklist
   console.log("Reading blocklist...");
   const blocklistData = await readFile("data/blocklist.txt", "utf8");
@@ -59,6 +68,18 @@ async function main() {
 
     if (processedCount % 1000 === 0) {
       console.log(`Processed ${processedCount} transfers`);
+    }
+  }
+
+  // Process liquidity changes
+  console.log(`Processing ${liquidities.length} liquidity change events...`);
+  let liquidityProcessedCount = 0;
+  for (const liquidity of liquidities) {
+    await processor.processLiquidityChanges(liquidity);
+    liquidityProcessedCount++;
+
+    if (liquidityProcessedCount % 1000 === 0) {
+      console.log(`Processed ${liquidityProcessedCount} liquidity change events`);
     }
   }
 

@@ -14,6 +14,7 @@ import {
   TokenBalances,
   RewardsPerToken,
   CyToken,
+  LiquidityChange,
 } from "./types";
 import { ONE } from "./constants";
 
@@ -394,5 +395,44 @@ export class Processor {
     }
 
     return rewards;
+  }
+
+  async processLiquidityChanges(liquidityChange: LiquidityChange) {
+    // the value is positive if its deposit and negative if its
+    // withdraw or transfer out, so we do not need to apply +/-
+    const depositedBalanceChange = BigInt(liquidityChange.depositedBalanceChange);
+
+    const accountBalances = this.accountBalancesPerToken.get(
+      liquidityChange.tokenAddress
+    );
+
+    if (!accountBalances) {
+      throw new Error("No account balances found for token");
+    }
+
+    // Initialize balances if needed
+    if (!accountBalances.has(liquidityChange.owner)) {
+      accountBalances.set(liquidityChange.owner, {
+        transfersInFromApproved: 0n,
+        transfersOut: 0n,
+        netBalanceAtSnapshot1: 0n,
+        netBalanceAtSnapshot2: 0n,
+        currentNetBalance: 0n,
+      });
+    }
+
+    const ownerBalance = accountBalances.get(liquidityChange.owner)!;
+    ownerBalance.currentNetBalance += depositedBalanceChange; // include the liquidity change to the net balance
+    if (ownerBalance.currentNetBalance < 0n) ownerBalance.currentNetBalance = 0n;
+
+    // Update snapshot balances
+    if (liquidityChange.blockNumber <= this.snapshot1) {
+      ownerBalance.netBalanceAtSnapshot1 = ownerBalance.currentNetBalance;
+    }
+    if (liquidityChange.blockNumber <= this.snapshot2) {
+      ownerBalance.netBalanceAtSnapshot2 = ownerBalance.currentNetBalance;
+    }
+
+    accountBalances.set(liquidityChange.owner, ownerBalance);
   }
 }
