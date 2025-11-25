@@ -150,7 +150,7 @@ async function scrapeLiquidityChanges() {
       }
     `;
 
-    const response = await request<{ transfers: SubgraphLiquidityChange[] }>(
+    const response = await request<{ liquidityChanges: SubgraphLiquidityChange[] }>(
       SUBGRAPH_URL,
       query,
       {
@@ -160,7 +160,7 @@ async function scrapeLiquidityChanges() {
       }
     );
 
-    const batchLiquidityChanges = response.transfers.map((t) => ({
+    const batchLiquidityChanges = response.liquidityChanges.map((t) => ({
       tokenAddress: t.tokenAddress,
       lpAddress: t.lpAddress,
       owner: t.owner.address,
