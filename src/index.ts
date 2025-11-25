@@ -75,7 +75,7 @@ async function main() {
   console.log(`Processing ${liquidities.length} liquidity change events...`);
   let liquidityProcessedCount = 0;
   for (const liquidity of liquidities) {
-    await processor.processLiquidityChanges(liquidity);
+    await processor.processLiquidityPositions(liquidity);
     liquidityProcessedCount++;
 
     if (liquidityProcessedCount % 1000 === 0) {

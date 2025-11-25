@@ -397,13 +397,13 @@ export class Processor {
     return rewards;
   }
 
-  async processLiquidityChanges(liquidityChange: LiquidityChange) {
+  async processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // the value is positive if its deposit and negative if its
     // withdraw or transfer out, so we do not need to apply +/-
-    const depositedBalanceChange = BigInt(liquidityChange.depositedBalanceChange);
+    const depositedBalanceChange = BigInt(liquidityChangeEvent.depositedBalanceChange);
 
     const accountBalances = this.accountBalancesPerToken.get(
-      liquidityChange.tokenAddress
+      liquidityChangeEvent.tokenAddress
     );
 
     if (!accountBalances) {
@@ -411,8 +411,8 @@ export class Processor {
     }
 
     // Initialize balances if needed
-    if (!accountBalances.has(liquidityChange.owner)) {
-      accountBalances.set(liquidityChange.owner, {
+    if (!accountBalances.has(liquidityChangeEvent.owner)) {
+      accountBalances.set(liquidityChangeEvent.owner, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshot1: 0n,
@@ -421,18 +421,18 @@ export class Processor {
       });
     }
 
-    const ownerBalance = accountBalances.get(liquidityChange.owner)!;
+    const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
     ownerBalance.currentNetBalance += depositedBalanceChange; // include the liquidity change to the net balance
     if (ownerBalance.currentNetBalance < 0n) ownerBalance.currentNetBalance = 0n;
 
     // Update snapshot balances
-    if (liquidityChange.blockNumber <= this.snapshot1) {
+    if (liquidityChangeEvent.blockNumber <= this.snapshot1) {
       ownerBalance.netBalanceAtSnapshot1 = ownerBalance.currentNetBalance;
     }
-    if (liquidityChange.blockNumber <= this.snapshot2) {
+    if (liquidityChangeEvent.blockNumber <= this.snapshot2) {
       ownerBalance.netBalanceAtSnapshot2 = ownerBalance.currentNetBalance;
     }
 
-    accountBalances.set(liquidityChange.owner, ownerBalance);
+    accountBalances.set(liquidityChangeEvent.owner, ownerBalance);
   }
 }
