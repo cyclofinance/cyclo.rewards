@@ -496,6 +496,8 @@ describe("Processor", () => {
 
   describe("Process Liquidity Position", () => {
     it("should correctly factor in liquidity changes", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+
       // Setup an account with balance
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
@@ -503,15 +505,13 @@ describe("Processor", () => {
         value: "5000000000000000000", // 5 tokens
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress,
       };
       await processor.processTransfer(transfer);
 
-      // validate the transfer is calculated correctly
+      // verify the transfer is calculated correctly
       let balances = await processor.getEligibleBalances();
-      expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-      ).toEqual({
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshot1: 5000000000000000000n,
         snapshot2: 5000000000000000000n,
         average: 5000000000000000000n,
@@ -522,7 +522,7 @@ describe("Processor", () => {
 
       // deposit event before snapshot 1
       const liquidityChangeEvent1: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -535,9 +535,7 @@ describe("Processor", () => {
 
       // validate balances after the first liquidity deposit
       balances = await processor.getEligibleBalances();
-      expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-      ).toEqual({
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshot1: 8000000000000000000n, // 5 + 3
         snapshot2: 8000000000000000000n, // 5 + 3
         average: 8000000000000000000n,
@@ -548,7 +546,7 @@ describe("Processor", () => {
 
       // deposit event between snapshot 1 and 2
       const liquidityChangeEvent2: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -561,9 +559,7 @@ describe("Processor", () => {
 
       // validate balances after the second liquidity deposit
       balances = await processor.getEligibleBalances();
-      expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-      ).toEqual({
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshot1: 8000000000000000000n, // 5 + 3
         snapshot2: 9000000000000000000n, // 5 + 3 + 1
         average: 8500000000000000000n,
@@ -574,7 +570,7 @@ describe("Processor", () => {
 
       // withdraw event between snapshot 1 and 2
       const liquidityChangeEvent3: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Withdraw,
@@ -587,9 +583,7 @@ describe("Processor", () => {
 
       // validate balances after the liquidity withdraw
       balances = await processor.getEligibleBalances();
-      expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-      ).toEqual({
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshot1: 8000000000000000000n, // 5 + 3
         snapshot2: 7000000000000000000n, // 5 + 3 + 1 - 2
         average: 7500000000000000000n,
@@ -600,7 +594,7 @@ describe("Processor", () => {
 
       // transfer event after snapshot 2
       const liquidityChangeEvent4: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Withdraw,
@@ -613,9 +607,7 @@ describe("Processor", () => {
 
       // validate balances after the liquidity transfer which is in effective since its out of snapshot range
       balances = await processor.getEligibleBalances();
-      expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-      ).toEqual({
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshot1: 8000000000000000000n, // 5 + 3
         snapshot2: 7000000000000000000n, // 5 + 3 + 1 - 2
         average: 7500000000000000000n,
