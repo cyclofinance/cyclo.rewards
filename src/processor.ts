@@ -14,6 +14,7 @@ import {
   TokenBalances,
   RewardsPerToken,
   CyToken,
+  LiquidityChange,
 } from "./types";
 import { ONE } from "./constants";
 
@@ -170,14 +171,14 @@ export class Processor {
       toBalance.transfersInFromApproved += value;
       toBalance.currentNetBalance =
         toBalance.transfersInFromApproved - toBalance.transfersOut;
-      if (toBalance.currentNetBalance < 0n) toBalance.currentNetBalance = 0n;
 
       // Update snapshot balances
+      const val = toBalance.currentNetBalance < 0n ? 0n : toBalance.currentNetBalance;
       if (transfer.blockNumber <= this.snapshot1) {
-        toBalance.netBalanceAtSnapshot1 = toBalance.currentNetBalance;
+        toBalance.netBalanceAtSnapshot1 = val;
       }
       if (transfer.blockNumber <= this.snapshot2) {
-        toBalance.netBalanceAtSnapshot2 = toBalance.currentNetBalance;
+        toBalance.netBalanceAtSnapshot2 = val;
       }
 
       accountBalances.set(transfer.to, toBalance);
@@ -188,14 +189,14 @@ export class Processor {
     fromBalance.transfersOut += value;
     fromBalance.currentNetBalance =
       fromBalance.transfersInFromApproved - fromBalance.transfersOut;
-    if (fromBalance.currentNetBalance < 0n) fromBalance.currentNetBalance = 0n;
 
     // Update snapshot balances
+    const val = fromBalance.currentNetBalance < 0n ? 0n : fromBalance.currentNetBalance;
     if (transfer.blockNumber <= this.snapshot1) {
-      fromBalance.netBalanceAtSnapshot1 = fromBalance.currentNetBalance;
+      fromBalance.netBalanceAtSnapshot1 = val;
     }
     if (transfer.blockNumber <= this.snapshot2) {
-      fromBalance.netBalanceAtSnapshot2 = fromBalance.currentNetBalance;
+      fromBalance.netBalanceAtSnapshot2 = val;
     }
 
     accountBalances.set(transfer.from, fromBalance);
@@ -394,5 +395,44 @@ export class Processor {
     }
 
     return rewards;
+  }
+
+  async processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
+    // the value is positive if its deposit and negative if its
+    // withdraw or transfer out, so we do not need to apply +/-
+    const depositedBalanceChange = BigInt(liquidityChangeEvent.depositedBalanceChange);
+
+    const accountBalances = this.accountBalancesPerToken.get(
+      liquidityChangeEvent.tokenAddress
+    );
+
+    if (!accountBalances) {
+      throw new Error("No account balances found for token");
+    }
+
+    // Initialize balances if needed
+    if (!accountBalances.has(liquidityChangeEvent.owner)) {
+      accountBalances.set(liquidityChangeEvent.owner, {
+        transfersInFromApproved: 0n,
+        transfersOut: 0n,
+        netBalanceAtSnapshot1: 0n,
+        netBalanceAtSnapshot2: 0n,
+        currentNetBalance: 0n,
+      });
+    }
+
+    const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
+    ownerBalance.currentNetBalance += depositedBalanceChange; // include the liquidity change to the net balance
+
+    // Update snapshot balances
+    const value = ownerBalance.currentNetBalance < 0n ? 0n : ownerBalance.currentNetBalance;
+    if (liquidityChangeEvent.blockNumber <= this.snapshot1) {
+      ownerBalance.netBalanceAtSnapshot1 = value;
+    }
+    if (liquidityChangeEvent.blockNumber <= this.snapshot2) {
+      ownerBalance.netBalanceAtSnapshot2 = value;
+    }
+
+    accountBalances.set(liquidityChangeEvent.owner, ownerBalance);
   }
 }

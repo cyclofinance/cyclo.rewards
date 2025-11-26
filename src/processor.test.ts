@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Processor } from "./processor";
-import { Transfer } from "./types";
+import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
 import { CYTOKENS } from "./config";
 
 describe("Processor", () => {
@@ -491,6 +491,130 @@ describe("Processor", () => {
 
       // Total should equal reward pool
       expect(user1Reward! + user2Reward!).toBe(rewardPool);
+    });
+  });
+
+  describe("Process Liquidity Position", () => {
+    it("should correctly factor in liquidity changes", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+
+      // Setup an account with balance
+      const transfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "5000000000000000000", // 5 tokens
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
+      };
+      await processor.processTransfer(transfer);
+
+      // verify the transfer is calculated correctly
+      let balances = await processor.getEligibleBalances();
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
+        snapshot1: 5000000000000000000n,
+        snapshot2: 5000000000000000000n,
+        average: 5000000000000000000n,
+        penalty: 0n,
+        bounty: 0n,
+        final: 5000000000000000000n,
+      });
+
+      // deposit event before snapshot 1
+      const liquidityChangeEvent1: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: "3000000000000000000", // 3 token deposit
+        blockNumber: 55,
+        timestamp: 1005,
+      };
+      await processor.processLiquidityPositions(liquidityChangeEvent1);
+
+      // validate balances after the first liquidity deposit
+      balances = await processor.getEligibleBalances();
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
+        snapshot1: 8000000000000000000n, // 5 + 3
+        snapshot2: 8000000000000000000n, // 5 + 3
+        average: 8000000000000000000n,
+        penalty: 0n,
+        bounty: 0n,
+        final: 8000000000000000000n,
+      });
+
+      // deposit event between snapshot 1 and 2
+      const liquidityChangeEvent2: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: "1000000000000000000", // 1 token deposit
+        blockNumber: 150,
+        timestamp: 1105,
+      };
+      await processor.processLiquidityPositions(liquidityChangeEvent2);
+
+      // validate balances after the second liquidity deposit
+      balances = await processor.getEligibleBalances();
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
+        snapshot1: 8000000000000000000n, // 5 + 3
+        snapshot2: 9000000000000000000n, // 5 + 3 + 1
+        average: 8500000000000000000n,
+        penalty: 0n,
+        bounty: 0n,
+        final: 8500000000000000000n,
+      });
+
+      // withdraw event between snapshot 1 and 2
+      const liquidityChangeEvent3: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: "1234",
+        depositedBalanceChange: "-2000000000000000000", // 2 token withdraw
+        blockNumber: 155,
+        timestamp: 1155,
+      };
+      await processor.processLiquidityPositions(liquidityChangeEvent3);
+
+      // validate balances after the liquidity withdraw
+      balances = await processor.getEligibleBalances();
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
+        snapshot1: 8000000000000000000n, // 5 + 3
+        snapshot2: 7000000000000000000n, // 5 + 3 + 1 - 2
+        average: 7500000000000000000n,
+        penalty: 0n,
+        bounty: 0n,
+        final: 7500000000000000000n,
+      });
+
+      // transfer event after snapshot 2
+      const liquidityChangeEvent4: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: "1234",
+        depositedBalanceChange: "-1000000000000000000", // 1 token transfer
+        blockNumber: 250,
+        timestamp: 1250,
+      };
+      await processor.processLiquidityPositions(liquidityChangeEvent4);
+
+      // validate balances after the liquidity transfer which is in effective since its out of snapshot range
+      balances = await processor.getEligibleBalances();
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
+        snapshot1: 8000000000000000000n, // 5 + 3
+        snapshot2: 7000000000000000000n, // 5 + 3 + 1 - 2
+        average: 7500000000000000000n,
+        penalty: 0n,
+        bounty: 0n,
+        final: 7500000000000000000n,
+      });
     });
   });
 });

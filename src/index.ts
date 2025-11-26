@@ -31,6 +31,15 @@ async function main() {
     .map((line) => JSON.parse(line));
   console.log(`Found ${transfers.length} transfers`);
 
+  // Read liquidity file
+  console.log("Reading liquidity file...");
+  const liquidityData = await readFile("data/liquidity.dat", "utf8");
+  const liquidities = liquidityData
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  console.log(`Found ${liquidities.length} liquidity changes`);
+
   // Read blocklist
   console.log("Reading blocklist...");
   const blocklistData = await readFile("data/blocklist.txt", "utf8");
@@ -62,6 +71,18 @@ async function main() {
     }
   }
 
+  // Process liquidity changes
+  console.log(`Processing ${liquidities.length} liquidity change events...`);
+  let liquidityProcessedCount = 0;
+  for (const liquidity of liquidities) {
+    await processor.processLiquidityPositions(liquidity);
+    liquidityProcessedCount++;
+
+    if (liquidityProcessedCount % 1000 === 0) {
+      console.log(`Processed ${liquidityProcessedCount} liquidity change events`);
+    }
+  }
+
   // Get eligible balances
   console.log("Getting eligible balances...");
   const balances = await processor.getEligibleBalances();
@@ -76,7 +97,6 @@ async function main() {
       (sum, bal) => sum + bal.average,
       0n
     );
-
     const totalPenalties = Array.from(tokenBalances.values()).reduce(
       (sum, bal) => sum + bal.penalty,
       0n
@@ -90,6 +110,10 @@ async function main() {
       0n
     );
 
+    console.log("- Total Avg:", totalAverage.toString());
+    console.log("- Total Penalties:", totalPenalties.toString());
+    console.log("- Total Bounties:", totalBounties.toString());
+    console.log("- Total Final:", totalFinal.toString());
     console.log(
       `Note: Final Total for ${token.name} should equal Average Total - Penalties + Bounties`
     );
@@ -104,10 +128,10 @@ async function main() {
   console.log("Writing balances...");
   const tokenColumns = CYTOKENS.map(
     (token) =>
-      `${token.name}_snapshot1,${token.name}_snapshot2,${token.name}_average,${token.name}_penalty,${token.name}_bounty,${token.name}_rewards`
+      `${token.name}_snapshot1,${token.name}_snapshot2,${token.name}_average,${token.name}_penalty,${token.name}_bounty,${token.name}_final,${token.name}_rewards`
   ).join(",");
 
-  const balancesOutput = [`address,${tokenColumns}`];
+  const balancesOutput = [`address,${tokenColumns},total_rewards`];
 
   // get the rewards for each address by summing the rewards for each token
   const rewardsPerToken = await processor.calculateRewards(REWARD_POOL);
@@ -137,10 +161,10 @@ async function main() {
   for (const address of addresses) {
     const tokenValues = CYTOKENS.map((token) => {
       const tokenBalances = balances.get(token.address.toLowerCase());
-      if (!tokenBalances) return "0,0,0,0,0";
+      if (!tokenBalances) return "0,0,0,0,0,0,0";
       const tokenBalance = tokenBalances.get(address);
-      if (!tokenBalance) return "0,0,0,0,0";
-      return `${tokenBalance.snapshot1},${tokenBalance.snapshot2},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty}`;
+      if (!tokenBalance) return "0,0,0,0,0,0,0";
+      return `${tokenBalance.snapshot1},${tokenBalance.snapshot2},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address.toLowerCase())?.get(address) ?? 0n}`;
     }).join(",");
 
     balancesOutput.push(
