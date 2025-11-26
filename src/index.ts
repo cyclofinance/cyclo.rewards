@@ -32,7 +32,7 @@ async function main() {
   console.log(`Found ${transfers.length} transfers`);
 
   // Read liquidity file
-  console.log("Reading transfers file...");
+  console.log("Reading liquidity file...");
   const liquidityData = await readFile("data/liquidity.dat", "utf8");
   const liquidities = liquidityData
     .split("\n")
