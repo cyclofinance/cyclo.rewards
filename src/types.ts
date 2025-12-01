@@ -82,3 +82,20 @@ export interface AccountTransfers {
   transfersIn: TransferDetail[];
   transfersOut: { value: string }[];
 }
+
+export enum LiquidityChangeType {
+  Deposit = 'DEPOSIT',
+  Transfer = 'TRANSFER',
+  Withdraw = 'WITHDRAW'
+}
+
+export interface LiquidityChange {
+  tokenAddress: string;
+  lpAddress: string;
+  owner: string;
+  changeType: LiquidityChangeType;
+  liquidityChange: string;
+  depositedBalanceChange: string;
+  blockNumber: number;
+  timestamp: number;
+}

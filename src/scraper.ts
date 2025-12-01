@@ -1,13 +1,13 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
-import { Transfer } from "./types";
+import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
 import { config } from "dotenv";
 import assert from "assert";
 
 config();
 
 const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-rewards/0.31/gn";
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2025-11-25-21af/gn";
 const BATCH_SIZE = 1000;
 
 // ensure SNAPSHOT_BLOCK_2 env is set for deterministic transfers.dat,
@@ -25,7 +25,20 @@ interface SubgraphTransfer {
   blockTimestamp: string;
 }
 
-async function main() {
+interface SubgraphLiquidityChange {
+  id: string;
+  __typename: "LiquidityV3Change" | "LiquidityV2Change";
+  owner: { address: string };
+  tokenAddress: string;
+  lpAddress: string;
+  LiquidityChangeType: "DEPOSIT" | "TRANSFER" | "WITHDRAW";
+  liquidityChange: string;
+  depositedBalanceChange: string;
+  blockNumber: string;
+  blockTimestamp: string;
+}
+
+async function scrapeTransfers() {
   let skip = 0;
   let hasMore = true;
   let totalProcessed = 0;
@@ -99,6 +112,91 @@ async function main() {
 
   console.log(`\nFinished!`);
   console.log(`Total transfers fetched: ${totalProcessed}`);
+}
+
+async function scrapeLiquidityChanges() {
+  let skip = 0;
+  let hasMore = true;
+  let totalProcessed = 0;
+  const liquidityChanges: LiquidityChange[] = [];
+
+  while (hasMore) {
+    console.log(`Fetching liquidity changes batch starting at ${skip}`);
+
+    const query = gql`
+      query getLiquidityChanges($skip: Int!, $first: Int!, $untilSnapshot: Int!) {
+        liquidityChanges(
+          skip: $skip
+          first: $first
+          orderBy: blockNumber
+          orderDirection: asc
+          where: {
+            blockNumber_lte: $untilSnapshot
+          }
+        ) {
+          id
+          __typename
+          owner {
+            address
+          }
+          tokenAddress
+          lpAddress
+          LiquidityChangeType
+          liquidityChange
+          depositedBalanceChange
+          blockNumber
+          blockTimestamp
+        }
+      }
+    `;
+
+    const response = await request<{ liquidityChanges: SubgraphLiquidityChange[] }>(
+      SUBGRAPH_URL,
+      query,
+      {
+        skip,
+        first: BATCH_SIZE,
+        untilSnapshot: UNTIL_SNAPSHOT,
+      }
+    );
+
+    const batchLiquidityChanges = response.liquidityChanges.map((t) => ({
+      tokenAddress: t.tokenAddress,
+      lpAddress: t.lpAddress,
+      owner: t.owner.address,
+      changeType: t.LiquidityChangeType as LiquidityChangeType,
+      liquidityChange: t.liquidityChange,
+      depositedBalanceChange: t.depositedBalanceChange,
+      blockNumber: parseInt(t.blockNumber),
+      timestamp: parseInt(t.blockTimestamp),
+    }));
+
+    liquidityChanges.push(...batchLiquidityChanges);
+
+    console.log(`Found ${batchLiquidityChanges.length} liquidity changes in batch`);
+    totalProcessed += batchLiquidityChanges.length;
+
+    hasMore = batchLiquidityChanges.length === BATCH_SIZE;
+    skip += batchLiquidityChanges.length;
+
+    // Save progress after each batch
+    await writeFile(
+      "data/liquidity.dat",
+      liquidityChanges.map((t) => JSON.stringify(t)).join("\n")
+    );
+
+    // Log progress
+    console.log(`Total liquidity changes processed: ${totalProcessed}`);
+  }
+
+  console.log(`\nFinished!`);
+  console.log(`Total liquidity changes fetched: ${totalProcessed}`);
+}
+
+// main entrypoint to capture transfers and liquidity changes
+async function main() {
+  await scrapeTransfers();
+  await scrapeLiquidityChanges();
 }
 
 main().catch(console.error);
