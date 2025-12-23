@@ -31,7 +31,7 @@ export const EPOCHS_LIST = [
     { date: "2025-08-30T12:00:00Z", length: 30, timestamp: 1756555200 },
     { date: "2025-09-29T12:00:00Z", length: 30, timestamp: 1759147200 },
     { date: "2025-10-29T12:00:00Z", length: 30, timestamp: 1761739200 },
-    { date: "2025-11-28T12:00:00Z", length: 30, timestamp: 1764331200 },
+    { date: "2025-11-28T12:00:00Z", length: 30, timestamp: 1764331200 }, // latest distribution
     { date: "2025-12-28T12:00:00Z", length: 30, timestamp: 1766923200 },
 
     // 2026
