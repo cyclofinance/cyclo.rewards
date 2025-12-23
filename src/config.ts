@@ -1,4 +1,7 @@
+import assert from "assert";
 import { CyToken } from "./types";
+import { Epoch } from "./constants";
+import seedrandom from "seedrandom";
 
 export const REWARDS_SOURCES = [
   "0xcee8cd002f151a536394e564b84076c41bbbcd4d", // orderbook
@@ -37,4 +40,41 @@ export const RPC_URL = "https://flare-api.flare.network/ext/C/rpc";
 
 export function isSameAddress(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
+}
+
+/**
+ * Generates daily random snapshot timestamps for the given epoch based on the given seed
+ * @param seed - The seed phrase
+ * @param epoch - The epoch
+ */
+export function generateSnapshotTimestampForEpoch(
+    seed: string,
+    epoch: Epoch,
+): number[] {
+  const rng = seedrandom(seed);
+  const range = 24 * 60 * 60; // 24 hours range for random generator
+  const len = epoch.length; // number of days in the epoch to take snapshot once each day
+
+  // epoch timestamp is always the end of the epoch range
+  // so all generated timestamps should be less than this
+  const endTimestamp = epoch.timestamp;
+
+  const snapshotTimestamps: number[] = [];
+
+  for (let i = 1; i <= len; i++) {
+    const dailyRandomOffset = Math.floor(rng() * range);
+    const timestamp = (endTimestamp - (i * range)) + dailyRandomOffset;
+    snapshotTimestamps.unshift(timestamp);
+  }
+
+  // making sure we have correct length
+  assert.ok(
+    snapshotTimestamps.length === len,
+    `failed to generated expected number of snapshots, expected: ${len}, got: ${snapshotTimestamps.length}`
+  );
+
+  // its already sorted but just in case
+  snapshotTimestamps.sort((a, b) => a - b);
+
+  return snapshotTimestamps;
 }

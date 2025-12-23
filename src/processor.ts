@@ -28,8 +28,8 @@ export class Processor {
   private client;
 
   constructor(
-    private snapshot1: number,
-    private snapshot2: number,
+    private snapshots: number[],
+    private epochLength: number,
     private reports: { reporter: string; cheater: string }[] = [],
     client?: any
   ) {
@@ -150,8 +150,7 @@ export class Processor {
       accountBalances.set(transfer.to, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshot1: 0n,
-        netBalanceAtSnapshot2: 0n,
+        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
         currentNetBalance: 0n,
       });
     }
@@ -159,8 +158,7 @@ export class Processor {
       accountBalances.set(transfer.from, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshot1: 0n,
-        netBalanceAtSnapshot2: 0n,
+        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
         currentNetBalance: 0n,
       });
     }
@@ -174,11 +172,10 @@ export class Processor {
 
       // Update snapshot balances
       const val = toBalance.currentNetBalance < 0n ? 0n : toBalance.currentNetBalance;
-      if (transfer.blockNumber <= this.snapshot1) {
-        toBalance.netBalanceAtSnapshot1 = val;
-      }
-      if (transfer.blockNumber <= this.snapshot2) {
-        toBalance.netBalanceAtSnapshot2 = val;
+      for (let i = 0; i < this.snapshots.length; i++) {
+        if (transfer.timestamp <= this.snapshots[i]) {
+          toBalance.netBalanceAtSnapshots[i] = val;
+        }
       }
 
       accountBalances.set(transfer.to, toBalance);
@@ -192,11 +189,10 @@ export class Processor {
 
     // Update snapshot balances
     const val = fromBalance.currentNetBalance < 0n ? 0n : fromBalance.currentNetBalance;
-    if (transfer.blockNumber <= this.snapshot1) {
-      fromBalance.netBalanceAtSnapshot1 = val;
-    }
-    if (transfer.blockNumber <= this.snapshot2) {
-      fromBalance.netBalanceAtSnapshot2 = val;
+    for (let i = 0; i < this.snapshots.length; i++) {
+      if (transfer.timestamp <= this.snapshots[i]) {
+        fromBalance.netBalanceAtSnapshots[i] = val;
+      }
     }
 
     accountBalances.set(transfer.from, fromBalance);
@@ -237,13 +233,11 @@ export class Processor {
         if (!accountBalances) continue;
 
         const balance = accountBalances.get(address.toLowerCase());
-        const snapshot1 = balance?.netBalanceAtSnapshot1 || 0n;
-        const snapshot2 = balance?.netBalanceAtSnapshot2 || 0n;
-        const average = (snapshot1 + snapshot2) / 2n;
+        const snapshots = balance?.netBalanceAtSnapshots ?? new Array<bigint>(this.epochLength).fill(0n);
+        const average = snapshots.reduce((acc, val) => acc + val, 0n) / BigInt(snapshots.length);
 
         userBalances.set(address, {
-          snapshot1,
-          snapshot2,
+          snapshots,
           average,
           penalty: 0n,
           bounty: 0n,
@@ -415,8 +409,7 @@ export class Processor {
       accountBalances.set(liquidityChangeEvent.owner, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshot1: 0n,
-        netBalanceAtSnapshot2: 0n,
+        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
         currentNetBalance: 0n,
       });
     }
@@ -426,11 +419,10 @@ export class Processor {
 
     // Update snapshot balances
     const value = ownerBalance.currentNetBalance < 0n ? 0n : ownerBalance.currentNetBalance;
-    if (liquidityChangeEvent.blockNumber <= this.snapshot1) {
-      ownerBalance.netBalanceAtSnapshot1 = value;
-    }
-    if (liquidityChangeEvent.blockNumber <= this.snapshot2) {
-      ownerBalance.netBalanceAtSnapshot2 = value;
+    for (let i = 0; i < this.snapshots.length; i++) {
+      if (liquidityChangeEvent.timestamp <= this.snapshots[i]) {
+        ownerBalance.netBalanceAtSnapshots[i] = value;
+      }
     }
 
     accountBalances.set(liquidityChangeEvent.owner, ownerBalance);

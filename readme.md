@@ -31,25 +31,16 @@ git add .
 git commit -am'move dispersed csvs'
 ```
 
-## 3. Pick new block numbers
+## 3. Pick a seed phrase and epoch index
 
-Please don't overcomplicate this, just pick two blocks anywhere in the previous
-month. You can roll a dice a few times if you need to.
-
-E.g. Pick a day 0-30 in the month:
-
-```
-echo "$(($RANDOM % 30))"
-```
-
-Put them both in `.env` and in `.github/workflows/git-clean.yaml` as `SNAPSHOT_BLOCK_1`
-and `SNAPSHOT_BLOCK_2`.
+Pick a seed phrase and the epoch index from the `EPOCH_LIST` in `./src/constants.ts`
+and then put it in `.env` and in `.github/workflows/git-clean.yaml` as `SEED` and `EPOCH`.
 
 E.g. `.env`
 
 ```
-SNAPSHOT_BLOCK_1=41280134
-SNAPSHOT_BLOCK_2=41280134
+SEED="this-is-my-seed"
+EPOCH=17
 ```
 
 `git-clean.yaml`
@@ -57,8 +48,8 @@ SNAPSHOT_BLOCK_2=41280134
 ```
       - run: nix develop -c npm run start
         env:
-          SNAPSHOT_BLOCK_1: 41280134
-          SNAPSHOT_BLOCK_2: 41900134
+          SEED: "this-is-my-seed"
+          EPOCH: 17
 ```
 
 ## 4. Run the script local
