@@ -332,7 +332,7 @@ describe("Processor", () => {
           to: APPROVED_SOURCE,
           value: "40000000000000000000", // Withdraw 40 tokens (making -30 balance)
           blockNumber: 50,
-          timestamp: 1000,
+          timestamp: 2000,
           tokenAddress: CYTOKENS[1].address.toLowerCase(),
         },
       ];
@@ -352,7 +352,7 @@ describe("Processor", () => {
           to: APPROVED_SOURCE,
           value: "15000000000000000000", // Withdraw 15 tokens (making -10 balance)
           blockNumber: 50,
-          timestamp: 1000,
+          timestamp: 2000,
           tokenAddress: CYTOKENS[0].address.toLowerCase(),
         },
         {
