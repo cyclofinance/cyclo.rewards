@@ -1,7 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { Processor } from "./processor";
-import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
 import { CYTOKENS } from "./config";
+import { Processor } from "./processor";
+import { getPoolsTick } from "./liquidity";
+import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
+import { describe, it, expect, beforeEach, vi, afterEach, Mock } from "vitest";
+
+// Mock the liquidity module
+vi.mock('./liquidity', () => ({
+  getPoolsTick: vi.fn()
+}));
 
 describe("Processor", () => {
   let processor: Processor;
@@ -624,6 +630,423 @@ describe("Processor", () => {
         penalty: 0n,
         bounty: 0n,
         final: 7500000000000000000n,
+      });
+    });
+  });
+
+  describe('Test processLpRange() method', () => {
+    let processor: Processor;
+    const mockClient = {
+      readContract: vi.fn(),
+      multicall: vi.fn()
+    };
+    
+    const snapshots = [1000, 2000, 3000];
+    const epochLength = 3;
+    const pools = [
+      '0x1111111111111111111111111111111111111111',
+      '0x2222222222222222222222222222222222222222'
+    ] as `0x${string}`[];
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      processor = new Processor(snapshots, epochLength, [], mockClient, pools);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    describe('Happy', () => {
+      it('should process LP positions correctly when they are out of range', async () => {
+        // Setup mock pool ticks
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100, // Pool tick at 100
+          '0x2222222222222222222222222222222222222222': 200  // Pool tick at 200
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        // Setup initial account balance
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+        
+        // Access private property for testing
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n], // Initial balances
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        // Setup LP position that's out of range (tick 100, position range 150-250)
+        const lpTrackList = (processor as any).lp3TrackList;
+        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(lpId, {
+            value: 200n,
+            pool: poolAddress.toLowerCase(),
+            lowerTick: 150, // Out of range (tick is 100)
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        // Verify getPoolsTick was called for each snapshot
+        expect(getPoolsTick).toHaveBeenCalledTimes(3);
+        expect(getPoolsTick).toHaveBeenCalledWith(mockClient, pools, 1000);
+        expect(getPoolsTick).toHaveBeenCalledWith(mockClient, pools, 2000);
+        expect(getPoolsTick).toHaveBeenCalledWith(mockClient, pools, 3000);
+
+        // Verify balance was deducted for out-of-range position
+        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([300n, 300n, 300n]); // 500n - 200n
+      });
+
+      it('should not deduct balance when LP position is in range', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 200, // Pool tick at 200
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        // Setup LP position that's in range (tick 200, position range 150-250)
+        const lpTrackList = (processor as any).lp3TrackList;
+        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(lpId, {
+            value: 200n,
+            pool: poolAddress.toLowerCase(),
+            lowerTick: 150, // In range (tick is 200)
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        // Verify balance was NOT deducted for in-range position
+        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]); // Unchanged
+      });
+
+      it('should handle multiple LP positions for same account', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+          '0x2222222222222222222222222222222222222222': 300,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        
+        // Two LP positions: one in range, one out of range
+        const lpId1 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-0x1111111111111111111111111111111111111111-123`;
+        const lpId2 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-0x2222222222222222222222222222222222222222-456`;
+        
+        for (const snapshot of snapshots) {
+          // Out of range position (tick 100, range 150-250)
+          lpTrackList[snapshot].set(lpId1, {
+            value: 200n,
+            pool: '0x1111111111111111111111111111111111111111',
+            lowerTick: 150,
+            upperTick: 250,
+          });
+          
+          // In range position (tick 300, range 250-350)
+          lpTrackList[snapshot].set(lpId2, {
+            value: 100n,
+            pool: '0x2222222222222222222222222222222222222222',
+            lowerTick: 250,
+            upperTick: 350,
+          });
+        }
+
+        await processor.processLpRange();
+
+        // Only the out-of-range position should be deducted
+        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([300n, 300n, 300n]); // 500n - 200n
+      });
+
+      it('should handle multiple tokens and accounts', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const token1 = '0xtoken1';
+        const token2 = '0xtoken2';
+        const owner1 = '0xowner1';
+        const owner2 = '0xowner2';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        
+        // Setup two tokens with two owners each
+        for (const token of [token1, token2]) {
+          const balanceMap = new Map();
+          for (const owner of [owner1, owner2]) {
+            balanceMap.set(owner.toLowerCase(), {
+              transfersInFromApproved: 1000n,
+              transfersOut: 0n,
+              netBalanceAtSnapshots: [500n, 500n, 500n],
+              currentNetBalance: 1000n,
+            });
+          }
+          accountBalancesPerToken.set(token.toLowerCase(), balanceMap);
+        }
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        
+        // Add out-of-range positions for all combinations
+        for (const token of [token1, token2]) {
+          for (const owner of [owner1, owner2]) {
+            const lpId = `${token.toLowerCase()}-${owner.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+            for (const snapshot of snapshots) {
+              lpTrackList[snapshot].set(lpId, {
+                value: 100n,
+                pool: poolAddress.toLowerCase(),
+                lowerTick: 150, // Out of range (tick is 100)
+                upperTick: 250,
+              });
+            }
+          }
+        }
+
+        await processor.processLpRange();
+
+        // All balances should be deducted
+        for (const token of [token1, token2]) {
+          const balanceMap = accountBalancesPerToken.get(token.toLowerCase());
+          for (const owner of [owner1, owner2]) {
+            const balance = balanceMap.get(owner.toLowerCase());
+            expect(balance.netBalanceAtSnapshots).toEqual([400n, 400n, 400n]); // 500n - 100n
+          }
+        }
+      });
+    });
+
+    describe('Unhappy', () => {
+      it('should skip processing when pool tick is undefined', async () => {
+        const poolTicks = {
+          // Missing tick for pool 0x1111111111111111111111111111111111111111
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(lpId, {
+            value: 200n,
+            pool: poolAddress.toLowerCase(),
+            lowerTick: 150,
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        // Balance should remain unchanged due to undefined tick
+        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
+      });
+
+      it('should skip LP positions with zero or negative value', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        const lpId1 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        const lpId2 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-456`;
+        
+        for (const snapshot of snapshots) {
+          // Zero value position
+          lpTrackList[snapshot].set(lpId1, {
+            value: 0n,
+            pool: poolAddress.toLowerCase(),
+            lowerTick: 150, // Out of range
+            upperTick: 250,
+          });
+          
+          // Negative value position
+          lpTrackList[snapshot].set(lpId2, {
+            value: -100n,
+            pool: poolAddress.toLowerCase(),
+            lowerTick: 150, // Out of range
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        // No deductions should happen due to zero/negative values
+        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
+      });
+
+      it('should skip non related LP positions', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        
+        // LP position for different owner
+        const wrongLpId = `${tokenAddress.toLowerCase()}-0xdifferentowner-0x1111111111111111111111111111111111111111-123`;
+        
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(wrongLpId, {
+            value: 200n,
+            pool: '0x1111111111111111111111111111111111111111',
+            lowerTick: 150, // Out of range
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        // No deductions should happen due to mismatched owner
+        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
+      });
+
+      it('should handle getPoolsTick failures gracefully', async () => {
+        // Mock getPoolsTick to throw an error
+        (getPoolsTick as Mock).mockRejectedValue(new Error('Network error'));
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        // Should throw the error from getPoolsTick
+        await expect(processor.processLpRange()).rejects.toThrow('Network error');
+      });
+
+      it('should process different snapshots independently', async () => {
+        // Different ticks for different snapshots
+        (getPoolsTick as Mock)
+          .mockResolvedValueOnce({ '0x1111111111111111111111111111111111111111': 100 }) // Snapshot 1000
+          .mockResolvedValueOnce({ '0x1111111111111111111111111111111111111111': 200 }) // Snapshot 2000
+          .mockResolvedValueOnce({ '0x1111111111111111111111111111111111111111': 300 }); // Snapshot 3000
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+        
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress.toLowerCase(), {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+          currentNetBalance: 1000n,
+        });
+        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        
+        for (const snapshot of snapshots) {
+          // Position range 150-250
+          // Tick 100 (out of range), Tick 200 (in range), Tick 300 (out of range)
+          lpTrackList[snapshot].set(lpId, {
+            value: 100n,
+            pool: poolAddress.toLowerCase(),
+            lowerTick: 150,
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        // Only snapshots 0 and 2 should have deductions (ticks 100 and 300 are out of range)
+        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([400n, 500n, 400n]); // Deduct 100n for snapshots 0 and 2
       });
     });
   });

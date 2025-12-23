@@ -18,6 +18,7 @@ import {
 } from "./types";
 import { ONE } from "./constants";
 import { flare } from "viem/chains";
+import { getPoolsTick } from "./liquidity";
 
 export class Processor {
   private approvedSourceCache = new Map<string, boolean>();
@@ -27,12 +28,19 @@ export class Processor {
   >();
   private accountTransfers = new Map<string, AccountTransfers>();
   private client;
+  private lp3TrackList: Record<number, Map<string, {
+    pool: string;
+    value: bigint;
+    lowerTick: number;
+    upperTick: number;
+  }>> = {};
 
   constructor(
     private snapshots: number[],
     private epochLength: number,
     private reports: { reporter: string; cheater: string }[] = [],
-    client?: any
+    client?: any,
+    private pools: `0x${string}`[] = [],
   ) {
     this.client =
       client ||
@@ -45,6 +53,11 @@ export class Processor {
     for (const token of CYTOKENS) {
       const balanceMap = new Map<string, AccountBalance>();
       this.accountBalancesPerToken.set(token.address.toLowerCase(), balanceMap);
+    }
+
+    // start empty list
+    for (const snp of snapshots) {
+      this.lp3TrackList[snp] = new Map();
     }
   }
 
@@ -424,9 +437,67 @@ export class Processor {
     for (let i = 0; i < this.snapshots.length; i++) {
       if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
         ownerBalance.netBalanceAtSnapshots[i] = value;
+
+        // update lp v3 tracklist
+        if (liquidityChangeEvent.__typename === "LiquidityV3Change") {
+          const id =`${
+            liquidityChangeEvent.tokenAddress.toLowerCase()
+          }-${
+            liquidityChangeEvent.owner.toLowerCase()
+          }-${
+            liquidityChangeEvent.poolAddress.toLowerCase()
+          }-${
+            liquidityChangeEvent.tokenId
+          }`;
+          const prev = this.lp3TrackList[this.snapshots[i]].get(id) ?? {
+            value: 0n,
+            pool: liquidityChangeEvent.poolAddress.toLowerCase(),
+            lowerTick: liquidityChangeEvent.lowerTick,
+            upperTick: liquidityChangeEvent.upperTick,
+          };
+          prev.value += depositedBalanceChange
+          this.lp3TrackList[this.snapshots[i]].set(id, prev);
+        }
       }
     }
 
     accountBalances.set(liquidityChangeEvent.owner, ownerBalance);
+  }
+
+  // update each account's snapshots balances with lp v3 price range factored in
+  async processLpRange() {
+    // iter snapshots
+    for (let i = 0; i < this.snapshots.length; i++) {
+      const block = this.snapshots[i];
+      const lpTrackList = this.lp3TrackList[this.snapshots[i]];
+
+      // get pools ticks for this snapshot block
+      const poolsTicks = await getPoolsTick(
+        this.client,
+        this.pools,
+        block,
+      );
+
+      // iter tokens
+      for (const [token, account] of this.accountBalancesPerToken) {
+        // iter accounts
+        for (const [owner, balance] of account) {
+          // iter tracked lp v3 position
+          for (const [key, lp] of lpTrackList) {
+            const pool = lp.pool.toLowerCase();
+            const tick = poolsTicks[pool];
+            if (tick === undefined) continue;
+
+            const idStart = `${token.toLowerCase()}-${owner.toLowerCase()}-${pool}`;
+            if (!key.startsWith(idStart)) continue;
+            if (lp.value <= 0n) continue;
+            if (lp.lowerTick <= tick && tick <= lp.upperTick) continue; // skip if in range
+
+            // deduct out of range lp position for snapshot
+            balance.netBalanceAtSnapshots[i] -= lp.value;
+          }; 
+        }
+      }
+    }
   }
 }
