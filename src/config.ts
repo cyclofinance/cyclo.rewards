@@ -47,8 +47,8 @@ export function isSameAddress(a: string, b: string): boolean {
  * @param epoch - The epoch
  */
 export function generateSnapshotTimestampForEpoch(
-    seed: string,
-    epoch: Epoch,
+  seed: string,
+  epoch: Epoch,
 ): number[] {
   const rng = seedrandom(seed);
   const range = 24 * 60 * 60; // 24 hours range for random generator
@@ -76,4 +76,50 @@ export function generateSnapshotTimestampForEpoch(
   snapshotTimestamps.sort((a, b) => a - b);
 
   return snapshotTimestamps;
+}
+
+/**
+ * Generates daily random block numbers for the given epoch based on the given seed,
+ * it first generates timestamps and then tries to convert them to closest block number
+ * through block explorer API
+ * @param seed - The seed phrase
+ * @param epoch - The epoch
+ */
+export async function generateSnapshotBlocksForEpoch(
+  seed: string,
+  epoch: Epoch,
+): Promise<number[]> {
+  const timestamps = generateSnapshotTimestampForEpoch(seed, epoch);
+  const blocks: number[] = [];
+  for (const ts of timestamps) {
+    try {
+      blocks.push(await getBlockNumberByTimestamp(ts));
+    } catch (error) {
+      await new Promise((resolve) => setTimeout(() => resolve(""), 10_000)) // wait 10 secs and try again
+      blocks.push(await getBlockNumberByTimestamp(ts));
+    }
+  }
+
+  return blocks;
+}
+
+/**
+ * Gets block number by timestamp using block explorer API
+ * @param timestamp - Target timestamp in seconds
+ * @returns Block number closest to timestamp
+ */
+export async function getBlockNumberByTimestamp(timestamp: number) {
+  const headers= { 'Content-Type': 'application/json' };
+  const url = `https://api.routescan.io/v2/network/mainnet/evm/14/etherscan/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before&apikey=YourApiKeyToken`
+  
+  const response = await fetch(url, { headers })
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  const result = parseInt(data.result);
+  assert(!isNaN(result), `Expected integer result but got: ${data.result}`);
+
+  return result;
 }

@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
-import { CYTOKENS, generateSnapshotTimestampForEpoch } from "./config";
+import { CYTOKENS, generateSnapshotBlocksForEpoch } from "./config";
 import { EPOCHS_LIST, REWARD_POOL } from "./constants";
 import assert from "assert";
 
@@ -14,17 +14,23 @@ assert(!isNaN(parseInt(process?.env?.EPOCH as any)), "invalid or undefined EPOCH
 
 const CURRENT_EPOCH = EPOCHS_LIST[parseInt(process.env.EPOCH as any)];
 
-// generate snapshot timestamps
-export const SNAPSHOTS = generateSnapshotTimestampForEpoch(process.env.SEED, CURRENT_EPOCH);
-
 // Must match expected structure
 // https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data
 const REWARDS_CSV_COLUMN_HEADER_ADDRESS = "recipient address";
 const REWARDS_CSV_COLUMN_HEADER_REWARD = "amount wei";
 
 async function main() {
+  // generate snapshot blocks
+  const SNAPSHOTS = await generateSnapshotBlocksForEpoch(process.env.SEED!, CURRENT_EPOCH);
+
+  // write generated snapshots
+  await writeFile(
+    "output/snapshots-" + SNAPSHOTS[0] + "-" + SNAPSHOTS[SNAPSHOTS.length - 1] + ".txt",
+    SNAPSHOTS.join("\n")
+  );
+
   console.log("Starting processor...");
-  console.log(`Snapshot timestamps: ${SNAPSHOTS[0]}, ${SNAPSHOTS[SNAPSHOTS.length - 1]}`);
+  console.log(`Snapshot blocks: ${SNAPSHOTS[0]}, ${SNAPSHOTS[SNAPSHOTS.length - 1]}`);
 
   // Create output directory if it doesn't exist
   await mkdir("output", { recursive: true });
@@ -62,7 +68,7 @@ async function main() {
     });
   console.log(`Found ${reports.length} reports`);
 
-  // Setup processor with snapshot timestamps and blocklist
+  // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
   const processor = new Processor(SNAPSHOTS, CURRENT_EPOCH.length, reports);
 

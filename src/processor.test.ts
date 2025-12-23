@@ -37,8 +37,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: ONE, // 1 token
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -67,8 +67,8 @@ describe("Processor", () => {
         from: NORMAL_USER_1,
         to: NORMAL_USER_2,
         value: ONE,
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -88,8 +88,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: ONE,
-        blockNumber: 5,
-        timestamp: 50, // Before snapshot 1
+        blockNumber: 50, // Before snapshot 1
+        timestamp: 1000, // Before snapshot 1
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -111,8 +111,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: ONE,
-        blockNumber: 15,
-        timestamp: 150, // Between snapshots
+        blockNumber: 150, // Between snapshots
+        timestamp: 1000, // Between snapshots
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -136,8 +136,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: ONE,
-        blockNumber: 25,
-        timestamp: 250, // After snapshot 2
+        blockNumber: 250, // After snapshot 2
+        timestamp: 1000, // After snapshot 2
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -170,8 +170,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_2,
         value: ONE,
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -214,8 +214,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_2,
         value: ONE, // 1 token
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -224,8 +224,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: ONE, // 1 token
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -263,8 +263,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: "2000000000000000000", // 2 tokens
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -272,8 +272,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_2,
         value: "3000000000000000000", // 3 tokens
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -282,8 +282,8 @@ describe("Processor", () => {
         from: NORMAL_USER_1,
         to: NORMAL_USER_2,
         value: "3000000000000000000", // 3 tokens
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[1].address.toLowerCase(),
       };
 
@@ -315,24 +315,24 @@ describe("Processor", () => {
           from: APPROVED_SOURCE,
           to: NORMAL_USER_1,
           value: "50000000000000000000", // 50 tokens
-          blockNumber: 5,
-          timestamp: 50,
+          blockNumber: 50,
+          timestamp: 1000,
           tokenAddress: CYTOKENS[0].address.toLowerCase(),
         },
         {
           from: APPROVED_SOURCE,
           to: NORMAL_USER_1,
           value: "10000000000000000000", // 10 tokens initial
-          blockNumber: 5,
-          timestamp: 50,
+          blockNumber: 50,
+          timestamp: 1000,
           tokenAddress: CYTOKENS[1].address.toLowerCase(),
         },
         {
           from: NORMAL_USER_1,
           to: APPROVED_SOURCE,
           value: "40000000000000000000", // Withdraw 40 tokens (making -30 balance)
-          blockNumber: 5,
-          timestamp: 50,
+          blockNumber: 50,
+          timestamp: 1000,
           tokenAddress: CYTOKENS[1].address.toLowerCase(),
         },
       ];
@@ -343,24 +343,24 @@ describe("Processor", () => {
           from: APPROVED_SOURCE,
           to: NORMAL_USER_2,
           value: "5000000000000000000", // 5 tokens initial
-          blockNumber: 5,
-          timestamp: 50,
+          blockNumber: 50,
+          timestamp: 1000,
           tokenAddress: CYTOKENS[0].address.toLowerCase(),
         },
         {
           from: NORMAL_USER_2,
           to: APPROVED_SOURCE,
           value: "15000000000000000000", // Withdraw 15 tokens (making -10 balance)
-          blockNumber: 5,
-          timestamp: 50,
+          blockNumber: 50,
+          timestamp: 1000,
           tokenAddress: CYTOKENS[0].address.toLowerCase(),
         },
         {
           from: APPROVED_SOURCE,
           to: NORMAL_USER_2,
           value: "88000000000000000000", // 88 tokens
-          blockNumber: 5,
-          timestamp: 50,
+          blockNumber: 50,
+          timestamp: 1000,
           tokenAddress: CYTOKENS[1].address.toLowerCase(),
         },
       ];
@@ -458,8 +458,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: "2000000000000000000", // 2 tokens
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -467,8 +467,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_2,
         value: "3000000000000000000", // 3 tokens
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -502,8 +502,8 @@ describe("Processor", () => {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,
         value: "5000000000000000000", // 5 tokens
-        blockNumber: 5,
-        timestamp: 50,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress,
       };
       await processor.processTransfer(transfer);
@@ -526,8 +526,8 @@ describe("Processor", () => {
         changeType: LiquidityChangeType.Deposit,
         liquidityChange: "1234",
         depositedBalanceChange: "3000000000000000000", // 3 token deposit
-        blockNumber: 5,
-        timestamp: 55,
+        blockNumber: 55,
+        timestamp: 1005,
         __typename: "LiquidityV2Change",
       };
       await processor.processLiquidityPositions(liquidityChangeEvent1);
@@ -553,8 +553,8 @@ describe("Processor", () => {
         changeType: LiquidityChangeType.Deposit,
         liquidityChange: "1234",
         depositedBalanceChange: "1000000000000000000", // 1 token deposit
-        blockNumber: 15,
-        timestamp: 150,
+        blockNumber: 150,
+        timestamp: 1105,
         __typename: "LiquidityV2Change"
       };
       await processor.processLiquidityPositions(liquidityChangeEvent2);
@@ -580,8 +580,8 @@ describe("Processor", () => {
         changeType: LiquidityChangeType.Withdraw,
         liquidityChange: "1234",
         depositedBalanceChange: "-2000000000000000000", // 2 token withdraw
-        blockNumber: 15,
-        timestamp: 155,
+        blockNumber: 155,
+        timestamp: 1155,
         __typename: "LiquidityV2Change"
       };
       await processor.processLiquidityPositions(liquidityChangeEvent3);
@@ -607,8 +607,8 @@ describe("Processor", () => {
         changeType: LiquidityChangeType.Withdraw,
         liquidityChange: "1234",
         depositedBalanceChange: "-1000000000000000000", // 1 token transfer
-        blockNumber: 25,
-        timestamp: 250,
+        blockNumber: 250,
+        timestamp: 1250,
         __typename: "LiquidityV2Change"
       };
       await processor.processLiquidityPositions(liquidityChangeEvent4);

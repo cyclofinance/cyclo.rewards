@@ -17,6 +17,7 @@ import {
   LiquidityChange,
 } from "./types";
 import { ONE } from "./constants";
+import { flare } from "viem/chains";
 
 export class Processor {
   private approvedSourceCache = new Map<string, boolean>();
@@ -37,6 +38,7 @@ export class Processor {
       client ||
       createPublicClient({
         transport: http(RPC_URL),
+        chain: flare,
       });
 
     // Initialize token balances maps
@@ -173,7 +175,7 @@ export class Processor {
       // Update snapshot balances
       const val = toBalance.currentNetBalance < 0n ? 0n : toBalance.currentNetBalance;
       for (let i = 0; i < this.snapshots.length; i++) {
-        if (transfer.timestamp <= this.snapshots[i]) {
+        if (transfer.blockNumber <= this.snapshots[i]) {
           toBalance.netBalanceAtSnapshots[i] = val;
         }
       }
@@ -190,7 +192,7 @@ export class Processor {
     // Update snapshot balances
     const val = fromBalance.currentNetBalance < 0n ? 0n : fromBalance.currentNetBalance;
     for (let i = 0; i < this.snapshots.length; i++) {
-      if (transfer.timestamp <= this.snapshots[i]) {
+      if (transfer.blockNumber <= this.snapshots[i]) {
         fromBalance.netBalanceAtSnapshots[i] = val;
       }
     }
@@ -420,7 +422,7 @@ export class Processor {
     // Update snapshot balances
     const value = ownerBalance.currentNetBalance < 0n ? 0n : ownerBalance.currentNetBalance;
     for (let i = 0; i < this.snapshots.length; i++) {
-      if (liquidityChangeEvent.timestamp <= this.snapshots[i]) {
+      if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
         ownerBalance.netBalanceAtSnapshots[i] = value;
       }
     }

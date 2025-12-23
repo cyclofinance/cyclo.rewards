@@ -133,6 +133,7 @@ async function scrapeLiquidityChanges() {
   let hasMore = true;
   let totalProcessed = 0;
   const liquidityChanges: LiquidityChange[] = [];
+  const v3Pools: Set<string> = new Set(); // gather all v3 pools address
 
   while (hasMore) {
     console.log(`Fetching liquidity changes batch starting at ${skip}`);
@@ -199,6 +200,7 @@ async function scrapeLiquidityChanges() {
         base.fee = parseInt(t.fee);
         base.lowerTick = parseInt(t.lowerTick);
         base.upperTick = parseInt(t.upperTick);
+        v3Pools.add(t.poolAddress.toLowerCase())
       }
       return base as LiquidityChange;
     });
@@ -215,6 +217,12 @@ async function scrapeLiquidityChanges() {
     await writeFile(
       "data/liquidity.dat",
       liquidityChanges.map((t) => JSON.stringify(t)).join("\n")
+    );
+
+    // save v3 pools list
+    await writeFile(
+      "data/pools.dat",
+      JSON.stringify(Array.from(v3Pools))
     );
 
     // Log progress
