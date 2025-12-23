@@ -112,3 +112,11 @@ export type LiquidityChangeV3 = LiquidityChangeBase & {
 }
 
 export type LiquidityChange = LiquidityChangeV2 | LiquidityChangeV3;
+
+export type Epoch = {
+  // number of days in the epoch
+  length: number;
+  // epoch timestamp
+  timestamp: number;
+  date?: string;
+};

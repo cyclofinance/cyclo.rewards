@@ -1,9 +1,9 @@
-import { EPOCHS_LIST, Epoch } from './constants';
+import { EPOCHS_LIST } from './constants';
 import { describe, it, expect } from 'vitest';
 import { generateSnapshotTimestampForEpoch } from './config';
 
 describe('Test generateSnapshotTimestampForEpoch', () => {
-  const testEpoch: Epoch = EPOCHS_LIST[4];
+  const testEpoch = EPOCHS_LIST[4];
 
   it('should generate correct number of timestamps', () => {
     const timestamps = generateSnapshotTimestampForEpoch('test-seed', testEpoch);
@@ -44,8 +44,8 @@ describe('Test generateSnapshotTimestampForEpoch', () => {
   });
 
   it('should work with different epoch lengths', () => {
-    const shortEpoch: Epoch = { length: 7, timestamp: 1735819200 };
-    const longEpoch: Epoch = { length: 60, timestamp: 1735819200 };
+    const shortEpoch = { length: 7, timestamp: 1735819200 };
+    const longEpoch = { length: 60, timestamp: 1735819200 };
     
     const shortTimestamps = generateSnapshotTimestampForEpoch('test', shortEpoch);
     const longTimestamps = generateSnapshotTimestampForEpoch('test', longEpoch);
