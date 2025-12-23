@@ -200,7 +200,9 @@ async function scrapeLiquidityChanges() {
         base.fee = parseInt(t.fee);
         base.lowerTick = parseInt(t.lowerTick);
         base.upperTick = parseInt(t.upperTick);
-        v3Pools.add(t.poolAddress.toLowerCase())
+
+        // add to v3 pools list
+        v3Pools.add(t.poolAddress.toLowerCase());
       }
       return base as LiquidityChange;
     });
@@ -219,15 +221,15 @@ async function scrapeLiquidityChanges() {
       liquidityChanges.map((t) => JSON.stringify(t)).join("\n")
     );
 
-    // save v3 pools list
-    await writeFile(
-      "data/pools.dat",
-      JSON.stringify(Array.from(v3Pools))
-    );
-
     // Log progress
     console.log(`Total liquidity changes processed: ${totalProcessed}`);
   }
+
+  // save v3 pools list
+  await writeFile(
+    "data/pools.dat",
+    JSON.stringify(Array.from(v3Pools))
+  );
 
   console.log(`\nFinished!`);
   console.log(`Total liquidity changes fetched: ${totalProcessed}`);
