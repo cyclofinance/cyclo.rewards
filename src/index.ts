@@ -141,7 +141,7 @@ async function main() {
   console.log("Writing balances...");
   const tokenColumns = CYTOKENS.map(
     (token) =>
-      `${SNAPSHOTS.map((_s, i) => `${token.name}_snapshot${i}`).join(",")},${token.name}_average,${token.name}_penalty,${token.name}_bounty,${token.name}_final,${token.name}_rewards`
+      `${SNAPSHOTS.map((_s, i) => `${token.name}_snapshot${i + 1}`).join(",")},${token.name}_average,${token.name}_penalty,${token.name}_bounty,${token.name}_final,${token.name}_rewards`
   ).join(",");
 
   const balancesOutput = [`address,${tokenColumns},total_rewards`];
