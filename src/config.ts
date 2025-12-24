@@ -110,7 +110,7 @@ export async function generateSnapshotBlocksForEpoch(
  */
 export async function getBlockNumberByTimestamp(timestamp: number) {
   const headers= { 'Content-Type': 'application/json' };
-  const url = `https://api.routescan.io/v2/network/mainnet/evm/14/etherscan/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before&apikey=YourApiKeyToken`
+  const url = `https://api.routescan.io/v2/network/mainnet/evm/14/etherscan/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before`
   
   const response = await fetch(url, { headers })
   if (!response.ok) {
