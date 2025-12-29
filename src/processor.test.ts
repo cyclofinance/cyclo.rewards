@@ -5,8 +5,7 @@ import { CYTOKENS } from "./config";
 
 describe("Processor", () => {
   let processor: Processor;
-  const SNAPSHOT_1 = 100;
-  const SNAPSHOT_2 = 200;
+  const SNAPSHOTS = [100, 200];
 
   // Test addresses
   const APPROVED_SOURCE = "0x1000000000000000000000000000000000000000";
@@ -23,7 +22,7 @@ describe("Processor", () => {
   };
 
   beforeEach(() => {
-    processor = new Processor(SNAPSHOT_1, SNAPSHOT_2, [], mockClient);
+    processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, [], mockClient);
     processor.isApprovedSource = async (source: string) => {
       return (
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase() ||
@@ -51,11 +50,11 @@ describe("Processor", () => {
       ).toBeDefined();
       expect(
         balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-          ?.snapshot1
+          ?.snapshots[0]
       ).toBe(ONEn);
       expect(
         balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-          ?.snapshot2
+          ?.snapshots[1]
       ).toBe(ONEn);
       expect(
         balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
@@ -90,7 +89,7 @@ describe("Processor", () => {
         to: NORMAL_USER_1,
         value: ONE,
         blockNumber: 50, // Before snapshot 1
-        timestamp: 1000,
+        timestamp: 1000, // Before snapshot 1
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -99,11 +98,11 @@ describe("Processor", () => {
 
       const index = balances
         .get(CYTOKENS[0].address.toLowerCase())
-        ?.get(NORMAL_USER_1)?.snapshot1;
+        ?.get(NORMAL_USER_1)?.snapshots[0];
       expect(index).toBe(ONEn);
       expect(
         balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
-          ?.snapshot2
+          ?.snapshots[1]
       ).toBe(ONEn);
     });
 
@@ -113,7 +112,7 @@ describe("Processor", () => {
         to: NORMAL_USER_1,
         value: ONE,
         blockNumber: 150, // Between snapshots
-        timestamp: 1000,
+        timestamp: 1000, // Between snapshots
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -123,12 +122,12 @@ describe("Processor", () => {
       expect(
         balances
           .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot1
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
       ).toBe(0n);
       expect(
         balances
           .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot2
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[1]
       ).toBe(ONEn);
     });
 
@@ -138,7 +137,7 @@ describe("Processor", () => {
         to: NORMAL_USER_1,
         value: ONE,
         blockNumber: 250, // After snapshot 2
-        timestamp: 1000,
+        timestamp: 1000, // After snapshot 2
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
       };
 
@@ -148,20 +147,20 @@ describe("Processor", () => {
       expect(
         balances
           .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot1
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
       ).toBe(0n);
 
       expect(
         balances
           .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshot2
+          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[1]
       ).toBe(0n);
     });
   });
 
   describe("Blocklist", () => {
     it("should include blocklisted addresses with penalties", async () => {
-      const processor = new Processor(100, 200, [
+      const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, [
         { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
       ]);
       processor.isApprovedSource = async (source: string) =>
@@ -205,7 +204,7 @@ describe("Processor", () => {
       ];
 
       // Need to include NORMAL_USER_2 in the blocklist since they're reported
-      const processor = new Processor(100, 200, reports, mockClient);
+      const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, reports, mockClient);
 
       processor.isApprovedSource = async (source: string) =>
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
@@ -512,8 +511,7 @@ describe("Processor", () => {
       // verify the transfer is calculated correctly
       let balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
-        snapshot1: 5000000000000000000n,
-        snapshot2: 5000000000000000000n,
+        snapshots: [5000000000000000000n, 5000000000000000000n],
         average: 5000000000000000000n,
         penalty: 0n,
         bounty: 0n,
@@ -530,14 +528,17 @@ describe("Processor", () => {
         depositedBalanceChange: "3000000000000000000", // 3 token deposit
         blockNumber: 55,
         timestamp: 1005,
+        __typename: "LiquidityV2Change",
       };
       await processor.processLiquidityPositions(liquidityChangeEvent1);
 
       // validate balances after the first liquidity deposit
       balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
-        snapshot1: 8000000000000000000n, // 5 + 3
-        snapshot2: 8000000000000000000n, // 5 + 3
+        snapshots: [
+          8000000000000000000n, // 5 + 3
+          8000000000000000000n, // 5 + 3
+        ],
         average: 8000000000000000000n,
         penalty: 0n,
         bounty: 0n,
@@ -554,14 +555,17 @@ describe("Processor", () => {
         depositedBalanceChange: "1000000000000000000", // 1 token deposit
         blockNumber: 150,
         timestamp: 1105,
+        __typename: "LiquidityV2Change"
       };
       await processor.processLiquidityPositions(liquidityChangeEvent2);
 
       // validate balances after the second liquidity deposit
       balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
-        snapshot1: 8000000000000000000n, // 5 + 3
-        snapshot2: 9000000000000000000n, // 5 + 3 + 1
+        snapshots: [
+          8000000000000000000n, // 5 + 3
+          9000000000000000000n, // 5 + 3 + 1
+        ],
         average: 8500000000000000000n,
         penalty: 0n,
         bounty: 0n,
@@ -578,14 +582,17 @@ describe("Processor", () => {
         depositedBalanceChange: "-2000000000000000000", // 2 token withdraw
         blockNumber: 155,
         timestamp: 1155,
+        __typename: "LiquidityV2Change"
       };
       await processor.processLiquidityPositions(liquidityChangeEvent3);
 
       // validate balances after the liquidity withdraw
       balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
-        snapshot1: 8000000000000000000n, // 5 + 3
-        snapshot2: 7000000000000000000n, // 5 + 3 + 1 - 2
+        snapshots: [
+          8000000000000000000n, // 5 + 3
+          7000000000000000000n, // 5 + 3 + 1 - 2
+        ],
         average: 7500000000000000000n,
         penalty: 0n,
         bounty: 0n,
@@ -602,14 +609,17 @@ describe("Processor", () => {
         depositedBalanceChange: "-1000000000000000000", // 1 token transfer
         blockNumber: 250,
         timestamp: 1250,
+        __typename: "LiquidityV2Change"
       };
       await processor.processLiquidityPositions(liquidityChangeEvent4);
 
       // validate balances after the liquidity transfer which is in effective since its out of snapshot range
       balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
-        snapshot1: 8000000000000000000n, // 5 + 3
-        snapshot2: 7000000000000000000n, // 5 + 3 + 1 - 2
+        snapshots: [
+          8000000000000000000n, // 5 + 3
+         7000000000000000000n, // 5 + 3 + 1 - 2
+        ],
         average: 7500000000000000000n,
         penalty: 0n,
         bounty: 0n,

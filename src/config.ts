@@ -1,4 +1,6 @@
-import { CyToken } from "./types";
+import assert from "assert";
+import { CyToken, Epoch } from "./types";
+import seedrandom from "seedrandom";
 
 export const REWARDS_SOURCES = [
   "0xcee8cd002f151a536394e564b84076c41bbbcd4d", // orderbook
@@ -37,4 +39,87 @@ export const RPC_URL = "https://flare-api.flare.network/ext/C/rpc";
 
 export function isSameAddress(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
+}
+
+/**
+ * Generates daily random snapshot timestamps for the given epoch based on the given seed
+ * @param seed - The seed phrase
+ * @param epoch - The epoch
+ */
+export function generateSnapshotTimestampForEpoch(
+  seed: string,
+  epoch: Epoch,
+): number[] {
+  const rng = seedrandom(seed);
+  const range = 24 * 60 * 60; // 24 hours range for random generator
+  const len = epoch.length; // number of days in the epoch to take snapshot once each day
+
+  // epoch timestamp is always the end of the epoch range
+  // so all generated timestamps should be less than this
+  const endTimestamp = epoch.timestamp;
+
+  const snapshotTimestamps: number[] = [];
+
+  for (let i = 1; i <= len; i++) {
+    const dailyRandomOffset = Math.floor(rng() * range);
+    const timestamp = (endTimestamp - (i * range)) + dailyRandomOffset;
+    snapshotTimestamps.unshift(timestamp);
+  }
+
+  // making sure we have correct length
+  assert.ok(
+    snapshotTimestamps.length === len,
+    `failed to generated expected number of snapshots, expected: ${len}, got: ${snapshotTimestamps.length}`
+  );
+
+  // its already sorted but just in case
+  snapshotTimestamps.sort((a, b) => a - b);
+
+  return snapshotTimestamps;
+}
+
+/**
+ * Generates daily random block numbers for the given epoch based on the given seed,
+ * it first generates timestamps and then tries to convert them to closest block number
+ * through block explorer API
+ * @param seed - The seed phrase
+ * @param epoch - The epoch
+ */
+export async function generateSnapshotBlocksForEpoch(
+  seed: string,
+  epoch: Epoch,
+): Promise<number[]> {
+  const timestamps = generateSnapshotTimestampForEpoch(seed, epoch);
+  const blocks: number[] = [];
+  for (const ts of timestamps) {
+    try {
+      blocks.push(await getBlockNumberByTimestamp(ts));
+    } catch (error) {
+      await new Promise((resolve) => setTimeout(() => resolve(""), 10_000)) // wait 10 secs and try again
+      blocks.push(await getBlockNumberByTimestamp(ts));
+    }
+  }
+
+  return blocks;
+}
+
+/**
+ * Gets block number by timestamp using block explorer API
+ * @param timestamp - Target timestamp in seconds
+ * @returns Block number closest to timestamp
+ */
+export async function getBlockNumberByTimestamp(timestamp: number) {
+  const headers= { 'Content-Type': 'application/json' };
+  const url = `https://api.routescan.io/v2/network/mainnet/evm/14/etherscan/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before`
+  
+  const response = await fetch(url, { headers })
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  const result = parseInt(data.result);
+  assert(!isNaN(result), `Expected integer result but got: ${data.result}`);
+
+  return result;
 }

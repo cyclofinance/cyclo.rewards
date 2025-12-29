@@ -23,8 +23,7 @@ export interface TransferDetail {
 export interface AccountBalance {
   transfersInFromApproved: bigint;
   transfersOut: bigint;
-  netBalanceAtSnapshot1: bigint;
-  netBalanceAtSnapshot2: bigint;
+  netBalanceAtSnapshots: bigint[];
   currentNetBalance: bigint;
 }
 
@@ -57,8 +56,7 @@ export interface AccountSummary {
 }
 
 export interface TokenBalances {
-  snapshot1: bigint;
-  snapshot2: bigint;
+  snapshots: bigint[];
   average: bigint;
   penalty: bigint;
   bounty: bigint;
@@ -89,7 +87,7 @@ export enum LiquidityChangeType {
   Withdraw = 'WITHDRAW'
 }
 
-export interface LiquidityChange {
+export type LiquidityChangeBase = {
   tokenAddress: string;
   lpAddress: string;
   owner: string;
@@ -99,3 +97,26 @@ export interface LiquidityChange {
   blockNumber: number;
   timestamp: number;
 }
+
+export type LiquidityChangeV2 = LiquidityChangeBase & {
+  __typename: "LiquidityV2Change";
+}
+
+export type LiquidityChangeV3 = LiquidityChangeBase & {
+  __typename: "LiquidityV3Change";
+  tokenId: string;
+  poolAddress: string;
+  fee: number;
+  lowerTick: number;
+  upperTick: number;
+}
+
+export type LiquidityChange = LiquidityChangeV2 | LiquidityChangeV3;
+
+export type Epoch = {
+  // number of days in the epoch
+  length: number;
+  // epoch timestamp
+  timestamp: number;
+  date?: string;
+};

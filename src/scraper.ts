@@ -3,6 +3,7 @@ import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
 import { config } from "dotenv";
 import assert from "assert";
+import { EPOCHS_LIST } from "./constants";
 
 config();
 
@@ -10,10 +11,9 @@ const SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2025-11-25-21af/gn";
 const BATCH_SIZE = 1000;
 
-// ensure SNAPSHOT_BLOCK_2 env is set for deterministic transfers.dat,
-// as we will fetch transfers up until the end of the snapshot block numbers
-assert(process.env.SNAPSHOT_BLOCK_2, "undefined SNAPSHOT_BLOCK_2 env variable")
-const UNTIL_SNAPSHOT = parseInt(process.env.SNAPSHOT_BLOCK_2) + 1; // +1 to make sure every transfer is gathered
+// for deterministic transfers.dat we will fetch transfers up until the end of the epoch timestamp
+assert(!isNaN(parseInt(process?.env?.EPOCH as any)), "invalid or undefined EPOCH index");
+const UNTIL_SNAPSHOT = EPOCHS_LIST[parseInt(process.env.EPOCH as any)].timestamp;
 
 interface SubgraphTransfer {
   id: string;
@@ -25,18 +25,32 @@ interface SubgraphTransfer {
   blockTimestamp: string;
 }
 
-interface SubgraphLiquidityChange {
+type SubgraphLiquidityChangeBase = {
   id: string;
-  __typename: "LiquidityV3Change" | "LiquidityV2Change";
   owner: { address: string };
   tokenAddress: string;
   lpAddress: string;
-  LiquidityChangeType: "DEPOSIT" | "TRANSFER" | "WITHDRAW";
+  liquidityChangeType: "DEPOSIT" | "TRANSFER" | "WITHDRAW";
   liquidityChange: string;
   depositedBalanceChange: string;
   blockNumber: string;
   blockTimestamp: string;
 }
+
+type SubgraphLiquidityChangeV2 = SubgraphLiquidityChangeBase & {
+  __typename: "LiquidityV2Change";
+}
+
+type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
+  __typename: "LiquidityV3Change";
+  tokenId: string;
+  poolAddress: string;
+  fee: string;
+  lowerTick: string;
+  upperTick: string;
+}
+
+export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquidityChangeV3
 
 async function scrapeTransfers() {
   let skip = 0;
@@ -55,7 +69,7 @@ async function scrapeTransfers() {
           orderBy: blockNumber
           orderDirection: asc
           where: {
-            blockNumber_lte: $untilSnapshot
+            blockTimestamp_lte: $untilSnapshot
           }
         ) {
           id
@@ -119,6 +133,7 @@ async function scrapeLiquidityChanges() {
   let hasMore = true;
   let totalProcessed = 0;
   const liquidityChanges: LiquidityChange[] = [];
+  const v3Pools: Set<string> = new Set(); // gather all v3 pools address
 
   while (hasMore) {
     console.log(`Fetching liquidity changes batch starting at ${skip}`);
@@ -131,7 +146,7 @@ async function scrapeLiquidityChanges() {
           orderBy: blockNumber
           orderDirection: asc
           where: {
-            blockNumber_lte: $untilSnapshot
+            blockTimestamp_lte: $untilSnapshot
           }
         ) {
           id
@@ -141,11 +156,18 @@ async function scrapeLiquidityChanges() {
           }
           tokenAddress
           lpAddress
-          LiquidityChangeType
+          liquidityChangeType
           liquidityChange
           depositedBalanceChange
           blockNumber
           blockTimestamp
+          ... on LiquidityV3Change {
+            tokenId
+            poolAddress
+            fee
+            lowerTick
+            upperTick
+          }
         }
       }
     `;
@@ -160,16 +182,30 @@ async function scrapeLiquidityChanges() {
       }
     );
 
-    const batchLiquidityChanges = response.liquidityChanges.map((t) => ({
-      tokenAddress: t.tokenAddress,
-      lpAddress: t.lpAddress,
-      owner: t.owner.address,
-      changeType: t.LiquidityChangeType as LiquidityChangeType,
-      liquidityChange: t.liquidityChange,
-      depositedBalanceChange: t.depositedBalanceChange,
-      blockNumber: parseInt(t.blockNumber),
-      timestamp: parseInt(t.blockTimestamp),
-    }));
+    const batchLiquidityChanges = response.liquidityChanges.map((t) => {
+      const base: any = {
+        __typename: t.__typename,
+        tokenAddress: t.tokenAddress,
+        lpAddress: t.lpAddress,
+        owner: t.owner.address,
+        changeType: t.liquidityChangeType as LiquidityChangeType,
+        liquidityChange: t.liquidityChange,
+        depositedBalanceChange: t.depositedBalanceChange,
+        blockNumber: parseInt(t.blockNumber),
+        timestamp: parseInt(t.blockTimestamp),
+      };
+      if (t.__typename === "LiquidityV3Change") {
+        base.tokenId = t.tokenId;
+        base.poolAddress = t.poolAddress;
+        base.fee = parseInt(t.fee);
+        base.lowerTick = parseInt(t.lowerTick);
+        base.upperTick = parseInt(t.upperTick);
+
+        // add to v3 pools list
+        v3Pools.add(t.poolAddress.toLowerCase());
+      }
+      return base as LiquidityChange;
+    });
 
     liquidityChanges.push(...batchLiquidityChanges);
 
@@ -188,6 +224,12 @@ async function scrapeLiquidityChanges() {
     // Log progress
     console.log(`Total liquidity changes processed: ${totalProcessed}`);
   }
+
+  // save v3 pools list
+  await writeFile(
+    "data/pools.dat",
+    JSON.stringify(Array.from(v3Pools))
+  );
 
   console.log(`\nFinished!`);
   console.log(`Total liquidity changes fetched: ${totalProcessed}`);
