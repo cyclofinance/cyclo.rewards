@@ -91,7 +91,7 @@ describe('getBlockNumberByTimestamp', () => {
       expect(result).toBe(12345678);
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.routescan.io/v2/network/mainnet/evm/14/etherscan/api?module=block&action=getblocknobytime&timestamp=1672531200&closest=before&apikey=YourApiKeyToken',
+        'https://api.routescan.io/v2/network/mainnet/evm/14/etherscan/api?module=block&action=getblocknobytime&timestamp=1672531200&closest=before',
         { headers: { 'Content-Type': 'application/json' } }
       );
     });
