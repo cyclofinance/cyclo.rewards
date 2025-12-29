@@ -53,6 +53,12 @@ async function main() {
     .map((line) => JSON.parse(line));
   console.log(`Found ${liquidities.length} liquidity changes`);
 
+  // Read pools file
+  console.log("Reading pools file...");
+  const poolsData = await readFile("data/pools.dat", "utf8");
+  const pools = JSON.parse(poolsData);
+  console.log(`Found ${pools.length} pools`);
+
   // Read blocklist
   console.log("Reading blocklist...");
   const blocklistData = await readFile("data/blocklist.txt", "utf8");
@@ -70,7 +76,7 @@ async function main() {
 
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
-  const processor = new Processor(SNAPSHOTS, CURRENT_EPOCH.length, reports);
+  const processor = new Processor(SNAPSHOTS, CURRENT_EPOCH.length, reports, undefined, pools);
 
   // Process transfers
   console.log(`Processing ${transfers.length} transfers...`);
@@ -95,6 +101,11 @@ async function main() {
       console.log(`Processed ${liquidityProcessedCount} liquidity change events`);
     }
   }
+
+  // Process liquidity v3 price range
+  console.log(`Processing ${pools.length} v3 pools price range for all accounts...`);
+  await processor.processLpRange();
+  console.log(`Processed ${pools.length} v3 pools price range for all accounts`);
 
   // Get eligible balances
   console.log("Getting eligible balances...");

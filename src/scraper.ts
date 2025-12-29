@@ -8,7 +8,7 @@ import { EPOCHS_LIST } from "./constants";
 config();
 
 const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2025-11-25-21af/gn";
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2025-12-23-f41f/gn";
 const BATCH_SIZE = 1000;
 
 // for deterministic transfers.dat we will fetch transfers up until the end of the epoch timestamp
