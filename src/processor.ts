@@ -126,6 +126,11 @@ export class Processor {
   }
 
   async processTransfer(transfer: Transfer) {
+    // skip if the token is not in the eligible list
+    if (!CYTOKENS.some((v) => v.address.toLowerCase() === transfer.tokenAddress.toLowerCase())) {
+      return;
+    }
+
     const isApproved = await this.isApprovedSource(transfer.from);
     const value = BigInt(transfer.value);
 
@@ -407,6 +412,11 @@ export class Processor {
   }
 
   async processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
+    // skip if the token is not in the eligible list
+    if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
+      return;
+    }
+
     // the value is positive if its deposit and negative if its
     // withdraw or transfer out, so we do not need to apply +/-
     const depositedBalanceChange = BigInt(liquidityChangeEvent.depositedBalanceChange);
