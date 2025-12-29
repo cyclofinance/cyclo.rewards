@@ -1,5 +1,5 @@
 export const ONE = BigInt(10 ** 18);
-export const REWARD_POOL = BigInt(500000000000000000000000);
+export const REWARD_POOL = BigInt(1000000000000000000000000);
 
 // epoch list from: https://flare.network/news/a-guide-to-rflr-rewards
 export const EPOCHS_LIST = [
