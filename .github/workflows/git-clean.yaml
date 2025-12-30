@@ -30,7 +30,36 @@ jobs:
       - run: nix develop -c npm i
       - run: nix develop -c npm run start
         env:
-          SEED: "cyclo-rewards-for-nov-2025"
-          EPOCH: 17
+          SNAPSHOT_BLOCK_1: 41280134
+          SNAPSHOT_BLOCK_2: 41900134
+          SNAPSHOT_BLOCK_3: 41900134
+          SNAPSHOT_BLOCK_4: 41900134
+          SNAPSHOT_BLOCK_5: 41900134
+          SNAPSHOT_BLOCK_6: 41900134
+          SNAPSHOT_BLOCK_7: 41900134
+          SNAPSHOT_BLOCK_8: 41900134
+          SNAPSHOT_BLOCK_9: 41900134
+          SNAPSHOT_BLOCK_10: 41900134
+          SNAPSHOT_BLOCK_11: 41280134
+          SNAPSHOT_BLOCK_12: 41900134
+          SNAPSHOT_BLOCK_13: 41900134
+          SNAPSHOT_BLOCK_14: 41900134
+          SNAPSHOT_BLOCK_15: 41900134
+          SNAPSHOT_BLOCK_16: 41900134
+          SNAPSHOT_BLOCK_17: 41900134
+          SNAPSHOT_BLOCK_18: 41900134
+          SNAPSHOT_BLOCK_19: 41900134
+          SNAPSHOT_BLOCK_20: 41900134
+          SNAPSHOT_BLOCK_21: 41280134
+          SNAPSHOT_BLOCK_22: 41900134
+          SNAPSHOT_BLOCK_23: 41900134
+          SNAPSHOT_BLOCK_24: 41900134
+          SNAPSHOT_BLOCK_25: 41900134
+          SNAPSHOT_BLOCK_26: 41900134
+          SNAPSHOT_BLOCK_27: 41900134
+          SNAPSHOT_BLOCK_28: 41900134
+          SNAPSHOT_BLOCK_29: 41900134
+          SNAPSHOT_BLOCK_30: 41900134
+          
       - run: git add .
       - run: git diff --exit-code --cached

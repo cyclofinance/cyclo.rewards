@@ -3,7 +3,6 @@ import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
 import { config } from "dotenv";
 import assert from "assert";
-import { EPOCHS_LIST } from "./constants";
 
 config();
 
@@ -11,9 +10,10 @@ const SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2025-12-29-0f85/gn";
 const BATCH_SIZE = 1000;
 
-// for deterministic transfers.dat we will fetch transfers up until the end of the epoch timestamp
-assert(!isNaN(parseInt(process?.env?.EPOCH as any)), "invalid or undefined EPOCH index");
-const UNTIL_SNAPSHOT = EPOCHS_LIST[parseInt(process.env.EPOCH as any)].timestamp;
+// ensure SNAPSHOT_BLOCK_30 env is set for deterministic transfers.dat,
+// as we will fetch transfers up until the end of the snapshot block numbers
+assert(process.env.SNAPSHOT_BLOCK_30, "undefined SNAPSHOT_BLOCK_30 env variable")
+const UNTIL_SNAPSHOT = parseInt(process.env.SNAPSHOT_BLOCK_30) + 1; // +1 to make sure every transfer is gathered
 
 interface SubgraphTransfer {
   id: string;

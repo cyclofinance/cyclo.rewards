@@ -1,18 +1,44 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
-import { CYTOKENS, generateSnapshotBlocksForEpoch } from "./config";
-import { EPOCHS_LIST, REWARD_POOL } from "./constants";
-import assert from "assert";
+import { CYTOKENS } from "./config";
+import { REWARD_POOL } from "./constants";
 
 // Load environment variables
 config();
 
-// make sure the SEED is set
-assert(typeof process?.env?.SEED === "string" && process.env.SEED, "invalid or undefined SEED phrase");
-assert(!isNaN(parseInt(process?.env?.EPOCH as any)), "invalid or undefined EPOCH index");
-
-const CURRENT_EPOCH = EPOCHS_LIST[parseInt(process.env.EPOCH as any)];
+const SNAPSHOTS = [
+  parseInt(process.env.SNAPSHOT_BLOCK_1 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_2 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_3 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_4 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_5 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_6 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_7 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_8 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_9 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_10 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_11 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_12 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_13 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_14 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_15 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_16 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_17 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_18 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_19 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_20 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_21 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_22 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_23 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_24 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_25 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_26 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_27 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_28 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_29 || "0"),
+  parseInt(process.env.SNAPSHOT_BLOCK_30 || "0"),
+];
 
 // Must match expected structure
 // https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data
@@ -20,15 +46,6 @@ const REWARDS_CSV_COLUMN_HEADER_ADDRESS = "recipient address";
 const REWARDS_CSV_COLUMN_HEADER_REWARD = "amount wei";
 
 async function main() {
-  // generate snapshot blocks
-  const SNAPSHOTS = await generateSnapshotBlocksForEpoch(process.env.SEED!, CURRENT_EPOCH);
-
-  // write generated snapshots
-  await writeFile(
-    "output/snapshots-" + SNAPSHOTS[0] + "-" + SNAPSHOTS[SNAPSHOTS.length - 1] + ".txt",
-    SNAPSHOTS.join("\n")
-  );
-
   console.log("Starting processor...");
   console.log(`Snapshot blocks: ${SNAPSHOTS[0]}, ${SNAPSHOTS[SNAPSHOTS.length - 1]}`);
 
@@ -76,7 +93,7 @@ async function main() {
 
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
-  const processor = new Processor(SNAPSHOTS, CURRENT_EPOCH.length, reports, undefined, pools);
+  const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, reports, undefined, pools);
 
   // Process transfers
   console.log(`Processing ${transfers.length} transfers...`);
@@ -185,7 +202,7 @@ async function main() {
   for (const address of addresses) {
     const tokenValues = CYTOKENS.map((token) => {
       const tokenBalances = balances.get(token.address.toLowerCase());
-      const snapshotsDefault = new Array(CURRENT_EPOCH.length).fill("0").join(",");
+      const snapshotsDefault = new Array(SNAPSHOTS.length).fill("0").join(",");
       if (!tokenBalances) return `${snapshotsDefault},0,0,0,0,0`;
       const tokenBalance = tokenBalances.get(address);
       if (!tokenBalance) return `${snapshotsDefault},0,0,0,0,0`;
