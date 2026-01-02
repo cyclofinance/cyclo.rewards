@@ -42,9 +42,10 @@ export function isSameAddress(a: string, b: string): boolean {
 }
 
 /**
- * Generates daily random snapshot timestamps for the given epoch based on the given seed
+ * Generates random snapshot for between the given start/end numbers based on the given seed
  * @param seed - The seed phrase
- * @param epoch - The epoch
+ * @param start - The start block number
+ * @param end - The end block number
  */
 export function generateSnapshotBlocks(
   seed: string,
