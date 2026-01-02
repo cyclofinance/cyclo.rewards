@@ -57,7 +57,7 @@ export function generateSnapshotBlocks(
   const snapshots: number[] = [start];
 
   // start + end + 28 = 30 snapshots
-  for (let i = 1; i <= 28; i++) {
+  for (let i = 0; i < 28; i++) {
     const randomBlock = Math.floor(rng() * range) + start;
     snapshots.unshift(randomBlock);
   }
