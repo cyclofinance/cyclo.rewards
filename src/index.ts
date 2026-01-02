@@ -1,18 +1,14 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
-import { CYTOKENS, generateSnapshotBlocksForEpoch } from "./config";
-import { EPOCHS_LIST, REWARD_POOL } from "./constants";
-import assert from "assert";
+import { CYTOKENS, generateSnapshotBlocks } from "./config";
+import { REWARD_POOL } from "./constants";
 
 // Load environment variables
 config();
 
-// make sure the SEED is set
-assert(typeof process?.env?.SEED === "string" && process.env.SEED, "invalid or undefined SEED phrase");
-assert(!isNaN(parseInt(process?.env?.EPOCH as any)), "invalid or undefined EPOCH index");
-
-const CURRENT_EPOCH = EPOCHS_LIST[parseInt(process.env.EPOCH as any)];
+const START_SNAPSHOT = parseInt(process.env.START_SNAPSHOT || "0");
+const END_SNAPSHOT = parseInt(process.env.END_SNAPSHOT || "0");
 
 // Must match expected structure
 // https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data
@@ -21,16 +17,16 @@ const REWARDS_CSV_COLUMN_HEADER_REWARD = "amount wei";
 
 async function main() {
   // generate snapshot blocks
-  const SNAPSHOTS = await generateSnapshotBlocksForEpoch(process.env.SEED!, CURRENT_EPOCH);
+  const SNAPSHOTS = generateSnapshotBlocks(process.env.SEED!, START_SNAPSHOT, END_SNAPSHOT);
 
   // write generated snapshots
   await writeFile(
-    "output/snapshots-" + SNAPSHOTS[0] + "-" + SNAPSHOTS[SNAPSHOTS.length - 1] + ".txt",
+    "output/snapshots-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".txt",
     SNAPSHOTS.join("\n")
   );
 
   console.log("Starting processor...");
-  console.log(`Snapshot blocks: ${SNAPSHOTS[0]}, ${SNAPSHOTS[SNAPSHOTS.length - 1]}`);
+  console.log(`Snapshot blocks: ${START_SNAPSHOT}, ${END_SNAPSHOT}`);
 
   // Create output directory if it doesn't exist
   await mkdir("output", { recursive: true });
@@ -76,7 +72,7 @@ async function main() {
 
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
-  const processor = new Processor(SNAPSHOTS, CURRENT_EPOCH.length, reports, undefined, pools);
+  const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, reports, undefined, pools);
 
   // Process transfers
   console.log(`Processing ${transfers.length} transfers...`);
@@ -185,7 +181,7 @@ async function main() {
   for (const address of addresses) {
     const tokenValues = CYTOKENS.map((token) => {
       const tokenBalances = balances.get(token.address.toLowerCase());
-      const snapshotsDefault = new Array(CURRENT_EPOCH.length).fill("0").join(",");
+      const snapshotsDefault = new Array(SNAPSHOTS.length).fill("0").join(",");
       if (!tokenBalances) return `${snapshotsDefault},0,0,0,0,0`;
       const tokenBalance = tokenBalances.get(address);
       if (!tokenBalance) return `${snapshotsDefault},0,0,0,0,0`;
@@ -199,7 +195,7 @@ async function main() {
     );
   }
   await writeFile(
-    "output/balances-" + SNAPSHOTS[0] + "-" + SNAPSHOTS[SNAPSHOTS.length - 1] + ".csv",
+    "output/balances-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
     balancesOutput.join("\n")
   );
   console.log(`Wrote ${addresses.length} balances to output/balances.csv`);
@@ -222,7 +218,7 @@ async function main() {
     );
   }
   await writeFile(
-    "output/rewards-" + SNAPSHOTS[0] + "-" + SNAPSHOTS[SNAPSHOTS.length - 1] + ".csv",
+    "output/rewards-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
     rewardsOutput.join("\n")
   );
   console.log(`Wrote ${addresses.length} rewards to output/rewards.csv`);
