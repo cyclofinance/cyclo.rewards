@@ -40,7 +40,8 @@ E.g. `.env`
 
 ```
 SEED="this-is-my-seed"
-EPOCH=17
+START_SNAPSHOT=41280134
+END_SNAPSHOT=41290134
 ```
 
 `git-clean.yaml`
@@ -49,7 +50,8 @@ EPOCH=17
       - run: nix develop -c npm run start
         env:
           SEED: "this-is-my-seed"
-          EPOCH: 17
+          START_SNAPSHOT: 41280134
+          END_SNAPSHOT: 41290134
 ```
 
 ## 4. Run the script local
