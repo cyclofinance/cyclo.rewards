@@ -42,7 +42,7 @@ export function isSameAddress(a: string, b: string): boolean {
 }
 
 /**
- * Generates random snapshot for between the given start/end numbers based on the given seed
+ * Generates random snapshots between the given start/end numbers based on the given seed
  * @param seed - The seed phrase
  * @param start - The start block number
  * @param end - The end block number
