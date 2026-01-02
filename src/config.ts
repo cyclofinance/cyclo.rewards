@@ -55,15 +55,13 @@ export function generateSnapshotBlocks(
   const rng = seedrandom(seed);
   const range = end - start + 1;
 
-  const snapshots: number[] = [start];
+  const snapshots: number[] = [start, end];
 
   // start + end + 28 = 30 snapshots
   for (let i = 0; i < 28; i++) {
     const randomBlock = Math.floor(rng() * range) + start;
-    snapshots.unshift(randomBlock);
+    snapshots.push(randomBlock);
   }
-
-  snapshots.push(end);
 
   // making sure we have correct length
   assert.ok(
@@ -71,7 +69,7 @@ export function generateSnapshotBlocks(
     `failed to generated expected number of snapshots, expected: 30, got: ${snapshots.length}`
   );
 
-  // its already sorted but just in case
+  // sort asc
   snapshots.sort((a, b) => a - b);
 
   return snapshots;
