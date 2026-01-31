@@ -506,6 +506,9 @@ export class Processor {
             // deduct out of range lp position for snapshot
             balance.netBalanceAtSnapshots[i] -= lp.value;
           }; 
+          if (balance.netBalanceAtSnapshots[i] < 0n) {
+            balance.netBalanceAtSnapshots[i] = 0n;
+          }
         }
       }
     }
