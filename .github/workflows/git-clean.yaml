@@ -30,8 +30,8 @@ jobs:
       - run: nix develop -c npm i
       - run: nix develop -c npm run start
         env:
-          SEED: "cyclo-rewards-for-dec-2025"
-          START_SNAPSHOT: 51504517
-          END_SNAPSHOT: 52994045
+          SEED: "cyclo-rewards-for-jan-2026"
+          START_SNAPSHOT: 52974045
+          END_SNAPSHOT: 54474045
       - run: git add .
       - run: git diff --exit-code --cached
