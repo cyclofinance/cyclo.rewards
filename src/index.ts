@@ -33,14 +33,14 @@ async function main() {
 
   // Read transfers file
   console.log("Reading transfers file...");
-  const transfers = []
+  let transfers: any[] = []
   for (let i = 0; i < 10; i++) {
     const transfersData = await readFile(`data/transfers${i + 1}.dat`, "utf8").catch(() => "");
     const transfersBatch = transfersData
       .split("\n")
       .filter(Boolean)
       .map((line) => JSON.parse(line));
-    transfers.push(...transfersBatch)
+    transfers = [...transfers, ...transfersBatch]
   }
   console.log(`Found ${transfers.length} transfers`);
 
