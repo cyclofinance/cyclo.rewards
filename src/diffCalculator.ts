@@ -10,20 +10,36 @@ const DISTRIBUTED_COUNT = 101 as const;
 export function readCsv(filePath: string): Array<{address: string; reward: bigint}> {
   const data = readFileSync(filePath, "utf8");
   const lines = data.split("\n").filter(Boolean);
-  
+
   if (lines.length === 0) {
-    return []
+    throw new Error(`CSV file is empty: ${filePath}`);
   }
-  
+
+  if (lines.length === 1) {
+    throw new Error(`CSV file has no data rows (only header): ${filePath}`);
+  }
+
   // Parse remaining lines
   const list: Array<{address: string; reward: bigint}> = [];
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(",").map(v => v.trim());
-    const address = values[0].toLowerCase();
-    const reward = BigInt(values[1] ?? -99999999999999999999999999999999n);
-    list.push({address, reward});
+    if (values.length < 2) {
+      throw new Error(`CSV line ${i + 1} has fewer than 2 columns in ${filePath}: "${lines[i]}"`);
+    }
+    if (values.length > 2) {
+      throw new Error(`CSV line ${i + 1} has more than 2 columns in ${filePath}: "${lines[i]}"`);
+    }
+    const address = values[0];
+    if (!address) {
+      throw new Error(`CSV line ${i + 1} has empty address in ${filePath}: "${lines[i]}"`);
+    }
+    const rewardStr = values[1];
+    if (!rewardStr) {
+      throw new Error(`CSV line ${i + 1} has empty reward in ${filePath}: "${lines[i]}"`);
+    }
+    list.push({address: address.toLowerCase(), reward: BigInt(rewardStr)});
   }
-  
+
   return list;
 }
 
