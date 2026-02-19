@@ -33,6 +33,13 @@ export const CYTOKENS: CyToken[] = [
     underlyingSymbol: "WETH",
     receiptAddress: "0xBE2615A0fcB54A49A1eB472be30d992599FE0968",
   },
+  {
+    name: "cyFXRP",
+    address: "0xf23595ede14b54817397b1dab899ba061bdce7b5",
+    underlyingAddress: "0xAd552A648C74D49E10027AB8a618A3ad4901c5bE", // fxrp
+    underlyingSymbol: "cyFXRP",
+    receiptAddress: "0xc46600cebd84ed2fe60ec525df13e341d24642f2",
+  },
 ];
 
 export const RPC_URL = "https://flare-api.flare.network/ext/C/rpc";
