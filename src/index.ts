@@ -80,6 +80,12 @@ async function main() {
   console.log("Setting up processor...");
   const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, reports, undefined, pools);
 
+  // Organize liquidity changes
+  console.log(`Organizing ${liquidities.length} liquidity change events...`);
+  for (const liquidity of liquidities) {
+    await processor.organizeLiquidityPositions(liquidity);
+  }
+
   // Process transfers
   console.log(`Processing ${transfers.length} transfers...`);
   let processedCount = 0;

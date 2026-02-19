@@ -46,9 +46,65 @@ describe("Processor", () => {
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash",
       };
 
       await processor.processTransfer(transfer);
+      const balances = await processor.getEligibleBalances();
+
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+      ).toBeDefined();
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.snapshots[0]
+      ).toBe(0n);
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.snapshots[1]
+      ).toBe(0n);
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+          ?.average
+      ).toBe(0n);
+    });
+
+    it("should track approved deposit transfers correctly", async () => {
+      const transfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: ONE, // 1 token
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash1",
+      };
+
+      const depositTransfer: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0xpool",
+        value: ONE, // 1 token
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash2",
+      };
+      const liquidityChangeEvent: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash2",
+      };
+
+      await processor.organizeLiquidityPositions(liquidityChangeEvent);
+      await processor.processTransfer(transfer);
+      await processor.processTransfer(depositTransfer);
       const balances = await processor.getEligibleBalances();
 
       expect(
@@ -76,6 +132,7 @@ describe("Processor", () => {
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash",
       };
 
       await processor.processTransfer(transfer);
@@ -89,16 +146,30 @@ describe("Processor", () => {
   });
 
   describe("Snapshot Timing", () => {
-    it("should handle transfers before snapshot 1", async () => {
+    it("should handle valid transfers before snapshot 1", async () => {
       const transfer: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_1,
+        from: NORMAL_USER_1,
+        to: "0xpool",
         value: ONE,
         blockNumber: 50, // Before snapshot 1
         timestamp: 1000, // Before snapshot 1
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash",
+      };
+      const liquidityChangeEvent: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash",
       };
 
+      await processor.organizeLiquidityPositions(liquidityChangeEvent);
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
@@ -114,14 +185,28 @@ describe("Processor", () => {
 
     it("should handle transfers between snapshots", async () => {
       const transfer: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_1,
+        from: NORMAL_USER_1,
+        to: "0xpool",
         value: ONE,
         blockNumber: 150, // Between snapshots
         timestamp: 1000, // Between snapshots
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash",
+      };
+      const liquidityChangeEvent: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 150,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash",
       };
 
+      await processor.organizeLiquidityPositions(liquidityChangeEvent);
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
@@ -145,6 +230,7 @@ describe("Processor", () => {
         blockNumber: 250, // After snapshot 2
         timestamp: 1000, // After snapshot 2
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash",
       };
 
       await processor.processTransfer(transfer);
@@ -173,14 +259,28 @@ describe("Processor", () => {
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
 
       const transfer: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_2,
+        from: NORMAL_USER_2,
+        to: "0xpool",
         value: ONE,
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash",
+      };
+      const liquidityChangeEvent: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_2,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash",
       };
 
+      await processor.organizeLiquidityPositions(liquidityChangeEvent);
       await processor.processTransfer(transfer);
       const balances = await processor.getEligibleBalances();
 
@@ -217,24 +317,52 @@ describe("Processor", () => {
 
       // Give NORMAL_USER_2 some balance to be penalized
       const transfer1: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_2,
+        from: NORMAL_USER_2,
+        to: "0xpool",
         value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash1",
+      };
+      const liquidityChangeEvent1: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_2,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash1",
       };
 
       // Give NORMAL_USER_1 (reporter) some balance too
       const transfer2: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_1,
+        from: NORMAL_USER_1,
+        to: "0xpool2",
         value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash2",
+      };
+      const liquidityChangeEvent2: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash2",
       };
 
+      await processor.organizeLiquidityPositions(liquidityChangeEvent1);
+      await processor.organizeLiquidityPositions(liquidityChangeEvent2);
       await processor.processTransfer(transfer1);
       await processor.processTransfer(transfer2);
 
@@ -266,21 +394,47 @@ describe("Processor", () => {
     it("should calculate rewards proportionally for single token", async () => {
       // Setup two accounts with different balances
       const transfer1: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_1,
+        from: NORMAL_USER_1,
+        to: "0xpool1",
         value: "2000000000000000000", // 2 tokens
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash1",
+      };
+      const liquidityChangeEvent1: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash1",
       };
 
       const transfer2: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_2,
+        from: NORMAL_USER_2,
+        to: "0xpool2",
         value: "3000000000000000000", // 3 tokens
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash2",
+      };
+      const liquidityChangeEvent2: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_2,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // 1 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash2",
       };
 
       // we need at least one transfer for the second token so we don't divide by 0 later
@@ -291,8 +445,11 @@ describe("Processor", () => {
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[1].address.toLowerCase(),
+        transactionHash: "0xtxhash3",
       };
 
+      await processor.organizeLiquidityPositions(liquidityChangeEvent1);
+      await processor.organizeLiquidityPositions(liquidityChangeEvent2);
       await processor.processTransfer(transfer1);
       await processor.processTransfer(transfer2);
       await processor.processTransfer(transfer3);
@@ -318,20 +475,22 @@ describe("Processor", () => {
       // User 1: cyA: 50, cyB: -30 (should count as 50 total)
       const transfers1 = [
         {
-          from: APPROVED_SOURCE,
-          to: NORMAL_USER_1,
+          from: NORMAL_USER_1,
+          to: "0xpool",
           value: "50000000000000000000", // 50 tokens
           blockNumber: 50,
           timestamp: 1000,
           tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          transactionHash: "0xtxhash1",
         },
         {
-          from: APPROVED_SOURCE,
-          to: NORMAL_USER_1,
+          from: NORMAL_USER_1,
+          to: "0xpool",
           value: "10000000000000000000", // 10 tokens initial
           blockNumber: 50,
           timestamp: 1000,
           tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          transactionHash: "0xtxhash2",
         },
         {
           from: NORMAL_USER_1,
@@ -340,18 +499,46 @@ describe("Processor", () => {
           blockNumber: 50,
           timestamp: 2000,
           tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          transactionHash: "0xtxhash3",
         },
       ];
+      const deposits1: LiquidityChange[] = [
+        {
+          tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          lpAddress: "0xLpAddress",
+          owner: NORMAL_USER_1,
+          changeType: LiquidityChangeType.Deposit,
+          liquidityChange: "1234",
+          depositedBalanceChange: "50000000000000000000", // 50 token deposit
+          blockNumber: 50,
+          timestamp: 1000,
+          __typename: "LiquidityV2Change",
+          transactionHash: "0xtxhash1",
+        },
+        {
+          tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          lpAddress: "0xLpAddress",
+          owner: NORMAL_USER_1,
+          changeType: LiquidityChangeType.Deposit,
+          liquidityChange: "1234",
+          depositedBalanceChange: "10000000000000000000", // 10 token deposit
+          blockNumber: 50,
+          timestamp: 1000,
+          __typename: "LiquidityV2Change",
+          transactionHash: "0xtxhash2",
+        }
+      ]
 
       // User 2: cyA: -10, cyB: 88 (should count as 88 total)
       const transfers2 = [
         {
-          from: APPROVED_SOURCE,
-          to: NORMAL_USER_2,
+          from: NORMAL_USER_2,
+          to: "0xpool",
           value: "5000000000000000000", // 5 tokens initial
           blockNumber: 50,
           timestamp: 1000,
           tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          transactionHash: "0xtxhash4",
         },
         {
           from: NORMAL_USER_2,
@@ -360,17 +547,48 @@ describe("Processor", () => {
           blockNumber: 50,
           timestamp: 2000,
           tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          transactionHash: "0xtxhash5",
         },
         {
-          from: APPROVED_SOURCE,
-          to: NORMAL_USER_2,
+          from: NORMAL_USER_2,
+          to: "0xpool",
           value: "88000000000000000000", // 88 tokens
           blockNumber: 50,
           timestamp: 1000,
           tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          transactionHash: "0xtxhash6",
         },
       ];
+      const deposits2: LiquidityChange[] = [
+        {
+          tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          lpAddress: "0xLpAddress",
+          owner: NORMAL_USER_2,
+          changeType: LiquidityChangeType.Deposit,
+          liquidityChange: "1234",
+          depositedBalanceChange: "5000000000000000000", // 5 token deposit
+          blockNumber: 50,
+          timestamp: 1000,
+          __typename: "LiquidityV2Change",
+          transactionHash: "0xtxhash4",
+        },
+        {
+          tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          lpAddress: "0xLpAddress",
+          owner: NORMAL_USER_2,
+          changeType: LiquidityChangeType.Deposit,
+          liquidityChange: "1234",
+          depositedBalanceChange: "88000000000000000000", // 88 token deposit
+          blockNumber: 50,
+          timestamp: 1000,
+          __typename: "LiquidityV2Change",
+          transactionHash: "0xtxhash6",
+        }
+      ]
 
+      for (const lpEvent of [...deposits1, ... deposits2]) {
+        await processor.organizeLiquidityPositions(lpEvent)
+      }
       // Process all transfers
       for (const transfer of [...transfers1, ...transfers2]) {
         await processor.processTransfer(transfer);
@@ -461,23 +679,51 @@ describe("Processor", () => {
     it("should calculate rewards proportionally for multiple tokens", async () => {
       // Setup two accounts with different balances
       const transfer1: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_1,
+        from: NORMAL_USER_1,
+        to: "0xpool",
         value: "2000000000000000000", // 2 tokens
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash1",
+      };
+      const liquidityChangeEvent1: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: "2000000000000000000", // 2 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash1",
       };
 
       const transfer2: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_2,
+        from: NORMAL_USER_2,
+        to: "0xpool",
         value: "3000000000000000000", // 3 tokens
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash2",
+      };
+      const liquidityChangeEvent2: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_2,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: "3000000000000000000", // 3 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash2",
       };
 
+      await processor.organizeLiquidityPositions(liquidityChangeEvent1);
+      await processor.organizeLiquidityPositions(liquidityChangeEvent2);
       await processor.processTransfer(transfer1);
       await processor.processTransfer(transfer2);
 
@@ -503,18 +749,32 @@ describe("Processor", () => {
     it("should correctly factor in liquidity changes", async () => {
       const tokenAddress = CYTOKENS[0].address.toLowerCase();
 
-      // Setup an account with balance
-      const transfer: Transfer = {
-        from: APPROVED_SOURCE,
-        to: NORMAL_USER_1,
+      // deposit event before snapshot 1
+      const initTransfer1: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0xpool",
         value: "5000000000000000000", // 5 tokens
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress,
+        transactionHash: "0xdeposittx",
       };
-      await processor.processTransfer(transfer);
+      const initLiquidityChangeEventDeposit: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: "5000000000000000000", // 5 token deposit
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xdeposittx",
+      };
+      await processor.organizeLiquidityPositions(initLiquidityChangeEventDeposit);
+      await processor.processTransfer(initTransfer1);
 
-      // verify the transfer is calculated correctly
+      // verify the deposit transfer is calculated correctly
       let balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshots: [5000000000000000000n, 5000000000000000000n],
@@ -524,7 +784,15 @@ describe("Processor", () => {
         final: 5000000000000000000n,
       });
 
-      // deposit event before snapshot 1
+      const transfer1: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0xpool",
+        value: "3000000000000000000", // 3 tokens
+        blockNumber: 55,
+        timestamp: 1005,
+        tokenAddress,
+        transactionHash: "0xtxhash1",
+      };
       const liquidityChangeEvent1: LiquidityChange = {
         tokenAddress,
         lpAddress: "0xLpAddress",
@@ -535,7 +803,10 @@ describe("Processor", () => {
         blockNumber: 55,
         timestamp: 1005,
         __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash1",
       };
+      await processor.organizeLiquidityPositions(liquidityChangeEvent1);
+      await processor.processTransfer(transfer1);
       await processor.processLiquidityPositions(liquidityChangeEvent1);
 
       // validate balances after the first liquidity deposit
@@ -552,6 +823,15 @@ describe("Processor", () => {
       });
 
       // deposit event between snapshot 1 and 2
+      const transfer2: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0xpool",
+        value: "1000000000000000000", // 1 tokens
+        blockNumber: 150,
+        timestamp: 1105,
+        tokenAddress,
+        transactionHash: "0xtxhash2",
+      };
       const liquidityChangeEvent2: LiquidityChange = {
         tokenAddress,
         lpAddress: "0xLpAddress",
@@ -561,8 +841,11 @@ describe("Processor", () => {
         depositedBalanceChange: "1000000000000000000", // 1 token deposit
         blockNumber: 150,
         timestamp: 1105,
-        __typename: "LiquidityV2Change"
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash2",
       };
+      await processor.organizeLiquidityPositions(liquidityChangeEvent2);
+      await processor.processTransfer(transfer2);
       await processor.processLiquidityPositions(liquidityChangeEvent2);
 
       // validate balances after the second liquidity deposit
@@ -579,6 +862,15 @@ describe("Processor", () => {
       });
 
       // withdraw event between snapshot 1 and 2
+      const transfer3: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "2000000000000000000", // 2 tokens
+        blockNumber: 155,
+        timestamp: 1155,
+        tokenAddress,
+        transactionHash: "0xtxhash3",
+      };
       const liquidityChangeEvent3: LiquidityChange = {
         tokenAddress,
         lpAddress: "0xLpAddress",
@@ -588,8 +880,11 @@ describe("Processor", () => {
         depositedBalanceChange: "-2000000000000000000", // 2 token withdraw
         blockNumber: 155,
         timestamp: 1155,
-        __typename: "LiquidityV2Change"
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash3",
       };
+      await processor.organizeLiquidityPositions(liquidityChangeEvent3);
+      await processor.processTransfer(transfer3);
       await processor.processLiquidityPositions(liquidityChangeEvent3);
 
       // validate balances after the liquidity withdraw
@@ -605,8 +900,45 @@ describe("Processor", () => {
         final: 7500000000000000000n,
       });
 
-      // transfer event after snapshot 2
+      // direct lp trnasfer event
       const liquidityChangeEvent4: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Transfer,
+        liquidityChange: "1234",
+        depositedBalanceChange: "-1000000000000000000", // 1 token withdraw
+        blockNumber: 156,
+        timestamp: 1156,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash4",
+      };
+      await processor.processLiquidityPositions(liquidityChangeEvent4);
+
+      // validate balances after the liquidity withdraw
+      balances = await processor.getEligibleBalances();
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
+        snapshots: [
+          8000000000000000000n, // 5 + 3
+          6000000000000000000n, // 5 + 3 + 1 - 2 - 1
+        ],
+        average: 7000000000000000000n,
+        penalty: 0n,
+        bounty: 0n,
+        final: 7000000000000000000n,
+      });
+
+      // transfer event after snapshot 2
+      const transfer5: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "1000000000000000000", // 1 tokens
+        blockNumber: 250,
+        timestamp: 1250,
+        tokenAddress,
+        transactionHash: "0xtxhash5",
+      };
+      const liquidityChangeEvent5: LiquidityChange = {
         tokenAddress,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
@@ -615,21 +947,24 @@ describe("Processor", () => {
         depositedBalanceChange: "-1000000000000000000", // 1 token transfer
         blockNumber: 250,
         timestamp: 1250,
-        __typename: "LiquidityV2Change"
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash5",
       };
-      await processor.processLiquidityPositions(liquidityChangeEvent4);
+      await processor.organizeLiquidityPositions(liquidityChangeEvent5);
+      await processor.processTransfer(transfer5);
+      await processor.processLiquidityPositions(liquidityChangeEvent5);
 
       // validate balances after the liquidity transfer which is in effective since its out of snapshot range
       balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshots: [
           8000000000000000000n, // 5 + 3
-         7000000000000000000n, // 5 + 3 + 1 - 2
+          6000000000000000000n, // 5 + 3 + 1 - 2 - 1
         ],
-        average: 7500000000000000000n,
+        average: 7000000000000000000n,
         penalty: 0n,
         bounty: 0n,
-        final: 7500000000000000000n,
+        final: 7000000000000000000n,
       });
     });
   });

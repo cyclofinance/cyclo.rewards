@@ -23,6 +23,7 @@ interface SubgraphTransfer {
   value: string;
   blockNumber: string;
   blockTimestamp: string;
+  transactionHash: string;
 }
 
 type SubgraphLiquidityChangeBase = {
@@ -35,6 +36,7 @@ type SubgraphLiquidityChangeBase = {
   depositedBalanceChange: string;
   blockNumber: string;
   blockTimestamp: string;
+  transactionHash: string;
 }
 
 type SubgraphLiquidityChangeV2 = SubgraphLiquidityChangeBase & {
@@ -83,6 +85,7 @@ async function scrapeTransfers() {
           value
           blockNumber
           blockTimestamp
+          transactionHash
         }
       }
     `;
@@ -104,6 +107,7 @@ async function scrapeTransfers() {
       value: t.value,
       blockNumber: parseInt(t.blockNumber),
       timestamp: parseInt(t.blockTimestamp),
+      transactionHash: t.transactionHash,
     }));
 
     transfers.push(...batchTransfers);
@@ -118,11 +122,11 @@ async function scrapeTransfers() {
     // split into 2 files to avoid github 100MB file size limit
     await writeFile(
       "data/transfers1.dat",
-      transfers.slice(0, 370325).map((t) => JSON.stringify(t)).join("\n")
+      transfers.slice(0, 270001).map((t) => JSON.stringify(t)).join("\n")
     );
     await writeFile(
       "data/transfers2.dat",
-      transfers.slice(370325).map((t) => JSON.stringify(t)).join("\n")
+      transfers.slice(270001).map((t) => JSON.stringify(t)).join("\n")
     );
 
     // Log progress
@@ -166,6 +170,7 @@ async function scrapeLiquidityChanges() {
           depositedBalanceChange
           blockNumber
           blockTimestamp
+          transactionHash
           ... on LiquidityV3Change {
             tokenId
             poolAddress
@@ -198,6 +203,7 @@ async function scrapeLiquidityChanges() {
         depositedBalanceChange: t.depositedBalanceChange,
         blockNumber: parseInt(t.blockNumber),
         timestamp: parseInt(t.blockTimestamp),
+        transactionHash: t.transactionHash,
       };
       if (t.__typename === "LiquidityV3Change") {
         base.tokenId = t.tokenId;

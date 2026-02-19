@@ -15,6 +15,7 @@ import {
   RewardsPerToken,
   CyToken,
   LiquidityChange,
+  LiquidityChangeType,
 } from "./types";
 import { ONE } from "./constants";
 import { flare } from "viem/chains";
@@ -34,6 +35,7 @@ export class Processor {
     lowerTick: number;
     upperTick: number;
   }>> = {};
+  private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map()
 
   constructor(
     private snapshots: number[],
@@ -184,8 +186,15 @@ export class Processor {
     }
 
     // Update balances
+    const toBalance = accountBalances.get(transfer.to)!;
     if (isApproved) {
-      const toBalance = accountBalances.get(transfer.to)!;
+
+      // handle if transfer is withdraw
+      const lpWithdraw = this.transferIsWithdraw(transfer)
+      if (lpWithdraw) {
+        toBalance.transfersInFromApproved += BigInt(lpWithdraw.depositedBalanceChange);
+      }
+
       toBalance.transfersInFromApproved += value;
       toBalance.currentNetBalance =
         toBalance.transfersInFromApproved - toBalance.transfersOut;
@@ -197,13 +206,30 @@ export class Processor {
           toBalance.netBalanceAtSnapshots[i] = val;
         }
       }
-
-      accountBalances.set(transfer.to, toBalance);
     }
 
     // Always track transfers out
     const fromBalance = accountBalances.get(transfer.from)!;
-    fromBalance.transfersOut += value;
+    const lpDeposit = this.transferIsDeposit(transfer)
+    // handle deposit vs non deposit transfers
+    if (lpDeposit) {
+      fromBalance.transfersInFromApproved += value
+    } else {
+      if (isApproved) {
+        toBalance.transfersInFromApproved -= value;
+        toBalance.currentNetBalance =
+          toBalance.transfersInFromApproved - toBalance.transfersOut;
+
+        // Update snapshot balances
+        const val = toBalance.currentNetBalance < 0n ? 0n : toBalance.currentNetBalance;
+        for (let i = 0; i < this.snapshots.length; i++) {
+          if (transfer.blockNumber <= this.snapshots[i]) {
+            toBalance.netBalanceAtSnapshots[i] = val;
+          }
+        }
+      }
+      fromBalance.transfersOut += value;
+    }
     fromBalance.currentNetBalance =
       fromBalance.transfersInFromApproved - fromBalance.transfersOut;
 
@@ -215,7 +241,44 @@ export class Processor {
       }
     }
 
+    accountBalances.set(transfer.to, toBalance);
     accountBalances.set(transfer.from, fromBalance);
+  }
+
+  transferIsDeposit(transfer: Transfer): LiquidityChange | undefined {
+    const token = transfer.tokenAddress.toLowerCase()
+    const txhash = transfer.transactionHash.toLowerCase()
+    const owner = transfer.from.toLowerCase()
+
+    const ownerEvents = this.liquidityEvents.get(owner)
+    if (!ownerEvents) return
+
+    const ownerTokenEvents = ownerEvents.get(token)
+    if (!ownerTokenEvents) return
+
+    const ownerTokenTxEvent = ownerTokenEvents.get(txhash)
+    if (!ownerTokenTxEvent) return
+
+    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Deposit) return ownerTokenTxEvent
+    return
+  }
+
+  transferIsWithdraw(transfer: Transfer): LiquidityChange | undefined {
+    const token = transfer.tokenAddress.toLowerCase()
+    const txhash = transfer.transactionHash.toLowerCase()
+    const owner = transfer.to.toLowerCase()
+
+    const ownerEvents = this.liquidityEvents.get(owner)
+    if (!ownerEvents) return
+
+    const ownerTokenEvents = ownerEvents.get(token)
+    if (!ownerTokenEvents) return
+
+    const ownerTokenTxEvent = ownerTokenEvents.get(txhash)
+    if (!ownerTokenTxEvent) return
+
+    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Withdraw) return ownerTokenTxEvent
+    return
   }
 
   async getUniqueAddresses(): Promise<Set<string>> {
@@ -411,6 +474,34 @@ export class Processor {
     return rewards;
   }
 
+  async organizeLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
+    // skip if the token is not in the eligible list
+    if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
+      return;
+    }
+    const owner = liquidityChangeEvent.owner.toLowerCase();
+    const txhash = liquidityChangeEvent.transactionHash.toLowerCase();
+    const token = liquidityChangeEvent.tokenAddress.toLowerCase();
+
+    const ownerEvents = this.liquidityEvents.get(owner);
+    if (!ownerEvents) {
+      this.liquidityEvents.set(owner, new Map([[token, new Map([[txhash, liquidityChangeEvent]])]]))
+      return
+    }
+
+    const ownerTokenEvents = ownerEvents.get(token)
+    if (!ownerTokenEvents) {
+      ownerEvents.set(token, new Map([[txhash, liquidityChangeEvent]]))
+      return
+    }
+
+    const ownerTokenTxEvents = ownerTokenEvents.get(txhash)
+    if (!ownerTokenTxEvents) {
+      ownerTokenEvents.set(txhash, liquidityChangeEvent)
+      return
+    }
+  }
+
   async processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
@@ -440,7 +531,11 @@ export class Processor {
     }
 
     const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
-    ownerBalance.currentNetBalance += depositedBalanceChange; // include the liquidity change to the net balance
+    // include the liquidity direct transfer to the net balance
+    // as deposit and withdraws are handled in transfer processing function
+    if (liquidityChangeEvent.changeType === LiquidityChangeType.Transfer) {
+      ownerBalance.currentNetBalance += depositedBalanceChange;
+    }
 
     // Update snapshot balances
     const value = ownerBalance.currentNetBalance < 0n ? 0n : ownerBalance.currentNetBalance;

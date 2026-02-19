@@ -13,6 +13,7 @@ export interface Transfer {
   blockNumber: number;
   timestamp: number;
   tokenAddress: string;
+  transactionHash: string;
 }
 
 export interface TransferDetail {
@@ -74,6 +75,7 @@ export interface TransferRecord {
   blockNumber: number;
   timestamp: number;
   fromIsApprovedSource?: boolean;
+  transactionHash: string;
 }
 
 export interface AccountTransfers {
@@ -96,6 +98,7 @@ export type LiquidityChangeBase = {
   depositedBalanceChange: string;
   blockNumber: number;
   timestamp: number;
+  transactionHash: string;
 }
 
 export type LiquidityChangeV2 = LiquidityChangeBase & {
