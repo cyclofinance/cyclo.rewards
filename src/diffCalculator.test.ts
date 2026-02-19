@@ -77,6 +77,14 @@ describe('readCsv', () => {
     );
   });
 
+  it('should lowercase addresses', () => {
+    mockReadFileSync.mockReturnValue(
+      'recipient address,amount wei\n0xAaBbCcDdEeFf,1000\n'
+    );
+    const result = readCsv('valid.csv');
+    expect(result[0].address).toBe('0xaabbccddeeff');
+  });
+
   it('should parse valid CSV', () => {
     mockReadFileSync.mockReturnValue(
       'recipient address,amount wei\n0xABC123,1000\n0xDEF456,2000\n'
