@@ -120,14 +120,13 @@ async function scrapeTransfers() {
 
     // Save progress after each batch
     // split into 2 files to avoid github 100MB file size limit
-    await writeFile(
-      "data/transfers1.dat",
-      transfers.slice(0, 270001).map((t) => JSON.stringify(t)).join("\n")
-    );
-    await writeFile(
-      "data/transfers2.dat",
-      transfers.slice(270001).map((t) => JSON.stringify(t)).join("\n")
-    );
+    const fileCount = Math.ceil(transfers.length / 270000);
+    for (let i = 0; i < fileCount; i++) {
+      await writeFile(
+        `data/transfers${i + 1}.dat`,
+        transfers.slice(270000 * i, 270000 * (i + 1)).map((t) => JSON.stringify(t)).join("\n")
+      );
+    }
 
     // Log progress
     console.log(`Total transfers processed: ${totalProcessed}`);

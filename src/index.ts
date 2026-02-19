@@ -33,17 +33,15 @@ async function main() {
 
   // Read transfers file
   console.log("Reading transfers file...");
-  const transfers1Data = await readFile("data/transfers1.dat", "utf8");
-  const transfers2Data = await readFile("data/transfers2.dat", "utf8");
-  const transfers1 = transfers1Data
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
-  const transfers2 = transfers2Data
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
-  const transfers = [...transfers1, ...transfers2]
+  const transfers = []
+  for (let i = 0; i < 10; i++) {
+    const transfersData = await readFile(`data/transfers${i + 1}.dat`, "utf8").catch(() => "");
+    const transfersBatch = transfersData
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+    transfers.push(...transfersBatch)
+  }
   console.log(`Found ${transfers.length} transfers`);
 
   // Read liquidity file
