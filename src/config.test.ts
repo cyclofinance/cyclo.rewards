@@ -56,7 +56,7 @@ describe("Test math functions", () => {
     const decimals2 = 23;
     const result2 = scaleTo18(value2, decimals2);
     const expected2 = 1234n;
-    expect(result1).toBe(expected2);
+    expect(result2).toBe(expected2);
 
     // eq
     const value3 = 123456789n;
