@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateSnapshotBlocks } from './config';
+import { generateSnapshotBlocks, scaleTo18 } from './config';
 
 describe('Test generateSnapshotTimestampForEpoch', () => {
   
@@ -39,5 +39,30 @@ describe('Test generateSnapshotTimestampForEpoch', () => {
       expect(block).toBeGreaterThanOrEqual(start);
       expect(block).toBeLessThanOrEqual(end);
     });
+  });
+});
+
+describe("Test math functions", () => {
+  it("should test scale to 18", async function () {
+    // down
+    const value1 = 123456789n;
+    const decimals1 = 3;
+    const result1 = scaleTo18(value1, decimals1);
+    const expected1 = 123456789000000000000000n;
+    expect(result1).toBe(expected1);
+
+    // up
+    const value2 = 123456789n;
+    const decimals2 = 23;
+    const result2 = scaleTo18(value2, decimals2);
+    const expected2 = 1234n;
+    expect(result1).toBe(expected2);
+
+    // eq
+    const value3 = 123456789n;
+    const decimals3 = 18;
+    const result3 = scaleTo18(value3, decimals3);
+    const expected3 = 123456789n;
+    expect(result3).toBe(expected3);
   });
 });

@@ -4,6 +4,7 @@ export interface CyToken {
   underlyingAddress: string;
   underlyingSymbol: string;
   receiptAddress: string;
+  decimals: number;
 }
 
 export interface Transfer {
@@ -62,6 +63,7 @@ export interface TokenBalances {
   penalty: bigint;
   bounty: bigint;
   final: bigint;
+  final18: bigint;
 }
 
 export type EligibleBalances = Map<string, Map<string, TokenBalances>>; // token address -> user address -> balances

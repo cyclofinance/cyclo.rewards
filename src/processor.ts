@@ -5,6 +5,7 @@ import {
   RPC_URL,
   isSameAddress,
   CYTOKENS,
+  scaleTo18,
 } from "./config";
 import {
   Transfer,
@@ -325,6 +326,7 @@ export class Processor {
           penalty: 0n,
           bounty: 0n,
           final: 0n,
+          final18: 0n,
         });
       }
 
@@ -363,6 +365,7 @@ export class Processor {
         if (!balance) continue;
 
         balance.final = balance.average - balance.penalty + balance.bounty;
+        balance.final18 = scaleTo18(balance.final, token.decimals);
       }
     }
 
@@ -378,7 +381,7 @@ export class Processor {
       const tokenBalances = balances.get(token.address.toLowerCase());
       if (!tokenBalances) continue;
       const totalBalance = Array.from(tokenBalances.values()).reduce(
-        (acc, balance) => acc + balance.final,
+        (acc, balance) => acc + balance.final18,
         0n
       );
       totalBalances.set(token.address.toLowerCase(), totalBalance);
@@ -463,7 +466,7 @@ export class Processor {
       const tokenRewards = new Map<string, bigint>();
       for (const [address, balance] of tokenBalances) {
         const reward =
-          (balance.final *
+          (balance.final18 *
             totalRewardsPerToken.get(token.address.toLowerCase())!) /
           totalBalances.get(token.address.toLowerCase())!;
         tokenRewards.set(address, reward);

@@ -782,6 +782,7 @@ describe("Processor", () => {
         penalty: 0n,
         bounty: 0n,
         final: 5000000000000000000n,
+        final18: 5000000000000000000n,
       });
 
       const transfer1: Transfer = {
@@ -820,6 +821,7 @@ describe("Processor", () => {
         penalty: 0n,
         bounty: 0n,
         final: 8000000000000000000n,
+        final18: 8000000000000000000n,
       });
 
       // deposit event between snapshot 1 and 2
@@ -859,6 +861,7 @@ describe("Processor", () => {
         penalty: 0n,
         bounty: 0n,
         final: 8500000000000000000n,
+        final18: 8500000000000000000n,
       });
 
       // withdraw event between snapshot 1 and 2
@@ -898,6 +901,7 @@ describe("Processor", () => {
         penalty: 0n,
         bounty: 0n,
         final: 7500000000000000000n,
+        final18: 7500000000000000000n,
       });
 
       // direct lp trnasfer event
@@ -926,6 +930,7 @@ describe("Processor", () => {
         penalty: 0n,
         bounty: 0n,
         final: 7000000000000000000n,
+        final18: 7000000000000000000n,
       });
 
       // transfer event after snapshot 2
@@ -965,6 +970,7 @@ describe("Processor", () => {
         penalty: 0n,
         bounty: 0n,
         final: 7000000000000000000n,
+        final18: 7000000000000000000n,
       });
     });
   });

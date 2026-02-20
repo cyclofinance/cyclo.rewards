@@ -25,6 +25,7 @@ export const CYTOKENS: CyToken[] = [
     underlyingAddress: "0x12e605bc104e93B45e1aD99F9e555f659051c2BB", // sFlr
     underlyingSymbol: "sFLR",
     receiptAddress: "0xd387FC43E19a63036d8FCeD559E81f5dDeF7ef09",
+    decimals: 18,
   },
   {
     name: "cyWETH",
@@ -32,6 +33,7 @@ export const CYTOKENS: CyToken[] = [
     underlyingAddress: "0x1502fa4be69d526124d453619276faccab275d3d", // weth
     underlyingSymbol: "WETH",
     receiptAddress: "0xBE2615A0fcB54A49A1eB472be30d992599FE0968",
+    decimals: 18,
   },
   {
     name: "cyFXRP",
@@ -39,6 +41,7 @@ export const CYTOKENS: CyToken[] = [
     underlyingAddress: "0xAd552A648C74D49E10027AB8a618A3ad4901c5bE", // fxrp
     underlyingSymbol: "cyFXRP",
     receiptAddress: "0xc46600cebd84ed2fe60ec525df13e341d24642f2",
+    decimals: 6,
   },
 ];
 
@@ -80,4 +83,19 @@ export function generateSnapshotBlocks(
   snapshots.sort((a, b) => a - b);
 
   return snapshots;
+}
+
+/**
+ * Scales a given value and its decimals to 18 fixed point decimals
+ * @param value - The value to scale to 18
+ * @param decimals - The decimals of the value to scale to 18
+ */
+export function scaleTo18(value: bigint, decimals: number): bigint {
+    if (decimals === 18) {
+      return value;
+    } else if (decimals > 18) {
+        return value / BigInt("1" + "0".repeat(decimals - 18));
+    } else {
+        return value * BigInt("1" + "0".repeat(18 - decimals));
+    }
 }
