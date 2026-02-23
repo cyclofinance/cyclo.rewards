@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "fs";
-import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
+import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from "./constants";
 
 export const DISTRIBUTED_COUNT = 101 as const;
 
@@ -152,7 +152,7 @@ function main() {
         tmp.join("\n")
     );
 
-    tmp = [REWARDS_CSV_COLUMN_HEADER_ADDRESS + ",old,new,diff"]
+    tmp = [REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + DIFF_CSV_COLUMN_HEADER_OLD + "," + DIFF_CSV_COLUMN_HEADER_NEW + "," + DIFF_CSV_COLUMN_HEADER_DIFF]
     for (const item of result.underpaid) {
         tmp.push(`${item.address},${item.old},${item.new},${item.diff}`);
     }

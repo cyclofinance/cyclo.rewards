@@ -21,7 +21,7 @@ vi.mock('fs', async () => {
 });
 
 import { readCsv, calculateDiff, RewardEntry } from './diffCalculator';
-import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from './constants';
+import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from './constants';
 
 describe('readCsv', () => {
   beforeEach(() => {
@@ -330,7 +330,7 @@ describe('main() CSV output', () => {
   // Since old and new are identical, no accounts are underpaid (all diffs <= 0).
 
   const rewardsHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;
-  const diffHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + ",old,new,diff";
+  const diffHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + DIFF_CSV_COLUMN_HEADER_OLD + "," + DIFF_CSV_COLUMN_HEADER_NEW + "," + DIFF_CSV_COLUMN_HEADER_DIFF;
 
   it('should write three CSV files', () => {
     expect(mockWriteFileSync).toHaveBeenCalledTimes(3);
