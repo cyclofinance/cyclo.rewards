@@ -23,6 +23,14 @@ vi.mock('fs', async () => {
 import { readCsv, calculateDiff, RewardEntry } from './diffCalculator';
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from './constants';
 
+const header = REWARDS_CSV_COLUMN_HEADER_ADDRESS + ',' + REWARDS_CSV_COLUMN_HEADER_REWARD;
+
+it('hoisted header should match header constants', () => {
+  // vi.hoisted cannot use imports, so the header is hardcoded there.
+  // This test ensures it stays in sync with the constants.
+  expect(fakeCsv.split('\n')[0]).toBe(header);
+});
+
 describe('readCsv', () => {
   beforeEach(() => {
     mockReadFileSync.mockReturnValue(fakeCsv);
@@ -36,7 +44,7 @@ describe('readCsv', () => {
   });
 
   it('should throw on header-only file', () => {
-    mockReadFileSync.mockReturnValue('recipient address,amount wei\n');
+    mockReadFileSync.mockReturnValue(header + '\n');
     expect(() => readCsv('header-only.csv')).toThrowError(
       'CSV file has no data rows (only header): header-only.csv'
     );
@@ -44,7 +52,7 @@ describe('readCsv', () => {
 
   it('should throw on line with fewer than 2 columns', () => {
     mockReadFileSync.mockReturnValue(
-      'recipient address,amount wei\n0xabc123\n'
+      header + '\n0xabc123\n'
     );
     expect(() => readCsv('bad.csv')).toThrowError(
       'CSV line 2 has fewer than 2 columns in bad.csv: "0xabc123"'
@@ -53,7 +61,7 @@ describe('readCsv', () => {
 
   it('should throw on line with more than 2 columns', () => {
     mockReadFileSync.mockReturnValue(
-      'recipient address,amount wei\n0xabc123,1000,extra\n'
+      header + '\n0xabc123,1000,extra\n'
     );
     expect(() => readCsv('bad.csv')).toThrowError(
       'CSV line 2 has more than 2 columns in bad.csv: "0xabc123,1000,extra"'
@@ -62,7 +70,7 @@ describe('readCsv', () => {
 
   it('should throw on empty address', () => {
     mockReadFileSync.mockReturnValue(
-      'recipient address,amount wei\n,1000\n'
+      header + '\n,1000\n'
     );
     expect(() => readCsv('bad.csv')).toThrowError(
       'CSV line 2 has empty address in bad.csv: ",1000"'
@@ -71,7 +79,7 @@ describe('readCsv', () => {
 
   it('should throw on empty reward', () => {
     mockReadFileSync.mockReturnValue(
-      'recipient address,amount wei\n0xabc123,\n'
+      header + '\n0xabc123,\n'
     );
     expect(() => readCsv('bad.csv')).toThrowError(
       'CSV line 2 has empty reward in bad.csv: "0xabc123,"'
@@ -80,7 +88,7 @@ describe('readCsv', () => {
 
   it('should lowercase addresses', () => {
     mockReadFileSync.mockReturnValue(
-      'recipient address,amount wei\n0xAaBbCcDdEeFf,1000\n'
+      header + '\n0xAaBbCcDdEeFf,1000\n'
     );
     const result = readCsv('valid.csv');
     expect(result[0].address).toBe('0xaabbccddeeff');
@@ -88,12 +96,53 @@ describe('readCsv', () => {
 
   it('should parse valid CSV', () => {
     mockReadFileSync.mockReturnValue(
-      'recipient address,amount wei\n0xABC123,1000\n0xDEF456,2000\n'
+      header + '\n0xABC123,1000\n0xDEF456,2000\n'
     );
     const result = readCsv('valid.csv');
     expect(result).toEqual([
       { address: '0xabc123', reward: 1000n },
       { address: '0xdef456', reward: 2000n },
+    ]);
+  });
+
+  it('should throw on non-numeric reward value', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\n0xabc123,notanumber\n'
+    );
+    expect(() => readCsv('bad.csv')).toThrow();
+  });
+
+  it('should throw on floating point reward value', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\n0xabc123,1.5\n'
+    );
+    expect(() => readCsv('bad.csv')).toThrow();
+  });
+
+  it('should accept negative reward values', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\n0xabc123,-1000\n'
+    );
+    const result = readCsv('bad.csv');
+    expect(result[0].reward).toBe(-1000n);
+  });
+
+  it('should accept zero reward values', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\n0xabc123,0\n'
+    );
+    const result = readCsv('bad.csv');
+    expect(result[0].reward).toBe(0n);
+  });
+
+  it('should return duplicate addresses as separate entries', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\n0xabc123,1000\n0xabc123,2000\n'
+    );
+    const result = readCsv('dup.csv');
+    expect(result).toEqual([
+      { address: '0xabc123', reward: 1000n },
+      { address: '0xabc123', reward: 2000n },
     ]);
   });
 });
