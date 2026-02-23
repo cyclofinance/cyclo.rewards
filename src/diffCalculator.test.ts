@@ -368,7 +368,19 @@ describe('calculateDiff', () => {
     const oldRewards = [entry('0xold1', 5n)];
 
     // distributedCount is 3 but oldRewards only has 1 entry
-    expect(() => calculateDiff(newRewards, oldRewards, 3, 100n)).toThrow();
+    expect(() => calculateDiff(newRewards, oldRewards, 3, 100n)).toThrow(
+      'distributedCount (3) exceeds oldRewards length (1)'
+    );
+  });
+
+  it('should throw when totalAlreadyPaid exceeds rewardPool', () => {
+    const newRewards = [entry('0xa', 50n), entry('0xb', 50n)];
+    const oldRewards = [entry('0xa', 200n)];
+
+    // oldRewards[0] paid 200 but rewardPool is only 100
+    expect(() => calculateDiff(newRewards, oldRewards, 1, 100n)).toThrow(
+      'totalAlreadyPaid (200) exceeds rewardPool (100)'
+    );
   });
 });
 
