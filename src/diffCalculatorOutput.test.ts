@@ -205,3 +205,16 @@ describe('on-chain distribution verification', () => {
     expect(overlap).toEqual([]);
   });
 });
+
+describe('blocklist integrity', () => {
+  const blocklistData = readFileSync('./data/blocklist.txt', 'utf8');
+  const reports = blocklistData.split('\n').filter(Boolean).map(line => {
+    const [reporter, cheater] = line.split(' ');
+    return { reporter: reporter.toLowerCase(), cheater: cheater.toLowerCase() };
+  });
+
+  it('no duplicate cheater addresses in blocklist', () => {
+    const cheaters = reports.map(r => r.cheater);
+    expect(cheaters.length).toBe(new Set(cheaters).size);
+  });
+});
