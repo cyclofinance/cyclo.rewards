@@ -96,6 +96,34 @@ describe('diffCalculator output', () => {
     }
   });
 
+  it('diff old values match actual old rewards', () => {
+    const oldMap = new Map(oldRewards.map(r => [r.address, r.reward]));
+    for (const entry of diff) {
+      expect(entry.old).toBe(oldMap.get(entry.address));
+    }
+  });
+
+  it('diff new values match actual new rewards', () => {
+    const newMap = new Map(newRewards.map(r => [r.address, r.reward]));
+    for (const entry of diff) {
+      expect(entry.new).toBe(newMap.get(entry.address));
+    }
+  });
+
+  it('no duplicate addresses in diff', () => {
+    const addresses = diff.map(r => r.address);
+    expect(addresses.length).toBe(new Set(addresses).size);
+  });
+
+  it('underpaid addresses are not in covered or uncovered', () => {
+    const coveredSet = new Set(covered.map(r => r.address));
+    const uncoveredSet = new Set(uncovered.map(r => r.address));
+    for (const entry of diff) {
+      expect(coveredSet.has(entry.address)).toBe(false);
+      expect(uncoveredSet.has(entry.address)).toBe(false);
+    }
+  });
+
   it('diff entries have correct arithmetic and positive diffs', () => {
     for (const entry of diff) {
       expect(entry.diff).toBe(entry.new - entry.old);
@@ -116,6 +144,20 @@ describe('diffCalculator output', () => {
       .reduce((sum, r) => sum + r.reward, 0n);
     const coveredTotal = covered.reduce((sum, r) => sum + r.reward, 0n);
     expect(totalDistributed + coveredTotal).toBeLessThanOrEqual(REWARD_POOL);
+  });
+
+  it('all covered rewards are positive', () => {
+    const nonPositive = covered.filter(r => r.reward <= 0n);
+    expect(nonPositive).toEqual([]);
+  });
+
+  it('all uncovered rewards are positive', () => {
+    const nonPositive = uncovered.filter(r => r.reward <= 0n);
+    expect(nonPositive).toEqual([]);
+  });
+
+  it('old rewards has at least DISTRIBUTED_COUNT entries', () => {
+    expect(oldRewards.length).toBeGreaterThanOrEqual(DISTRIBUTED_COUNT);
   });
 
   it('all old distributed rewards are positive', () => {
