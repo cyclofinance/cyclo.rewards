@@ -115,10 +115,8 @@ export class Processor {
           continue;
         }
 
-        // If we've exhausted all retries, log and return false
-        console.log(`Failed to check factory after ${retries} attempts:`, e);
-        this.approvedSourceCache.set(source.toLowerCase(), false);
-        return false;
+        // If we've exhausted all retries, abort rather than silently under-crediting
+        throw new Error(`Failed to check factory for ${source} after ${retries} attempts: ${e.message}`);
       }
     }
 

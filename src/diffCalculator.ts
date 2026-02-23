@@ -64,6 +64,9 @@ export function calculateDiff(
   distributedCount: number,
   rewardPool: bigint,
 ): DiffResult {
+  if (distributedCount > oldRewards.length) {
+    throw new Error(`distributedCount (${distributedCount}) exceeds oldRewards length (${oldRewards.length})`);
+  }
   // clone for removing already distirbuted accounts from list
   const remainingUndistributed = structuredClone(newRewards);
   let totalAlreadyPaid = 0n;
@@ -94,6 +97,9 @@ export function calculateDiff(
 
   // calculate those who can be paid with remaining rewards and those who cant
   const remainingRewards = rewardPool - totalAlreadyPaid;
+  if (remainingRewards < 0n) {
+    throw new Error(`totalAlreadyPaid (${totalAlreadyPaid}) exceeds rewardPool (${rewardPool})`);
+  }
   let remainingRewardsDiff = remainingRewards;
   let totalNewDistribution = 0n;
   let totalRemainingUncovered = 0n;
