@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "fs";
-import { REWARD_POOL } from "./constants";
+import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 export const DISTRIBUTED_COUNT = 101 as const;
 
@@ -133,7 +133,7 @@ function main() {
     const result = calculateDiff(newRewards, oldRewards, DISTRIBUTED_COUNT, REWARD_POOL);
 
     // write to files
-    const header = "recipient address,amount wei";
+    const header = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;
     let tmp = [header]
     for (const item of result.covered) {
         tmp.push(`${item.address},${item.reward}`);
@@ -152,7 +152,7 @@ function main() {
         tmp.join("\n")
     );
 
-    tmp = ["recipient address,old,new,diff"]
+    tmp = [REWARDS_CSV_COLUMN_HEADER_ADDRESS + ",old,new,diff"]
     for (const item of result.underpaid) {
         tmp.push(`${item.address},${item.old},${item.new},${item.diff}`);
     }

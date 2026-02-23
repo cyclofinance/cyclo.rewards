@@ -21,6 +21,7 @@ vi.mock('fs', async () => {
 });
 
 import { readCsv, calculateDiff, RewardEntry } from './diffCalculator';
+import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from './constants';
 
 describe('readCsv', () => {
   beforeEach(() => {
@@ -311,5 +312,69 @@ describe('calculateDiff', () => {
     // 0xbig (45) fits, remaining budget = 5, 0xsmall (10) does NOT fit
     expect(result.covered).toEqual([entry('0xbig', 45n)]);
     expect(result.uncovered).toEqual([entry('0xsmall', 10n)]);
+  });
+
+  it('should throw when distributedCount exceeds oldRewards length', () => {
+    const newRewards = [entry('0xnew1', 10n)];
+    const oldRewards = [entry('0xold1', 5n)];
+
+    // distributedCount is 3 but oldRewards only has 1 entry
+    expect(() => calculateDiff(newRewards, oldRewards, 3, 100n)).toThrow();
+  });
+});
+
+describe('main() CSV output', () => {
+  // main() runs on import with mockReadFileSync returning 200 identical rows
+  // for both old and new rewards. DISTRIBUTED_COUNT=101, so first 101 are
+  // "already distributed" and the remaining 99 are new.
+  // Since old and new are identical, no accounts are underpaid (all diffs <= 0).
+
+  const rewardsHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;
+  const diffHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + ",old,new,diff";
+
+  it('should write three CSV files', () => {
+    expect(mockWriteFileSync).toHaveBeenCalledTimes(3);
+  });
+
+  it('should write remainingCovered CSV with correct header and format', () => {
+    const [path, content] = mockWriteFileSync.mock.calls[0];
+    expect(path).toBe('output/rewards-51504517-52994045-remainingCovered.csv');
+    const lines = content.split('\n');
+    expect(lines[0]).toBe(rewardsHeader);
+    // With identical old/new and huge reward pool, all 99 remaining should be covered
+    expect(lines.length).toBe(100); // header + 99 data rows
+    // Verify format of a data line
+    expect(lines[1]).toMatch(/^0x[0-9a-f]+,\d+$/);
+  });
+
+  it('should write remainingUncovered CSV with header only', () => {
+    const [path, content] = mockWriteFileSync.mock.calls[1];
+    expect(path).toBe('output/rewards-51504517-52994045-remainingUncovered.csv');
+    const lines = content.split('\n');
+    expect(lines[0]).toBe(rewardsHeader);
+    // No uncovered accounts since reward pool is massive
+    expect(lines.length).toBe(1);
+  });
+
+  it('should write diff CSV with header only when old and new are identical', () => {
+    const [path, content] = mockWriteFileSync.mock.calls[2];
+    expect(path).toBe('output/rewards-51504517-52994045-diff.csv');
+    const lines = content.split('\n');
+    expect(lines[0]).toBe(diffHeader);
+    // No underpaid accounts since old and new rewards are identical
+    expect(lines.length).toBe(1);
+  });
+
+  it('should only include non-distributed addresses in covered CSV', () => {
+    const [, content] = mockWriteFileSync.mock.calls[0];
+    const dataLines = content.split('\n').slice(1);
+    const addresses = dataLines.map((l: string) => l.split(',')[0]);
+
+    // The mock generates addresses 0x00...00 through 0x00...c7 (0-199)
+    // First 101 (0-100) are "distributed", remaining 99 (101-199) are new
+    for (let i = 0; i < 101; i++) {
+      const distributed = `0x${i.toString(16).padStart(40, '0')}`;
+      expect(addresses).not.toContain(distributed);
+    }
   });
 });
