@@ -20,7 +20,7 @@ vi.mock('fs', async () => {
   };
 });
 
-import { readCsv } from './diffCalculator';
+import { readCsv, calculateDiff, RewardEntry } from './diffCalculator';
 
 describe('readCsv', () => {
   beforeEach(() => {
@@ -94,5 +94,222 @@ describe('readCsv', () => {
       { address: '0xabc123', reward: 1000n },
       { address: '0xdef456', reward: 2000n },
     ]);
+  });
+});
+
+describe('calculateDiff', () => {
+  // Helper to make reward entries concisely
+  const entry = (addr: string, reward: bigint): RewardEntry => ({ address: addr, reward });
+
+  it('should split remaining into covered and uncovered based on budget', () => {
+    // Pool is 100, old distributed 40 to 2 accounts, leaving 60 remaining
+    const newRewards = [
+      entry('0xold1', 20n),
+      entry('0xold2', 20n),
+      entry('0xnew1', 30n),
+      entry('0xnew2', 25n),
+      entry('0xnew3', 10n),
+    ];
+    const oldRewards = [
+      entry('0xold1', 20n),
+      entry('0xold2', 20n),
+    ];
+
+    const result = calculateDiff(newRewards, oldRewards, 2, 100n);
+
+    expect(result.totalAlreadyPaid).toBe(40n);
+    expect(result.remainingRewards).toBe(60n);
+    // 0xnew1 (30) fits, 0xnew2 (25) fits (30+25=55), 0xnew3 (10) exceeds (55+10=65 > 60)
+    expect(result.covered).toEqual([
+      entry('0xnew1', 30n),
+      entry('0xnew2', 25n),
+    ]);
+    expect(result.uncovered).toEqual([
+      entry('0xnew3', 10n),
+    ]);
+    expect(result.totalNewDistribution).toBe(55n);
+    expect(result.remainingRewardsDiff).toBe(5n);
+    expect(result.totalRemainingUncovered).toBe(10n);
+  });
+
+  it('should identify underpaid accounts', () => {
+    // Old account received 10 but new calculation says they deserve 25
+    const newRewards = [
+      entry('0xold1', 25n),
+      entry('0xnew1', 50n),
+    ];
+    const oldRewards = [
+      entry('0xold1', 10n),
+    ];
+
+    const result = calculateDiff(newRewards, oldRewards, 1, 100n);
+
+    expect(result.underpaid).toEqual([{
+      address: '0xold1',
+      old: 10n,
+      new: 25n,
+      diff: 15n,
+    }]);
+    expect(result.totalUnderpaid).toBe(15n);
+  });
+
+  it('should not flag accounts that received more than or equal to new calculation', () => {
+    const newRewards = [
+      entry('0xold1', 10n),  // received exact amount
+      entry('0xold2', 5n),   // received more than new calc
+    ];
+    const oldRewards = [
+      entry('0xold1', 10n),
+      entry('0xold2', 20n),
+    ];
+
+    const result = calculateDiff(newRewards, oldRewards, 2, 100n);
+
+    expect(result.underpaid).toEqual([]);
+    expect(result.totalUnderpaid).toBe(0n);
+  });
+
+  it('should remove distributed accounts from remaining', () => {
+    const newRewards = [
+      entry('0xold1', 10n),
+      entry('0xnew1', 20n),
+    ];
+    const oldRewards = [
+      entry('0xold1', 10n),
+    ];
+
+    const result = calculateDiff(newRewards, oldRewards, 1, 100n);
+
+    // Only 0xnew1 should be in covered/uncovered, not 0xold1
+    const allRemaining = [...result.covered, ...result.uncovered];
+    expect(allRemaining.map(e => e.address)).toEqual(['0xnew1']);
+  });
+
+  it('should handle old account not found in new rewards', () => {
+    const newRewards = [
+      entry('0xnew1', 20n),
+    ];
+    const oldRewards = [
+      entry('0xold1', 10n),  // not in newRewards
+    ];
+
+    const result = calculateDiff(newRewards, oldRewards, 1, 100n);
+
+    // old1 is still counted in totalAlreadyPaid
+    expect(result.totalAlreadyPaid).toBe(10n);
+    expect(result.remainingRewards).toBe(90n);
+    // new1 was never removed from remaining
+    expect(result.covered).toEqual([entry('0xnew1', 20n)]);
+    expect(result.underpaid).toEqual([]);
+  });
+
+  it('should handle zero distributed count', () => {
+    const newRewards = [
+      entry('0xnew1', 30n),
+      entry('0xnew2', 20n),
+    ];
+
+    const result = calculateDiff(newRewards, [], 0, 100n);
+
+    expect(result.totalAlreadyPaid).toBe(0n);
+    expect(result.remainingRewards).toBe(100n);
+    expect(result.covered).toEqual([entry('0xnew1', 30n), entry('0xnew2', 20n)]);
+    expect(result.uncovered).toEqual([]);
+    expect(result.underpaid).toEqual([]);
+  });
+
+  it('should handle all accounts fitting in budget exactly', () => {
+    const newRewards = [
+      entry('0xnew1', 50n),
+      entry('0xnew2', 50n),
+    ];
+
+    const result = calculateDiff(newRewards, [], 0, 100n);
+
+    expect(result.covered).toEqual([entry('0xnew1', 50n), entry('0xnew2', 50n)]);
+    expect(result.uncovered).toEqual([]);
+    expect(result.remainingRewardsDiff).toBe(0n);
+  });
+
+  it('should handle empty new rewards', () => {
+    const result = calculateDiff([], [], 0, 100n);
+
+    expect(result.covered).toEqual([]);
+    expect(result.uncovered).toEqual([]);
+    expect(result.underpaid).toEqual([]);
+    expect(result.remainingRewards).toBe(100n);
+    expect(result.remainingRewardsDiff).toBe(100n);
+  });
+
+  it('should not mutate input arrays', () => {
+    const newRewards = [
+      entry('0xold1', 10n),
+      entry('0xnew1', 20n),
+    ];
+    const oldRewards = [
+      entry('0xold1', 10n),
+    ];
+    const newRewardsCopy = structuredClone(newRewards);
+    const oldRewardsCopy = structuredClone(oldRewards);
+
+    calculateDiff(newRewards, oldRewards, 1, 100n);
+
+    expect(newRewards).toEqual(newRewardsCopy);
+    expect(oldRewards).toEqual(oldRewardsCopy);
+  });
+
+  it('covered + uncovered rewards should equal total remaining undistributed', () => {
+    const newRewards = [
+      entry('0xold1', 15n),
+      entry('0xold2', 25n),
+      entry('0xnew1', 30n),
+      entry('0xnew2', 40n),
+      entry('0xnew3', 50n),
+    ];
+    const oldRewards = [
+      entry('0xold1', 10n),
+      entry('0xold2', 20n),
+    ];
+
+    const result = calculateDiff(newRewards, oldRewards, 2, 200n);
+
+    const coveredTotal = result.covered.reduce((s, e) => s + e.reward, 0n);
+    const uncoveredTotal = result.uncovered.reduce((s, e) => s + e.reward, 0n);
+    // The remaining undistributed accounts are those NOT in oldRewards
+    const remainingTotal = newRewards
+      .filter(n => !oldRewards.some(o => o.address === n.address))
+      .reduce((s, e) => s + e.reward, 0n);
+
+    expect(coveredTotal + uncoveredTotal).toBe(remainingTotal);
+  });
+
+  it('totalNewDistribution + remainingRewardsDiff should equal remainingRewards', () => {
+    const newRewards = [
+      entry('0xold1', 15n),
+      entry('0xnew1', 30n),
+      entry('0xnew2', 40n),
+      entry('0xnew3', 50n),
+    ];
+    const oldRewards = [
+      entry('0xold1', 10n),
+    ];
+
+    const result = calculateDiff(newRewards, oldRewards, 1, 100n);
+
+    expect(result.totalNewDistribution + result.remainingRewardsDiff).toBe(result.remainingRewards);
+  });
+
+  it('should handle greedy ordering — large account first exhausts budget', () => {
+    // Budget is 50, but a 45n account comes first, leaving only 5n for the rest
+    const newRewards = [
+      entry('0xbig', 45n),
+      entry('0xsmall', 10n),
+    ];
+
+    const result = calculateDiff(newRewards, [], 0, 50n);
+
+    // 0xbig (45) fits, remaining budget = 5, 0xsmall (10) does NOT fit
+    expect(result.covered).toEqual([entry('0xbig', 45n)]);
+    expect(result.uncovered).toEqual([entry('0xsmall', 10n)]);
   });
 });

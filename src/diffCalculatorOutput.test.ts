@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-
-const DISTRIBUTED_COUNT = 101;
+import { DISTRIBUTED_COUNT } from './diffCalculator';
 
 function parseCsv(filePath: string): Array<{address: string; reward: bigint}> {
   const data = readFileSync(filePath, 'utf8');
