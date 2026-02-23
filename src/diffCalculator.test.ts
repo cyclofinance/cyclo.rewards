@@ -20,7 +20,7 @@ vi.mock('fs', async () => {
   };
 });
 
-import { readCsv, calculateDiff, RewardEntry } from './diffCalculator';
+import { readCsv, calculateDiff, RewardEntry, DISTRIBUTED_COUNT } from './diffCalculator';
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from './constants';
 
 const header = REWARDS_CSV_COLUMN_HEADER_ADDRESS + ',' + REWARDS_CSV_COLUMN_HEADER_REWARD;
@@ -374,8 +374,8 @@ describe('calculateDiff', () => {
 
 describe('main() CSV output', () => {
   // main() runs on import with mockReadFileSync returning 200 identical rows
-  // for both old and new rewards. DISTRIBUTED_COUNT=101, so first 101 are
-  // "already distributed" and the remaining 99 are new.
+  // for both old and new rewards. First DISTRIBUTED_COUNT are
+  // "already distributed" and the remaining (200 - DISTRIBUTED_COUNT) are new.
   // Since old and new are identical, no accounts are underpaid (all diffs <= 0).
 
   const rewardsHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;
@@ -390,8 +390,8 @@ describe('main() CSV output', () => {
     expect(path).toBe('output/rewards-51504517-52994045-remainingCovered.csv');
     const lines = content.split('\n');
     expect(lines[0]).toBe(rewardsHeader);
-    // With identical old/new and huge reward pool, all 99 remaining should be covered
-    expect(lines.length).toBe(100); // header + 99 data rows
+    // With identical old/new and huge reward pool, all remaining should be covered
+    expect(lines.length).toBe(200 - DISTRIBUTED_COUNT + 1); // header + remaining data rows
     // Verify format of a data line
     expect(lines[1]).toMatch(/^0x[0-9a-f]+,\d+$/);
   });
@@ -420,8 +420,8 @@ describe('main() CSV output', () => {
     const addresses = dataLines.map((l: string) => l.split(',')[0]);
 
     // The mock generates addresses 0x00...00 through 0x00...c7 (0-199)
-    // First 101 (0-100) are "distributed", remaining 99 (101-199) are new
-    for (let i = 0; i < 101; i++) {
+    // First DISTRIBUTED_COUNT are "distributed", the rest are new
+    for (let i = 0; i < DISTRIBUTED_COUNT; i++) {
       const distributed = `0x${i.toString(16).padStart(40, '0')}`;
       expect(addresses).not.toContain(distributed);
     }

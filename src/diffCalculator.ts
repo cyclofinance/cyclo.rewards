@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from "./constants";
 
-export const DISTRIBUTED_COUNT = 101 as const;
+export const DISTRIBUTED_COUNT = 100 as const;
 
 /**
  * Reads a CSV file and returns the data as an array and map

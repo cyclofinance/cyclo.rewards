@@ -174,3 +174,34 @@ describe('diffCalculator output', () => {
     expect(overlap).toEqual([]);
   });
 });
+
+describe('on-chain distribution verification', () => {
+  const onchain = parseCsv('./output/dec-2025-distributed.csv');
+  const oldRewards = parseCsv('./output/rewards-51504517-52994045-old.csv');
+  const covered = parseCsv('./output/rewards-51504517-52994045-remainingCovered.csv');
+
+  it('on-chain distributed exactly DISTRIBUTED_COUNT addresses', () => {
+    expect(onchain.length).toBe(DISTRIBUTED_COUNT);
+  });
+
+  it('on-chain addresses match first DISTRIBUTED_COUNT of old rewards', () => {
+    const oldDistributed = oldRewards.slice(0, DISTRIBUTED_COUNT);
+    const onchainAddresses = onchain.map(r => r.address).sort();
+    const oldAddresses = oldDistributed.map(r => r.address).sort();
+    expect(onchainAddresses).toEqual(oldAddresses);
+  });
+
+  it('on-chain amounts match first DISTRIBUTED_COUNT of old rewards', () => {
+    const oldMap = new Map(oldRewards.slice(0, DISTRIBUTED_COUNT).map(r => [r.address, r.reward]));
+    for (const entry of onchain) {
+      expect(entry.reward).toBe(oldMap.get(entry.address));
+    }
+  });
+
+  it('on-chain addresses do not overlap with covered', () => {
+    const onchainSet = new Set(onchain.map(r => r.address));
+    const coveredSet = new Set(covered.map(r => r.address));
+    const overlap = [...onchainSet].filter(a => coveredSet.has(a));
+    expect(overlap).toEqual([]);
+  });
+});
