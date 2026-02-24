@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { generateSnapshotBlocks, scaleTo18, parseEnv } from './config';
+import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress } from './config';
 
 describe('Test generateSnapshotTimestampForEpoch', () => {
   
@@ -122,6 +122,21 @@ describe("parseEnv", () => {
     process.env.START_SNAPSHOT = "1000";
     process.env.END_SNAPSHOT = "abc";
     expect(() => parseEnv()).toThrow("END_SNAPSHOT must be a valid number");
+  });
+});
+
+describe("isSameAddress", () => {
+  it("matches identical addresses", () => {
+    expect(isSameAddress("0xabc", "0xabc")).toBe(true);
+  });
+
+  it("matches addresses with different casing", () => {
+    expect(isSameAddress("0xAbC", "0xabc")).toBe(true);
+    expect(isSameAddress("0xABC", "0xabc")).toBe(true);
+  });
+
+  it("returns false for different addresses", () => {
+    expect(isSameAddress("0xabc", "0xdef")).toBe(false);
   });
 });
 

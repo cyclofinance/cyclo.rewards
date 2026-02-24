@@ -1,6 +1,6 @@
-export const ONE = BigInt(10 ** 18);
+export const ONE = 10n ** 18n;
 
-export const REWARD_POOL = BigInt(500000000000000000000000);
+export const REWARD_POOL = 500_000_000_000_000_000_000_000n;
 export const DEC25_REWARD_POOL = 1_000_000_000_000_000_000_000_000n as const;
 
 // Must match expected structure

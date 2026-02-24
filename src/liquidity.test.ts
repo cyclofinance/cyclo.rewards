@@ -1,5 +1,5 @@
 import { PublicClient } from 'viem';
-import { getPoolsTickMulticall } from './liquidity';
+import { getPoolsTickMulticall, getPoolsTick } from './liquidity';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock PublicClient
@@ -253,5 +253,62 @@ describe('getPoolsTickMulticall', () => {
         .rejects
         .toThrow('Multicall failed');
     });
+  });
+});
+
+describe('getPoolsTick', () => {
+  const pools = ['0x1234567890123456789012345678901234567890'] as `0x${string}`[];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      fn();
+      return 0 as any;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns on first success without retry', async () => {
+    (mockClient.multicall as any).mockResolvedValue([
+      { status: 'success' as const, result: [0n, 42, 1, 1, 1, 0, true] },
+    ]);
+
+    const result = await getPoolsTick(mockClient, pools, 100);
+    expect(result).toEqual({ '0x1234567890123456789012345678901234567890': 42 });
+    expect(mockClient.multicall).toHaveBeenCalledTimes(1);
+  });
+
+  it('converts blockNumber to BigInt', async () => {
+    (mockClient.multicall as any).mockResolvedValue([
+      { status: 'success' as const, result: [0n, 42, 1, 1, 1, 0, true] },
+    ]);
+
+    await getPoolsTick(mockClient, pools, 12345);
+    expect(mockClient.multicall).toHaveBeenCalledWith(
+      expect.objectContaining({ blockNumber: 12345n }),
+    );
+  });
+
+  it('retries and succeeds on second attempt', async () => {
+    (mockClient.multicall as any)
+      .mockRejectedValueOnce(new Error('transient'))
+      .mockResolvedValueOnce([
+        { status: 'success' as const, result: [0n, 99, 1, 1, 1, 0, true] },
+      ]);
+
+    const result = await getPoolsTick(mockClient, pools, 100);
+
+    expect(result).toEqual({ '0x1234567890123456789012345678901234567890': 99 });
+    expect(mockClient.multicall).toHaveBeenCalledTimes(2);
+  });
+
+  it('throws after 3 failures', async () => {
+    (mockClient.multicall as any).mockRejectedValue(new Error('persistent'));
+
+    await expect(getPoolsTick(mockClient, pools, 100)).rejects.toThrow('persistent');
+    expect(mockClient.multicall).toHaveBeenCalledTimes(3);
   });
 });

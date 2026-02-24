@@ -72,12 +72,12 @@
 ## Pass 2: Test Coverage
 | ID | Severity | Finding | Status |
 |----|----------|---------|--------|
-| A02-P2-1 | CRITICAL | `REWARD_POOL` precision loss has zero test coverage | PENDING |
-| A01-1 | HIGH | `isSameAddress` has zero test coverage | PENDING |
-| A04-2 | HIGH | Environment variable handling unvalidated | PENDING |
-| A04-6 | HIGH | Zero-reward splice has known bug pattern | PENDING |
+| A02-P2-1 | CRITICAL | `REWARD_POOL` precision loss has zero test coverage | FIXED — used `n` suffix for BigInt literal; added constants.test.ts with exact value assertions |
+| A01-1 | HIGH | `isSameAddress` has zero test coverage | FIXED — added 3 tests: identical, different casing, different addresses |
+| A04-2 | HIGH | Environment variable handling unvalidated | FIXED — parseEnv() validates all env vars with assertions; 6 tests in config.test.ts |
+| A04-6 | HIGH | Zero-reward splice has known bug pattern | FIXED — replaced with filterZeroRewards() which filters without mutation |
 | A06-1 | HIGH | `isApprovedSource` has no dedicated tests (real implementation almost entirely untested) | FIXED — added 5 tests: direct source, case insensitive, factory approved, factory non-approved, no factory function, cache hit |
-| GAP-LIQ-01 | CRITICAL | `getPoolsTick` has zero unit tests | PENDING |
+| GAP-LIQ-01 | CRITICAL | `getPoolsTick` has zero unit tests | FIXED — added 4 tests for retry wrapper: first success, BigInt conversion, retry-then-succeed, throw after 3 failures |
 | A01-2 | MEDIUM | `generateSnapshotBlocks` missing edge case tests (start===end, start>end, adjacent) | PENDING |
 | A01-3 | MEDIUM | `scaleTo18` missing edge case tests | PENDING |
 | A01-4 | MEDIUM | `REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS` have no structural validation tests | PENDING |
