@@ -532,7 +532,7 @@ export class Processor {
       });
     }
 
-    const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
+    const ownerBalance = accountBalances.get(owner)!;
     // include the liquidity direct transfer to the net balance
     // as deposit and withdraws are handled in transfer processing function
     if (liquidityChangeEvent.changeType === LiquidityChangeType.Transfer) {

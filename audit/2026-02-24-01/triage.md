@@ -197,7 +197,7 @@
 ## Pass 4: Code Quality
 | ID | Severity | Finding | Status |
 |----|----------|---------|--------|
-| A06-12 | HIGH | Case mismatch on map key in `processLiquidityPositions` (line 525 vs 535) | PENDING |
+| A06-12 | HIGH | Case mismatch on map key in `processLiquidityPositions` (line 525 vs 535) | FIXED — use `owner` (lowercased) instead of `liquidityChangeEvent.owner` on line 535 |
 | A08-1 | HIGH | Five exported types are dead code: `Report`, `AccountSummary`, `TransferRecord`, `TransferDetail`, `AccountTransfers` | PENDING |
 | A03-1 | HIGH | Side effect on import: `main()` executes unconditionally at module level | PENDING |
 | A03-2 | HIGH | Hardcoded file paths and epoch-specific values in `main()` | PENDING |

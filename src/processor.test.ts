@@ -975,6 +975,43 @@ describe("Processor", () => {
     });
   });
 
+  describe("Mixed-case owner address in liquidity positions", () => {
+    it("should not crash when processLiquidityPositions sees mixed-case owner with no prior transfer", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      // Mixed-case address: processLiquidityPositions init creates entry under
+      // lowercase, but the .get() on line 535 used the original mixed-case,
+      // returning undefined and crashing on the non-null assertion.
+      const MIXED_CASE_USER = "0x3000000000000000000000000000000000000Abc";
+
+      // Direct LP Transfer event with no prior processTransfer call —
+      // the only entry in accountBalances will be the one created by
+      // processLiquidityPositions init under the lowercase key.
+      const lpTransferEvent: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: MIXED_CASE_USER,
+        changeType: LiquidityChangeType.Transfer,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash1",
+      };
+
+      // Before the fix, this would throw because .get(mixedCase) returns
+      // undefined when only the lowercase key exists.
+      await processor.processLiquidityPositions(lpTransferEvent);
+
+      const balances = await processor.getEligibleBalances();
+      const userBalance = balances.get(tokenAddress)?.get(MIXED_CASE_USER.toLowerCase());
+      expect(userBalance).toBeDefined();
+      expect(userBalance?.snapshots[0]).toBe(ONEn);
+      expect(userBalance?.snapshots[1]).toBe(ONEn);
+      expect(userBalance?.average).toBe(ONEn);
+    });
+  });
+
   describe('Test processLpRange() method', () => {
     let processor: Processor;
     const mockClient = {
