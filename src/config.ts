@@ -63,6 +63,7 @@ export function generateSnapshotBlocks(
   start: number,
   end: number,
 ): number[] {
+  assert.ok(seed.length > 0, "Seed must not be empty");
   const rng = seedrandom(seed);
   const range = end - start + 1;
 

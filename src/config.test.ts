@@ -46,11 +46,26 @@ describe('Test generateSnapshotTimestampForEpoch', () => {
   });
 
   it('should generate blocks within the epoch range', () => {
-    const blocks = generateSnapshotBlocks('test-seed', start, end);    
+    const blocks = generateSnapshotBlocks('test-seed', start, end);
     blocks.forEach(block => {
       expect(block).toBeGreaterThanOrEqual(start);
       expect(block).toBeLessThanOrEqual(end);
     });
+  });
+
+  it('should handle very large range (production scale)', () => {
+    const blocks = generateSnapshotBlocks('cyclo-rewards', 52_974_045, 54_474_045);
+    expect(blocks).toHaveLength(30);
+    const unique = new Set(blocks);
+    expect(unique.size).toBe(30);
+    blocks.forEach(block => {
+      expect(block).toBeGreaterThanOrEqual(52_974_045);
+      expect(block).toBeLessThanOrEqual(54_474_045);
+    });
+  });
+
+  it('should error on empty seed', () => {
+    expect(() => generateSnapshotBlocks('', start, end)).toThrow();
   });
 });
 
