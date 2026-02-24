@@ -1438,6 +1438,100 @@ describe("Processor", () => {
   });
 
   describe("isApprovedSource", () => {
+    it("should return true for direct approved source", async () => {
+      const proc = new Processor(SNAPSHOTS, [], mockClient);
+      const result = await proc.isApprovedSource("0xcee8cd002f151a536394e564b84076c41bbbcd4d");
+      expect(result).toBe(true);
+    });
+
+    it("should return true for direct approved source with different casing", async () => {
+      const proc = new Processor(SNAPSHOTS, [], mockClient);
+      const result = await proc.isApprovedSource("0xCEE8CD002F151A536394E564B84076C41BBBCD4D");
+      expect(result).toBe(true);
+    });
+
+    it("should return true for factory-based approved source", async () => {
+      const factoryClient = {
+        readContract: async () => "0x16b619B04c961E8f4F06C10B42FDAbb328980A89",
+      };
+      const proc = new Processor(SNAPSHOTS, [], factoryClient);
+      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      expect(result).toBe(true);
+    });
+
+    it("should return false for non-approved factory", async () => {
+      const nonApprovedFactoryClient = {
+        readContract: async () => "0x0000000000000000000000000000000000000001",
+      };
+      const proc = new Processor(SNAPSHOTS, [], nonApprovedFactoryClient);
+      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      expect(result).toBe(false);
+    });
+
+    it("should return false when contract has no factory function", async () => {
+      const noFactoryClient = {
+        readContract: async () => { throw { shortMessage: 'returned no data ("0x")' }; },
+      };
+      const proc = new Processor(SNAPSHOTS, [], noFactoryClient);
+      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      expect(result).toBe(false);
+    });
+
+    it("should return false when contract reverts", async () => {
+      const revertClient = {
+        readContract: async () => { throw { shortMessage: "execution reverted" }; },
+      };
+      const proc = new Processor(SNAPSHOTS, [], revertClient);
+      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      expect(result).toBe(false);
+    });
+
+    it("should return false for invalid parameters error", async () => {
+      const invalidParamsClient = {
+        readContract: async () => { throw { shortMessage: "invalid parameters" }; },
+      };
+      const proc = new Processor(SNAPSHOTS, [], invalidParamsClient);
+      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      expect(result).toBe(false);
+    });
+
+    it("should succeed on retry after transient error", async () => {
+      let callCount = 0;
+      const retryClient = {
+        readContract: async () => {
+          callCount++;
+          if (callCount === 1) throw new Error("rate limited");
+          return "0x16b619B04c961E8f4F06C10B42FDAbb328980A89";
+        },
+      };
+      const proc = new Processor(SNAPSHOTS, [], retryClient);
+      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099", 2);
+      expect(result).toBe(true);
+      expect(callCount).toBe(2);
+    });
+
+    it("should cache results and not call RPC again", async () => {
+      const spyClient = {
+        readContract: vi.fn().mockResolvedValue("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"),
+      };
+      const proc = new Processor(SNAPSHOTS, [], spyClient);
+      const addr = "0x0000000000000000000000000000000000000099";
+      await proc.isApprovedSource(addr);
+      await proc.isApprovedSource(addr);
+      expect(spyClient.readContract).toHaveBeenCalledTimes(1);
+    });
+
+    it("should use cache across different casings of the same address", async () => {
+      const spyClient = {
+        readContract: vi.fn().mockResolvedValue("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"),
+      };
+      const proc = new Processor(SNAPSHOTS, [], spyClient);
+      await proc.isApprovedSource("0x0000000000000000000000000000000000000aBc");
+      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000ABC");
+      expect(result).toBe(true);
+      expect(spyClient.readContract).toHaveBeenCalledTimes(1);
+    });
+
     it("should throw after exhausting retries on transient RPC errors", async () => {
       const failingClient = {
         readContract: async () => {

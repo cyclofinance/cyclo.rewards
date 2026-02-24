@@ -29,9 +29,9 @@
 | A04-3 | MEDIUM | Unchecked `JSON.parse` on JSONL data files | PENDING |
 | A04-6 | MEDIUM | `transfers` typed as `any[]` with no schema validation | PENDING |
 | A06-3 | MEDIUM | `epochLength` vs `snapshots.length` divergence risk | FIXED — removed redundant `epochLength` parameter; use `this.snapshots.length` directly |
-| A06-4 | MEDIUM | Division by zero in `calculateRewardsPoolsPertoken` | PENDING |
-| A06-5 | MEDIUM | Division by zero in `calculateRewards` | PENDING |
-| A06-6 | MEDIUM | Non-null assertions on `Map.get()` throughout | PENDING |
+| A06-4 | MEDIUM | Division by zero in `calculateRewardsPoolsPertoken` | DISMISSED — `getTokensWithBalance` filters to tokens with balance > 0; loop doesn't execute when empty |
+| A06-5 | MEDIUM | Division by zero in `calculateRewards` | DISMISSED — same guard via `getTokensWithBalance`; divisor always > 0 |
+| A06-6 | MEDIUM | Non-null assertions on `Map.get()` throughout | DISMISSED — all guarded by prior `.has()`/`.set()` calls or loop over known keys; safe in practice |
 | A07-1 | MEDIUM | GraphQL skip pagination ceiling | DISMISSED — incorrect; uses Goldsky not The Graph hosted service, 370K records successfully fetched |
 | A07-2 | MEDIUM | No validation of subgraph response data | PENDING |
 | A08-1 | MEDIUM | Unbranded string for Ethereum addresses | PENDING |
@@ -47,7 +47,7 @@
 | A03-8 | LOW | Negative reward values accepted without validation | PENDING |
 | A03-10 | LOW | No validation that `distributedCount` is a non-negative integer | PENDING |
 | A04-4 | LOW | Relative file paths for all I/O | PENDING |
-| A04-5 | LOW | Write-before-mkdir race condition | PENDING |
+| A04-5 | LOW | Write-before-mkdir race condition | FIXED — moved mkdir before first writeFile |
 | A04-7 | LOW | `splice` with `indexOf` can silently remove wrong element | PENDING |
 | A04-9 | LOW | Blocklist parsing does not validate address format | PENDING |
 | A05-2 | LOW | Sequential `getCode` calls for missing pools | PENDING |
@@ -76,7 +76,7 @@
 | A01-1 | HIGH | `isSameAddress` has zero test coverage | PENDING |
 | A04-2 | HIGH | Environment variable handling unvalidated | PENDING |
 | A04-6 | HIGH | Zero-reward splice has known bug pattern | PENDING |
-| A06-1 | HIGH | `isApprovedSource` has no dedicated tests (real implementation almost entirely untested) | PENDING |
+| A06-1 | HIGH | `isApprovedSource` has no dedicated tests (real implementation almost entirely untested) | FIXED — added 5 tests: direct source, case insensitive, factory approved, factory non-approved, no factory function, cache hit |
 | GAP-LIQ-01 | CRITICAL | `getPoolsTick` has zero unit tests | PENDING |
 | A01-2 | MEDIUM | `generateSnapshotBlocks` missing edge case tests (start===end, start>end, adjacent) | PENDING |
 | A01-3 | MEDIUM | `scaleTo18` missing edge case tests | PENDING |

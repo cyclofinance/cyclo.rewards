@@ -13,6 +13,9 @@ async function main() {
   // generate snapshot blocks
   const SNAPSHOTS = generateSnapshotBlocks(SEED, START_SNAPSHOT, END_SNAPSHOT);
 
+  // Create output directory if it doesn't exist
+  await mkdir("output", { recursive: true });
+
   // write generated snapshots
   await writeFile(
     "output/snapshots-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".txt",
@@ -21,9 +24,6 @@ async function main() {
 
   console.log("Starting processor...");
   console.log(`Snapshot blocks: ${START_SNAPSHOT}, ${END_SNAPSHOT}`);
-
-  // Create output directory if it doesn't exist
-  await mkdir("output", { recursive: true });
 
   // Read transfers file
   console.log("Reading transfers file...");
