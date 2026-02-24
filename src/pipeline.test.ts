@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv } from "./pipeline";
+import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv, summarizeTokenBalances } from "./pipeline";
 import { CyToken, EligibleBalances, RewardsPerToken } from "./types";
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
@@ -313,5 +313,76 @@ describe("formatBalancesCsv", () => {
     expect(result[0]).toContain("cyWETH_snapshot1");
     // token1 has data, token2 has zeros
     expect(result[1]).toBe("0xaaa,10,20,15,0,0,15,300,0,0,0,0,0,0,0,300");
+  });
+});
+
+describe("summarizeTokenBalances", () => {
+  const token: CyToken = {
+    name: "cysFLR",
+    address: "0xtoken1",
+    underlyingAddress: "0xunderlying1",
+    underlyingSymbol: "sFLR",
+    receiptAddress: "0xreceipt1",
+    decimals: 18,
+  };
+
+  it("computes totals across all accounts for a token", () => {
+    const balances: EligibleBalances = new Map([
+      ["0xtoken1", new Map([
+        ["0xaaa", { snapshots: [10n], average: 100n, penalty: 10n, bounty: 5n, final: 95n, final18: 95n }],
+        ["0xbbb", { snapshots: [20n], average: 200n, penalty: 20n, bounty: 10n, final: 190n, final18: 190n }],
+      ])],
+    ]);
+    const result = summarizeTokenBalances(balances, [token]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      name: "cysFLR",
+      totalAverage: 300n,
+      totalPenalties: 30n,
+      totalBounties: 15n,
+      totalFinal: 285n,
+      verified: true,
+    });
+  });
+
+  it("returns verified false when invariant fails", () => {
+    const balances: EligibleBalances = new Map([
+      ["0xtoken1", new Map([
+        ["0xaaa", { snapshots: [10n], average: 100n, penalty: 10n, bounty: 5n, final: 999n, final18: 999n }],
+      ])],
+    ]);
+    const result = summarizeTokenBalances(balances, [token]);
+    expect(result[0].verified).toBe(false);
+  });
+
+  it("skips tokens with no balance data", () => {
+    const balances: EligibleBalances = new Map();
+    const result = summarizeTokenBalances(balances, [token]);
+    expect(result).toEqual([]);
+  });
+
+  it("handles multiple tokens", () => {
+    const token2: CyToken = {
+      name: "cyWETH",
+      address: "0xtoken2",
+      underlyingAddress: "0xunderlying2",
+      underlyingSymbol: "WETH",
+      receiptAddress: "0xreceipt2",
+      decimals: 18,
+    };
+    const balances: EligibleBalances = new Map([
+      ["0xtoken1", new Map([
+        ["0xaaa", { snapshots: [10n], average: 100n, penalty: 0n, bounty: 0n, final: 100n, final18: 100n }],
+      ])],
+      ["0xtoken2", new Map([
+        ["0xaaa", { snapshots: [20n], average: 200n, penalty: 0n, bounty: 0n, final: 200n, final18: 200n }],
+      ])],
+    ]);
+    const result = summarizeTokenBalances(balances, [token, token2]);
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("cysFLR");
+    expect(result[0].totalAverage).toBe(100n);
+    expect(result[1].name).toBe("cyWETH");
+    expect(result[1].totalAverage).toBe(200n);
   });
 });

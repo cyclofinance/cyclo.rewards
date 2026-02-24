@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
-import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward } from "./pipeline";
+import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
 import { REWARD_POOL } from "./constants";
 
 // Load environment variables
@@ -97,40 +97,16 @@ async function main() {
   const balances = await processor.getEligibleBalances();
 
   // Add per-token balance logging
-  for (const token of CYTOKENS) {
-    console.log("Getting token balances for ", token.name);
-    const tokenBalances = balances.get(token.address.toLowerCase());
-    if (!tokenBalances) continue;
-
-    const totalAverage = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.average,
-      0n
-    );
-    const totalPenalties = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.penalty,
-      0n
-    );
-    const totalBounties = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.bounty,
-      0n
-    );
-    const totalFinal = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.final,
-      0n
-    );
-
-    console.log("- Total Avg:", totalAverage.toString());
-    console.log("- Total Penalties:", totalPenalties.toString());
-    console.log("- Total Bounties:", totalBounties.toString());
-    console.log("- Total Final:", totalFinal.toString());
+  for (const summary of summarizeTokenBalances(balances, CYTOKENS)) {
+    console.log("Getting token balances for ", summary.name);
+    console.log("- Total Avg:", summary.totalAverage.toString());
+    console.log("- Total Penalties:", summary.totalPenalties.toString());
+    console.log("- Total Bounties:", summary.totalBounties.toString());
+    console.log("- Total Final:", summary.totalFinal.toString());
     console.log(
-      `Note: Final Total for ${token.name} should equal Average Total - Penalties + Bounties`
+      `Note: Final Total for ${summary.name} should equal Average Total - Penalties + Bounties`
     );
-    console.log(
-      `Verification: ${
-        totalAverage - totalPenalties + totalBounties === totalFinal ? "✓" : "✗"
-      }`
-    );
+    console.log(`Verification: ${summary.verified ? "✓" : "✗"}`);
   }
 
   // Write balances with per-token data

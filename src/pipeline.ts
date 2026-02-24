@@ -1,6 +1,38 @@
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 import { CyToken, EligibleBalances, RewardsPerToken } from "./types";
 
+export interface TokenSummary {
+  name: string;
+  totalAverage: bigint;
+  totalPenalties: bigint;
+  totalBounties: bigint;
+  totalFinal: bigint;
+  verified: boolean;
+}
+
+export function summarizeTokenBalances(balances: EligibleBalances, cytokens: CyToken[]): TokenSummary[] {
+  const summaries: TokenSummary[] = [];
+  for (const token of cytokens) {
+    const tokenBalances = balances.get(token.address.toLowerCase());
+    if (!tokenBalances) continue;
+
+    const totalAverage = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.average, 0n);
+    const totalPenalties = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.penalty, 0n);
+    const totalBounties = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.bounty, 0n);
+    const totalFinal = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.final, 0n);
+
+    summaries.push({
+      name: token.name,
+      totalAverage,
+      totalPenalties,
+      totalBounties,
+      totalFinal,
+      verified: totalAverage - totalPenalties + totalBounties === totalFinal,
+    });
+  }
+  return summaries;
+}
+
 export function aggregateRewardsPerAddress(rewardsPerToken: RewardsPerToken): Map<string, bigint> {
   const totals = new Map<string, bigint>();
   for (const rewardsPerAddress of rewardsPerToken.values()) {
