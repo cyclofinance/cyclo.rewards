@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocklist } from "./pipeline";
+import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress } from "./pipeline";
+import { RewardsPerToken } from "./types";
 
 describe("parseBlocklist", () => {
   it("parses reporter and cheater from each line", () => {
@@ -66,5 +67,65 @@ describe("parseBlocklist", () => {
       { reporter: "0xa", cheater: "0xb" },
       { reporter: "0xc", cheater: "0xd" },
     ]);
+  });
+});
+
+describe("parseJsonl", () => {
+  it("parses multiple JSON lines", () => {
+    const data = '{"a":1}\n{"b":2}';
+    expect(parseJsonl(data)).toEqual([{ a: 1 }, { b: 2 }]);
+  });
+
+  it("skips empty lines", () => {
+    const data = '{"a":1}\n\n{"b":2}\n';
+    expect(parseJsonl(data)).toEqual([{ a: 1 }, { b: 2 }]);
+  });
+
+  it("returns empty array for empty string", () => {
+    expect(parseJsonl("")).toEqual([]);
+  });
+
+  it("handles single line with no trailing newline", () => {
+    expect(parseJsonl('{"x":"y"}')).toEqual([{ x: "y" }]);
+  });
+
+  it("handles arrays as line values", () => {
+    expect(parseJsonl('[1,2,3]\n[4,5,6]')).toEqual([[1, 2, 3], [4, 5, 6]]);
+  });
+});
+
+describe("aggregateRewardsPerAddress", () => {
+  it("sums rewards across multiple tokens for the same address", () => {
+    const rewardsPerToken: RewardsPerToken = new Map([
+      ["token1", new Map([["0xaaa", 100n], ["0xbbb", 200n]])],
+      ["token2", new Map([["0xaaa", 50n], ["0xbbb", 30n]])],
+    ]);
+    const result = aggregateRewardsPerAddress(rewardsPerToken);
+    expect(result.get("0xaaa")).toBe(150n);
+    expect(result.get("0xbbb")).toBe(230n);
+  });
+
+  it("handles address appearing in only one token", () => {
+    const rewardsPerToken: RewardsPerToken = new Map([
+      ["token1", new Map([["0xaaa", 100n]])],
+      ["token2", new Map([["0xbbb", 200n]])],
+    ]);
+    const result = aggregateRewardsPerAddress(rewardsPerToken);
+    expect(result.get("0xaaa")).toBe(100n);
+    expect(result.get("0xbbb")).toBe(200n);
+  });
+
+  it("returns empty map for empty input", () => {
+    const result = aggregateRewardsPerAddress(new Map());
+    expect(result.size).toBe(0);
+  });
+
+  it("handles single token", () => {
+    const rewardsPerToken: RewardsPerToken = new Map([
+      ["token1", new Map([["0xaaa", 500n]])],
+    ]);
+    const result = aggregateRewardsPerAddress(rewardsPerToken);
+    expect(result.get("0xaaa")).toBe(500n);
+    expect(result.size).toBe(1);
   });
 });

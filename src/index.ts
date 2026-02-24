@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
-import { parseBlocklist } from "./pipeline";
+import { aggregateRewardsPerAddress, parseBlocklist, parseJsonl } from "./pipeline";
 import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 // Load environment variables
@@ -31,21 +31,14 @@ async function main() {
   let transfers: any[] = []
   for (let i = 0; i < 10; i++) {
     const transfersData = await readFile(`data/transfers${i + 1}.dat`, "utf8").catch(() => "");
-    const transfersBatch = transfersData
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => JSON.parse(line));
-    transfers = [...transfers, ...transfersBatch]
+    transfers = [...transfers, ...parseJsonl(transfersData)]
   }
   console.log(`Found ${transfers.length} transfers`);
 
   // Read liquidity file
   console.log("Reading liquidity file...");
   const liquidityData = await readFile("data/liquidity.dat", "utf8");
-  const liquidities = liquidityData
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
+  const liquidities = parseJsonl(liquidityData);
   console.log(`Found ${liquidities.length} liquidity changes`);
 
   // Read pools file
@@ -151,19 +144,7 @@ async function main() {
 
   // get the rewards for each address by summing the rewards for each token
   const rewardsPerToken = await processor.calculateRewards(REWARD_POOL);
-  const totalRewardsPerAddress = new Map<string, bigint>();
-
-  for (const token of CYTOKENS) {
-    const rewardsPerAddress = rewardsPerToken.get(token.address.toLowerCase());
-    if (!rewardsPerAddress) continue;
-
-    for (const [address, reward] of rewardsPerAddress) {
-      totalRewardsPerAddress.set(
-        address,
-        (totalRewardsPerAddress.get(address) || 0n) + reward
-      );
-    }
-  }
+  const totalRewardsPerAddress = aggregateRewardsPerAddress(rewardsPerToken);
 
   // create an array of all the addresses but sorted by their total rewards
   const addresses = Array.from(totalRewardsPerAddress.keys()).sort((a, b) => {
