@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
-import { aggregateRewardsPerAddress, parseBlocklist, parseJsonl } from "./pipeline";
+import { aggregateRewardsPerAddress, parseBlocklist, parseJsonl, sortAddressesByReward } from "./pipeline";
 import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 // Load environment variables
@@ -147,12 +147,7 @@ async function main() {
   const totalRewardsPerAddress = aggregateRewardsPerAddress(rewardsPerToken);
 
   // create an array of all the addresses but sorted by their total rewards
-  const addresses = Array.from(totalRewardsPerAddress.keys()).sort((a, b) => {
-    const valueB = totalRewardsPerAddress.get(b)!;
-    const valueA = totalRewardsPerAddress.get(a)!;
-    // Convert comparison to a number: -1, 0, or 1
-    return valueB > valueA ? 1 : valueB < valueA ? -1 : 0;
-  });
+  const addresses = sortAddressesByReward(totalRewardsPerAddress);
 
   // get the balances for each address
   for (const address of addresses) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress } from "./pipeline";
+import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress, sortAddressesByReward } from "./pipeline";
 import { RewardsPerToken } from "./types";
 
 describe("parseBlocklist", () => {
@@ -127,5 +127,36 @@ describe("aggregateRewardsPerAddress", () => {
     const result = aggregateRewardsPerAddress(rewardsPerToken);
     expect(result.get("0xaaa")).toBe(500n);
     expect(result.size).toBe(1);
+  });
+});
+
+describe("sortAddressesByReward", () => {
+  it("sorts addresses descending by reward", () => {
+    const rewards = new Map([
+      ["0xaaa", 100n],
+      ["0xbbb", 300n],
+      ["0xccc", 200n],
+    ]);
+    expect(sortAddressesByReward(rewards)).toEqual(["0xbbb", "0xccc", "0xaaa"]);
+  });
+
+  it("returns empty array for empty map", () => {
+    expect(sortAddressesByReward(new Map())).toEqual([]);
+  });
+
+  it("handles single address", () => {
+    const rewards = new Map([["0xaaa", 50n]]);
+    expect(sortAddressesByReward(rewards)).toEqual(["0xaaa"]);
+  });
+
+  it("handles equal rewards", () => {
+    const rewards = new Map([
+      ["0xaaa", 100n],
+      ["0xbbb", 100n],
+    ]);
+    const result = sortAddressesByReward(rewards);
+    expect(result).toHaveLength(2);
+    expect(result).toContain("0xaaa");
+    expect(result).toContain("0xbbb");
   });
 });

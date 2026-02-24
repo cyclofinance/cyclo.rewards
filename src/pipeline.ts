@@ -10,6 +10,14 @@ export function aggregateRewardsPerAddress(rewardsPerToken: RewardsPerToken): Ma
   return totals;
 }
 
+export function sortAddressesByReward(rewards: Map<string, bigint>): string[] {
+  return Array.from(rewards.keys()).sort((a, b) => {
+    const valueB = rewards.get(b)!;
+    const valueA = rewards.get(a)!;
+    return valueB > valueA ? 1 : valueB < valueA ? -1 : 0;
+  });
+}
+
 export function parseJsonl(data: string): any[] {
   return data
     .split("\n")
