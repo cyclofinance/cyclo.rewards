@@ -36,5 +36,6 @@ jobs:
           SEED: "cyclo-rewards-for-jan-2026"
           START_SNAPSHOT: 52974045
           END_SNAPSHOT: 54474045
+          RPC_URL: ${{ secrets.RPC_URL_FLARE_FORK }}
       - run: git add .
       - run: git diff --exit-code --cached

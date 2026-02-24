@@ -21,7 +21,7 @@
 | A06-2 | HIGH | Case normalization mismatch in `processLiquidityPositions` owner lookup | FIXED — added `.toLowerCase()` at lookup site |
 | A04-1 | HIGH | Non-null assertion on `process.env.SEED` | PENDING |
 | A01-1 | MEDIUM | No input validation on `generateSnapshotBlocks` parameters | PENDING |
-| A01-2 | MEDIUM | Duplicate snapshot blocks possible and not deduplicated | PENDING |
+| A01-2 | MEDIUM | Duplicate snapshot blocks possible and not deduplicated | FIXED — use Set for sampling without replacement; assert range >= 30 |
 | A03-1 | MEDIUM | Greedy/order-dependent budget allocation | DISMISSED — order matches original distribution pattern, least surprising for recipients |
 | A03-4 | MEDIUM | Duplicate addresses in `newRewards` cause silent double-counting | PENDING |
 | A03-6 | MEDIUM | `main()` executes on module import | PENDING |
