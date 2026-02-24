@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { DISTRIBUTED_COUNT } from './diffCalculator';
-import { REWARD_POOL } from './constants';
+import { DEC25_REWARD_POOL } from './constants';
 
 function parseCsv(filePath: string): Array<{address: string; reward: bigint}> {
   const data = readFileSync(filePath, 'utf8');
@@ -22,11 +22,11 @@ function parseDiffCsv(filePath: string): Array<{address: string; old: bigint; ne
 }
 
 describe('diffCalculator output', () => {
-  const newRewards = parseCsv('./output/rewards-51504517-52994045.csv');
-  const oldRewards = parseCsv('./output/rewards-51504517-52994045-old.csv');
-  const covered = parseCsv('./output/rewards-51504517-52994045-remainingCovered.csv');
-  const uncovered = parseCsv('./output/rewards-51504517-52994045-remainingUncovered.csv');
-  const diff = parseDiffCsv('./output/rewards-51504517-52994045-diff.csv');
+  const newRewards = parseCsv('./output/dispersed/rewards-51504517-52994045.csv');
+  const oldRewards = parseCsv('./output/dispersed/rewards-51504517-52994045-old.csv');
+  const covered = parseCsv('./output/dispersed/rewards-51504517-52994045-remainingCovered.csv');
+  const uncovered = parseCsv('./output/dispersed/rewards-51504517-52994045-remainingUncovered.csv');
+  const diff = parseDiffCsv('./output/dispersed/rewards-51504517-52994045-diff.csv');
 
   const distributedAddresses = new Set(
     oldRewards.slice(0, DISTRIBUTED_COUNT).map(r => r.address)
@@ -56,11 +56,11 @@ describe('diffCalculator output', () => {
     expect(negatives).toEqual([]);
   });
 
-  it('new rewards total is at most REWARD_POOL (within rounding)', () => {
+  it('new rewards total is at most DEC25_REWARD_POOL (within rounding)', () => {
     const total = newRewards.reduce((sum, r) => sum + r.reward, 0n);
-    expect(total).toBeLessThanOrEqual(REWARD_POOL);
+    expect(total).toBeLessThanOrEqual(DEC25_REWARD_POOL);
     // rounding loss from integer division should be negligible relative to pool
-    expect(REWARD_POOL - total).toBeLessThan(REWARD_POOL / 1000000n);
+    expect(DEC25_REWARD_POOL - total).toBeLessThan(DEC25_REWARD_POOL / 1000000n);
   });
 
   it('all new rewards are positive', () => {
@@ -134,16 +134,16 @@ describe('diffCalculator output', () => {
   it('covered rewards total <= remaining pool after distributed payments', () => {
     const totalDistributed = oldRewards.slice(0, DISTRIBUTED_COUNT)
       .reduce((sum, r) => sum + r.reward, 0n);
-    const remainingPool = REWARD_POOL - totalDistributed;
+    const remainingPool = DEC25_REWARD_POOL - totalDistributed;
     const coveredTotal = covered.reduce((sum, r) => sum + r.reward, 0n);
     expect(coveredTotal).toBeLessThanOrEqual(remainingPool);
   });
 
-  it('old distributed total + covered total <= REWARD_POOL', () => {
+  it('old distributed total + covered total <= DEC25_REWARD_POOL', () => {
     const totalDistributed = oldRewards.slice(0, DISTRIBUTED_COUNT)
       .reduce((sum, r) => sum + r.reward, 0n);
     const coveredTotal = covered.reduce((sum, r) => sum + r.reward, 0n);
-    expect(totalDistributed + coveredTotal).toBeLessThanOrEqual(REWARD_POOL);
+    expect(totalDistributed + coveredTotal).toBeLessThanOrEqual(DEC25_REWARD_POOL);
   });
 
   it('all covered rewards are positive', () => {
@@ -176,9 +176,9 @@ describe('diffCalculator output', () => {
 });
 
 describe('on-chain distribution verification', () => {
-  const onchain = parseCsv('./output/dec-2025-distributed.csv');
-  const oldRewards = parseCsv('./output/rewards-51504517-52994045-old.csv');
-  const covered = parseCsv('./output/rewards-51504517-52994045-remainingCovered.csv');
+  const onchain = parseCsv('./output/dispersed/dec-2025-distributed.csv');
+  const oldRewards = parseCsv('./output/dispersed/rewards-51504517-52994045-old.csv');
+  const covered = parseCsv('./output/dispersed/rewards-51504517-52994045-remainingCovered.csv');
 
   it('on-chain distributed exactly DISTRIBUTED_COUNT addresses', () => {
     expect(onchain.length).toBe(DISTRIBUTED_COUNT);

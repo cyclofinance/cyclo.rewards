@@ -399,7 +399,7 @@ describe('main() CSV output', () => {
 
   it('should write remainingCovered CSV with correct header and format', () => {
     const [path, content] = mockWriteFileSync.mock.calls[0];
-    expect(path).toBe('output/rewards-51504517-52994045-remainingCovered.csv');
+    expect(path).toBe('output/dispersed/rewards-51504517-52994045-remainingCovered.csv');
     const lines = content.split('\n');
     expect(lines[0]).toBe(rewardsHeader);
     // With identical old/new and huge reward pool, all remaining should be covered
@@ -410,7 +410,7 @@ describe('main() CSV output', () => {
 
   it('should write remainingUncovered CSV with header only', () => {
     const [path, content] = mockWriteFileSync.mock.calls[1];
-    expect(path).toBe('output/rewards-51504517-52994045-remainingUncovered.csv');
+    expect(path).toBe('output/dispersed/rewards-51504517-52994045-remainingUncovered.csv');
     const lines = content.split('\n');
     expect(lines[0]).toBe(rewardsHeader);
     // No uncovered accounts since reward pool is massive
@@ -419,7 +419,7 @@ describe('main() CSV output', () => {
 
   it('should write diff CSV with header only when old and new are identical', () => {
     const [path, content] = mockWriteFileSync.mock.calls[2];
-    expect(path).toBe('output/rewards-51504517-52994045-diff.csv');
+    expect(path).toBe('output/dispersed/rewards-51504517-52994045-diff.csv');
     const lines = content.split('\n');
     expect(lines[0]).toBe(diffHeader);
     // No underpaid accounts since old and new rewards are identical

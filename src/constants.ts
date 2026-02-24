@@ -1,6 +1,7 @@
 export const ONE = BigInt(10 ** 18);
 
 export const REWARD_POOL = BigInt(500000000000000000000000);
+export const DEC25_REWARD_POOL = 1_000_000_000_000_000_000_000_000n as const;
 
 // Must match expected structure
 // https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data

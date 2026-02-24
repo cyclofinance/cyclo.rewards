@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "fs";
-import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from "./constants";
+import { DEC25_REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from "./constants";
 
 export const DISTRIBUTED_COUNT = 100 as const;
 
@@ -133,10 +133,10 @@ export function calculateDiff(
 
 function main() {
     console.log("Running script for Dec2025 rewards case:\n")
-    const newRewards = readCsv("./output/rewards-51504517-52994045.csv");
-    const oldRewards = readCsv("./output/rewards-51504517-52994045-old.csv");
+    const newRewards = readCsv("./output/dispersed/rewards-51504517-52994045.csv");
+    const oldRewards = readCsv("./output/dispersed/rewards-51504517-52994045-old.csv");
 
-    const result = calculateDiff(newRewards, oldRewards, DISTRIBUTED_COUNT, REWARD_POOL);
+    const result = calculateDiff(newRewards, oldRewards, DISTRIBUTED_COUNT, DEC25_REWARD_POOL);
 
     // write to files
     const header = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;
@@ -145,7 +145,7 @@ function main() {
         tmp.push(`${item.address},${item.reward}`);
     }
     writeFileSync(
-        "output/rewards-51504517-52994045-remainingCovered.csv",
+        "output/dispersed/rewards-51504517-52994045-remainingCovered.csv",
         tmp.join("\n")
     );
 
@@ -154,7 +154,7 @@ function main() {
         tmp.push(`${item.address},${item.reward}`);
     }
     writeFileSync(
-        "output/rewards-51504517-52994045-remainingUncovered.csv",
+        "output/dispersed/rewards-51504517-52994045-remainingUncovered.csv",
         tmp.join("\n")
     );
 
@@ -163,7 +163,7 @@ function main() {
         tmp.push(`${item.address},${item.old},${item.new},${item.diff}`);
     }
     writeFileSync(
-        "output/rewards-51504517-52994045-diff.csv",
+        "output/dispersed/rewards-51504517-52994045-diff.csv",
         tmp.join("\n")
     );
 
