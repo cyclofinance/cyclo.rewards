@@ -4,6 +4,7 @@ import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
 import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
 import { REWARD_POOL } from "./constants";
+import { Transfer } from "./types";
 
 // Load environment variables
 config();
@@ -28,7 +29,7 @@ async function main() {
 
   // Read transfers file
   console.log("Reading transfers file...");
-  let transfers: any[] = []
+  let transfers: Transfer[] = []
   for (let i = 0; i < 10; i++) {
     const transfersData = await readFile(`data/transfers${i + 1}.dat`, "utf8").catch(() => "");
     transfers = [...transfers, ...parseJsonl(transfersData)]

@@ -9,9 +9,9 @@
 | A00-4 | MEDIUM | CLAUDE.md architecture description is inaccurate | FIXED — corrected transfers file naming and diffCalculator description |
 | A00-5 | LOW | CLAUDE.md says "cysFLR and cyWETH" but code supports cyFXRP | FIXED — added cyFXRP to Project Overview |
 | A00-6 | LOW | No mention of `scripts/` directory | FIXED — added scripts/fetch-dec-2025-distributed.sh to Architecture section |
-| A00-7 | LOW | CI workflow references epoch-specific script and file paths | PENDING |
-| A00-8 | LOW | CLAUDE.md `npm run start` description incomplete | PENDING |
-| A00-9 | LOW | CLAUDE.md Data Files section `pools.dat` described as JSONL but is JSON | PENDING |
+| A00-7 | LOW | CI workflow references epoch-specific script and file paths | DOCUMENTED — added epoch transition checklist to CLAUDE.md Key Concepts |
+| A00-8 | LOW | CLAUDE.md `npm run start` description incomplete | FIXED — corrected to "scrape → process"; diff was only needed for Dec epoch |
+| A00-9 | LOW | CLAUDE.md Data Files section `pools.dat` described as JSONL but is JSON | FIXED — split Data Files entry; pools.dat now described as JSON array |
 
 ## Pass 1: Security
 | ID | Severity | Finding | Status |
@@ -20,14 +20,14 @@
 | A06-1 | HIGH | Case normalization mismatch for account addresses in `accountBalancesPerToken` | FIXED — added `.toLowerCase()` at lookup site |
 | A06-2 | HIGH | Case normalization mismatch in `processLiquidityPositions` owner lookup | FIXED — added `.toLowerCase()` at lookup site |
 | A04-1 | HIGH | Non-null assertion on `process.env.SEED` | FIXED — `parseEnv()` asserts SEED is set; index.ts no longer uses `process.env.SEED!` |
-| A01-1 | MEDIUM | No input validation on `generateSnapshotBlocks` parameters | PENDING |
+| A01-1 | MEDIUM | No input validation on `generateSnapshotBlocks` parameters | DISMISSED — assert on line 69 validates range >= 30, catching start > end and start === end; inputs come from parseEnv which validates |
 | A01-2 | MEDIUM | Duplicate snapshot blocks possible and not deduplicated | FIXED — use Set for sampling without replacement; assert range >= 30 |
 | A03-1 | MEDIUM | Greedy/order-dependent budget allocation | DISMISSED — order matches original distribution pattern, least surprising for recipients |
 | A03-4 | MEDIUM | Duplicate addresses in `newRewards` cause silent double-counting | PENDING |
 | A03-6 | MEDIUM | `main()` executes on module import | PENDING |
 | A04-2 | MEDIUM | `START_SNAPSHOT`/`END_SNAPSHOT` default to 0 silently | FIXED — extracted `parseEnv()` into config.ts with asserts for SEED, START_SNAPSHOT, END_SNAPSHOT |
-| A04-3 | MEDIUM | Unchecked `JSON.parse` on JSONL data files | PENDING |
-| A04-6 | MEDIUM | `transfers` typed as `any[]` with no schema validation | PENDING |
+| A04-3 | MEDIUM | Unchecked `JSON.parse` on JSONL data files | FIXED — parseJsonl now catches and rethrows with line number context |
+| A04-6 | MEDIUM | `transfers` typed as `any[]` with no schema validation | FIXED — typed as `Transfer[]` in index.ts |
 | A06-3 | MEDIUM | `epochLength` vs `snapshots.length` divergence risk | FIXED — removed redundant `epochLength` parameter; use `this.snapshots.length` directly |
 | A06-4 | MEDIUM | Division by zero in `calculateRewardsPoolsPertoken` | DISMISSED — `getTokensWithBalance` filters to tokens with balance > 0; loop doesn't execute when empty |
 | A06-5 | MEDIUM | Division by zero in `calculateRewards` | DISMISSED — same guard via `getTokensWithBalance`; divisor always > 0 |

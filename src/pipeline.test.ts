@@ -93,6 +93,11 @@ describe("parseJsonl", () => {
   it("handles arrays as line values", () => {
     expect(parseJsonl('[1,2,3]\n[4,5,6]')).toEqual([[1, 2, 3], [4, 5, 6]]);
   });
+
+  it("throws with line number on malformed JSON", () => {
+    const data = '{"a":1}\nbad json\n{"c":3}';
+    expect(() => parseJsonl(data)).toThrow("line 2");
+  });
 });
 
 describe("aggregateRewardsPerAddress", () => {

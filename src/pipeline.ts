@@ -94,10 +94,17 @@ export function formatBalancesCsv(
 }
 
 export function parseJsonl(data: string): any[] {
-  return data
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
+  const lines = data.split("\n");
+  const results: any[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    try {
+      results.push(JSON.parse(lines[i]));
+    } catch (e) {
+      throw new Error(`Failed to parse JSON at line ${i + 1}: ${(e as Error).message}`);
+    }
+  }
+  return results;
 }
 
 export function parseBlocklist(data: string): {reporter: string; cheater: string}[] {

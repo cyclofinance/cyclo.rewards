@@ -12,7 +12,7 @@ All commands should be run through nix for reproducibility:
 
 ```bash
 nix develop -c npm i               # Install dependencies
-nix develop -c npm run start        # Full pipeline: scrape → process → diff
+nix develop -c npm run start        # Full pipeline: scrape → process
 nix develop -c npm run scrape       # Scrape only (fetches from subgraph into data/*.dat)
 nix develop -c npm run test         # Run vitest (runs in watch mode by default)
 nix develop -c npm run build        # TypeScript compilation check
@@ -55,10 +55,12 @@ Set in `.env` (and mirrored in `.github/workflows/git-clean.yaml`):
 - **Penalties/Bounties**: Accounts in `data/blocklist.txt` have rewards redistributed. A bounty portion goes to the reporter, remainder goes back to the reward pool.
 - **LP positions**: V2 and V3 liquidity positions are tracked. V3 positions query on-chain tick data to determine if they're in range.
 - **Determinism**: CI (`git-clean.yaml`) runs the full pipeline and asserts no uncommitted changes, ensuring outputs are reproducible.
+- **Epoch transitions**: Each new epoch requires manual updates to: (1) CI workflow `git-clean.yaml` (SEED, START_SNAPSHOT, END_SNAPSHOT), (2) the fetch script for prior distributed rewards (e.g., `scripts/fetch-dec-2025-distributed.sh`), and (3) `diffCalculator.ts` file paths and block ranges.
 
 ## Data Files
 
-- `data/transfers.dat`, `data/liquidity.dat`, `data/pools.dat` — Cached JSONL from subgraph (large files, committed)
+- `data/transfers*.dat`, `data/liquidity.dat` — Cached JSONL from subgraph (large files, committed)
+- `data/pools.dat` — Cached JSON array of pool addresses from subgraph
 - `data/blocklist.txt` — Penalty/bounty targets
 - `output/` — Generated CSVs (balances, rewards, diffs)
 - `output/dispersed/` — Previously distributed reward CSVs (historical reference)
