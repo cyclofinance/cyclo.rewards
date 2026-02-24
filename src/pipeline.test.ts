@@ -171,7 +171,7 @@ describe("filterZeroRewards", () => {
       ["0xbbb", 0n],
       ["0xccc", 200n],
     ]);
-    expect(filterZeroRewards(rewards)).toEqual(["0xaaa", "0xccc"]);
+    expect(filterZeroRewards(["0xaaa", "0xbbb", "0xccc"], rewards)).toEqual(["0xaaa", "0xccc"]);
   });
 
   it("returns all addresses when none are zero", () => {
@@ -179,7 +179,7 @@ describe("filterZeroRewards", () => {
       ["0xaaa", 100n],
       ["0xbbb", 200n],
     ]);
-    expect(filterZeroRewards(rewards)).toEqual(["0xaaa", "0xbbb"]);
+    expect(filterZeroRewards(["0xaaa", "0xbbb"], rewards)).toEqual(["0xaaa", "0xbbb"]);
   });
 
   it("returns empty array when all are zero", () => {
@@ -187,11 +187,20 @@ describe("filterZeroRewards", () => {
       ["0xaaa", 0n],
       ["0xbbb", 0n],
     ]);
-    expect(filterZeroRewards(rewards)).toEqual([]);
+    expect(filterZeroRewards(["0xaaa", "0xbbb"], rewards)).toEqual([]);
   });
 
-  it("returns empty array for empty map", () => {
-    expect(filterZeroRewards(new Map())).toEqual([]);
+  it("returns empty array for empty input", () => {
+    expect(filterZeroRewards([], new Map())).toEqual([]);
+  });
+
+  it("preserves input order", () => {
+    const rewards = new Map([
+      ["0xaaa", 100n],
+      ["0xbbb", 200n],
+      ["0xccc", 300n],
+    ]);
+    expect(filterZeroRewards(["0xccc", "0xaaa", "0xbbb"], rewards)).toEqual(["0xccc", "0xaaa", "0xbbb"]);
   });
 });
 

@@ -51,10 +51,8 @@ export function sortAddressesByReward(rewards: Map<string, bigint>): string[] {
   });
 }
 
-export function filterZeroRewards(rewards: Map<string, bigint>): string[] {
-  return Array.from(rewards.entries())
-    .filter(([, reward]) => reward !== 0n)
-    .map(([address]) => address);
+export function filterZeroRewards(addresses: string[], rewards: Map<string, bigint>): string[] {
+  return addresses.filter((address) => (rewards.get(address) || 0n) !== 0n);
 }
 
 export function formatRewardsCsv(addresses: string[], rewards: Map<string, bigint>): string[] {

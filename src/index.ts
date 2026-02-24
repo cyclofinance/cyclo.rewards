@@ -125,7 +125,7 @@ async function main() {
   console.log("Calculating rewards...");
 
   // remove any addresses with no rewards
-  const rewardedAddresses = filterZeroRewards(totalRewardsPerAddress);
+  const rewardedAddresses = filterZeroRewards(addresses, totalRewardsPerAddress);
   const rewardsOutput = formatRewardsCsv(rewardedAddresses, totalRewardsPerAddress);
   await writeFile(
     "output/rewards-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
