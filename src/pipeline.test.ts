@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress, sortAddressesByReward } from "./pipeline";
-import { RewardsPerToken } from "./types";
+import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv } from "./pipeline";
+import { CyToken, EligibleBalances, RewardsPerToken } from "./types";
+import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 describe("parseBlocklist", () => {
   it("parses reporter and cheater from each line", () => {
@@ -158,5 +159,159 @@ describe("sortAddressesByReward", () => {
     expect(result).toHaveLength(2);
     expect(result).toContain("0xaaa");
     expect(result).toContain("0xbbb");
+  });
+});
+
+const REWARDS_HEADER = `${REWARDS_CSV_COLUMN_HEADER_ADDRESS},${REWARDS_CSV_COLUMN_HEADER_REWARD}`;
+
+describe("filterZeroRewards", () => {
+  it("removes addresses with zero rewards", () => {
+    const rewards = new Map([
+      ["0xaaa", 100n],
+      ["0xbbb", 0n],
+      ["0xccc", 200n],
+    ]);
+    expect(filterZeroRewards(rewards)).toEqual(["0xaaa", "0xccc"]);
+  });
+
+  it("returns all addresses when none are zero", () => {
+    const rewards = new Map([
+      ["0xaaa", 100n],
+      ["0xbbb", 200n],
+    ]);
+    expect(filterZeroRewards(rewards)).toEqual(["0xaaa", "0xbbb"]);
+  });
+
+  it("returns empty array when all are zero", () => {
+    const rewards = new Map([
+      ["0xaaa", 0n],
+      ["0xbbb", 0n],
+    ]);
+    expect(filterZeroRewards(rewards)).toEqual([]);
+  });
+
+  it("returns empty array for empty map", () => {
+    expect(filterZeroRewards(new Map())).toEqual([]);
+  });
+});
+
+describe("formatRewardsCsv", () => {
+  it("formats rewards as CSV lines with header", () => {
+    const rewards = new Map([
+      ["0xaaa", 100n],
+      ["0xbbb", 200n],
+    ]);
+    const result = formatRewardsCsv(["0xbbb", "0xaaa"], rewards);
+    expect(result).toEqual([
+      REWARDS_HEADER,
+      "0xbbb,200",
+      "0xaaa,100",
+    ]);
+  });
+
+  it("returns only header for empty addresses", () => {
+    const result = formatRewardsCsv([], new Map());
+    expect(result).toEqual([REWARDS_HEADER]);
+  });
+
+  it("preserves address order", () => {
+    const rewards = new Map([
+      ["0xaaa", 300n],
+      ["0xbbb", 100n],
+      ["0xccc", 200n],
+    ]);
+    const result = formatRewardsCsv(["0xccc", "0xaaa", "0xbbb"], rewards);
+    expect(result[1]).toBe("0xccc,200");
+    expect(result[2]).toBe("0xaaa,300");
+    expect(result[3]).toBe("0xbbb,100");
+  });
+});
+
+describe("formatBalancesCsv", () => {
+  const token: CyToken = {
+    name: "cysFLR",
+    address: "0xtoken1",
+    underlyingAddress: "0xunderlying1",
+    underlyingSymbol: "sFLR",
+    receiptAddress: "0xreceipt1",
+    decimals: 18,
+  };
+
+  const snapshots = [100, 200];
+
+  it("formats header with snapshot columns per token", () => {
+    const balances: EligibleBalances = new Map();
+    const rewardsPerToken: RewardsPerToken = new Map();
+    const totalRewards = new Map<string, bigint>();
+
+    const result = formatBalancesCsv(
+      [], [token], snapshots, balances, rewardsPerToken, totalRewards
+    );
+    expect(result[0]).toBe(
+      "address,cysFLR_snapshot1,cysFLR_snapshot2,cysFLR_average,cysFLR_penalty,cysFLR_bounty,cysFLR_final,cysFLR_rewards,total_rewards"
+    );
+  });
+
+  it("formats address rows with balance data", () => {
+    const balances: EligibleBalances = new Map([
+      ["0xtoken1", new Map([
+        ["0xaaa", { snapshots: [10n, 20n], average: 15n, penalty: 0n, bounty: 0n, final: 15n, final18: 15n }],
+      ])],
+    ]);
+    const rewardsPerToken: RewardsPerToken = new Map([
+      ["0xtoken1", new Map([["0xaaa", 500n]])],
+    ]);
+    const totalRewards = new Map([["0xaaa", 500n]]);
+
+    const result = formatBalancesCsv(
+      ["0xaaa"], [token], snapshots, balances, rewardsPerToken, totalRewards
+    );
+    expect(result[1]).toBe("0xaaa,10,20,15,0,0,15,500,500");
+  });
+
+  it("uses zeros when address has no balance for a token", () => {
+    const balances: EligibleBalances = new Map();
+    const rewardsPerToken: RewardsPerToken = new Map();
+    const totalRewards = new Map([["0xaaa", 0n]]);
+
+    const result = formatBalancesCsv(
+      ["0xaaa"], [token], snapshots, balances, rewardsPerToken, totalRewards
+    );
+    expect(result[1]).toBe("0xaaa,0,0,0,0,0,0,0,0");
+  });
+
+  it("returns only header for empty addresses", () => {
+    const result = formatBalancesCsv(
+      [], [token], snapshots, new Map(), new Map(), new Map()
+    );
+    expect(result).toHaveLength(1);
+  });
+
+  it("handles multiple tokens with address in only one", () => {
+    const token2: CyToken = {
+      name: "cyWETH",
+      address: "0xtoken2",
+      underlyingAddress: "0xunderlying2",
+      underlyingSymbol: "WETH",
+      receiptAddress: "0xreceipt2",
+      decimals: 18,
+    };
+    const balances: EligibleBalances = new Map([
+      ["0xtoken1", new Map([
+        ["0xaaa", { snapshots: [10n, 20n], average: 15n, penalty: 0n, bounty: 0n, final: 15n, final18: 15n }],
+      ])],
+    ]);
+    const rewardsPerToken: RewardsPerToken = new Map([
+      ["0xtoken1", new Map([["0xaaa", 300n]])],
+    ]);
+    const totalRewards = new Map([["0xaaa", 300n]]);
+
+    const result = formatBalancesCsv(
+      ["0xaaa"], [token, token2], snapshots, balances, rewardsPerToken, totalRewards
+    );
+    expect(result[0]).toContain("cysFLR_snapshot1");
+    expect(result[0]).toContain("cyWETH_snapshot1");
+    // token1 has data, token2 has zeros
+    expect(result[1]).toBe("0xaaa,10,20,15,0,0,15,300,0,0,0,0,0,0,0,300");
   });
 });

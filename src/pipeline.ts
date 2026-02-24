@@ -1,4 +1,5 @@
-import { RewardsPerToken } from "./types";
+import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
+import { CyToken, EligibleBalances, RewardsPerToken } from "./types";
 
 export function aggregateRewardsPerAddress(rewardsPerToken: RewardsPerToken): Map<string, bigint> {
   const totals = new Map<string, bigint>();
@@ -16,6 +17,50 @@ export function sortAddressesByReward(rewards: Map<string, bigint>): string[] {
     const valueA = rewards.get(a)!;
     return valueB > valueA ? 1 : valueB < valueA ? -1 : 0;
   });
+}
+
+export function filterZeroRewards(rewards: Map<string, bigint>): string[] {
+  return Array.from(rewards.entries())
+    .filter(([, reward]) => reward !== 0n)
+    .map(([address]) => address);
+}
+
+export function formatRewardsCsv(addresses: string[], rewards: Map<string, bigint>): string[] {
+  const header = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;
+  const rows = addresses.map(
+    (address) => `${address},${rewards.get(address) || 0n}`
+  );
+  return [header, ...rows];
+}
+
+export function formatBalancesCsv(
+  addresses: string[],
+  cytokens: CyToken[],
+  snapshots: number[],
+  balances: EligibleBalances,
+  rewardsPerToken: RewardsPerToken,
+  totalRewardsPerAddress: Map<string, bigint>,
+): string[] {
+  const tokenColumns = cytokens.map(
+    (token) =>
+      `${snapshots.map((_s, i) => `${token.name}_snapshot${i + 1}`).join(",")},${token.name}_average,${token.name}_penalty,${token.name}_bounty,${token.name}_final,${token.name}_rewards`
+  ).join(",");
+
+  const header = `address,${tokenColumns},total_rewards`;
+  const rows = addresses.map((address) => {
+    const tokenValues = cytokens.map((token) => {
+      const tokenBalances = balances.get(token.address.toLowerCase());
+      const snapshotsDefault = new Array(snapshots.length).fill("0").join(",");
+      if (!tokenBalances) return `${snapshotsDefault},0,0,0,0,0`;
+      const tokenBalance = tokenBalances.get(address);
+      if (!tokenBalance) return `${snapshotsDefault},0,0,0,0,0`;
+      return `${tokenBalance.snapshots.join(",")},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address.toLowerCase())?.get(address) ?? 0n}`;
+    }).join(",");
+
+    return `${address},${tokenValues},${totalRewardsPerAddress.get(address) || 0n}`;
+  });
+
+  return [header, ...rows];
 }
 
 export function parseJsonl(data: string): any[] {

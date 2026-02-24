@@ -2,8 +2,8 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
-import { aggregateRewardsPerAddress, parseBlocklist, parseJsonl, sortAddressesByReward } from "./pipeline";
-import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
+import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward } from "./pipeline";
+import { REWARD_POOL } from "./constants";
 
 // Load environment variables
 config();
@@ -135,37 +135,10 @@ async function main() {
 
   // Write balances with per-token data
   console.log("Writing balances...");
-  const tokenColumns = CYTOKENS.map(
-    (token) =>
-      `${SNAPSHOTS.map((_s, i) => `${token.name}_snapshot${i + 1}`).join(",")},${token.name}_average,${token.name}_penalty,${token.name}_bounty,${token.name}_final,${token.name}_rewards`
-  ).join(",");
-
-  const balancesOutput = [`address,${tokenColumns},total_rewards`];
-
-  // get the rewards for each address by summing the rewards for each token
   const rewardsPerToken = await processor.calculateRewards(REWARD_POOL);
   const totalRewardsPerAddress = aggregateRewardsPerAddress(rewardsPerToken);
-
-  // create an array of all the addresses but sorted by their total rewards
   const addresses = sortAddressesByReward(totalRewardsPerAddress);
-
-  // get the balances for each address
-  for (const address of addresses) {
-    const tokenValues = CYTOKENS.map((token) => {
-      const tokenBalances = balances.get(token.address.toLowerCase());
-      const snapshotsDefault = new Array(SNAPSHOTS.length).fill("0").join(",");
-      if (!tokenBalances) return `${snapshotsDefault},0,0,0,0,0`;
-      const tokenBalance = tokenBalances.get(address);
-      if (!tokenBalance) return `${snapshotsDefault},0,0,0,0,0`;
-      return `${tokenBalance.snapshots.join(",")},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address.toLowerCase())?.get(address) ?? 0n}`;
-    }).join(",");
-
-    balancesOutput.push(
-      `${address},` +
-        `${tokenValues},` +
-        `${totalRewardsPerAddress.get(address) || 0n}`
-    );
-  }
+  const balancesOutput = formatBalancesCsv(addresses, CYTOKENS, SNAPSHOTS, balances, rewardsPerToken, totalRewardsPerAddress);
   await writeFile(
     "output/balances-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
     balancesOutput.join("\n")
@@ -176,24 +149,13 @@ async function main() {
   console.log("Calculating rewards...");
 
   // remove any addresses with no rewards
-  for (const [address, reward] of totalRewardsPerAddress) {
-    if (reward === 0n) {
-      addresses.splice(addresses.indexOf(address), 1);
-    }
-  }
-  const rewardsOutput = [
-    REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD,
-  ];
-  for (const address of addresses) {
-    rewardsOutput.push(
-      `${address},${totalRewardsPerAddress.get(address) || 0n}`
-    );
-  }
+  const rewardedAddresses = filterZeroRewards(totalRewardsPerAddress);
+  const rewardsOutput = formatRewardsCsv(rewardedAddresses, totalRewardsPerAddress);
   await writeFile(
     "output/rewards-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
     rewardsOutput.join("\n")
   );
-  console.log(`Wrote ${addresses.length} rewards to output/rewards.csv`);
+  console.log(`Wrote ${rewardedAddresses.length} rewards to output/rewards.csv`);
 
   // Verify total rewards equals reward pool
   const totalRewards = Array.from(totalRewardsPerAddress.values()).reduce(
