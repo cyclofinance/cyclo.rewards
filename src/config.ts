@@ -45,7 +45,8 @@ export const CYTOKENS: CyToken[] = [
   },
 ];
 
-export const RPC_URL = "https://flare-api.flare.network/ext/C/rpc";
+assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
+export const RPC_URL = process.env.RPC_URL;
 
 export function isSameAddress(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();

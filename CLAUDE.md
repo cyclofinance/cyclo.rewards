@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cyclo rewards calculator for the Flare Network. Calculates token reward distributions for cysFLR and cyWETH holders by scraping on-chain data from a Goldsky subgraph, computing eligible balances across 30 deterministic snapshot blocks, and generating CSV outputs for on-chain distribution.
+Cyclo rewards calculator for the Flare Network. Calculates token reward distributions for cysFLR, cyWETH, and cyFXRP holders by scraping on-chain data from a Goldsky subgraph, computing eligible balances across 30 deterministic snapshot blocks, and generating CSV outputs for on-chain distribution.
 
 ## Commands
 
@@ -30,13 +30,14 @@ Vitest runs in watch mode. For a single run, use `nix develop -c npx vitest run`
 
 **Pipeline:** `scraper.ts` → `processor.ts` + `liquidity.ts` → `diffCalculator.ts`
 
-- **`src/scraper.ts`** — Fetches transfer and liquidity events from Goldsky GraphQL subgraph up to END_SNAPSHOT block. Writes JSONL to `data/transfers.dat` and `data/liquidity.dat`.
+- **`src/scraper.ts`** — Fetches transfer and liquidity events from Goldsky GraphQL subgraph up to END_SNAPSHOT block. Writes JSONL to `data/transfers1.dat` through `data/transfersN.dat` (split to avoid GitHub 100MB limit) and `data/liquidity.dat`.
 - **`src/processor.ts`** — Core logic. Replays all transfers to compute per-account balances at each snapshot block. Handles approved source detection (DEX routers in config), Uniswap V2/V3 LP position tracking via factory contracts, penalties/bounties from `data/blocklist.txt`. Outputs `balances-*.csv` and `rewards-*.csv`.
 - **`src/liquidity.ts`** — Queries Uniswap V3 pool tick data via multicall at specific blocks. Uses 3 retries with exponential backoff.
-- **`src/diffCalculator.ts`** — Compares new rewards against previously distributed amounts in `output/dispersed/` to produce diff CSVs.
+- **`src/diffCalculator.ts`** — Compares new rewards CSV against a previous rewards CSV (e.g., `output/rewards-*-old.csv`) to produce diff CSVs for underpaid, covered, and uncovered accounts.
 - **`src/config.ts`** — Approved DEX routers (`REWARDS_SOURCES`), factory contracts (`FACTORIES`), cyToken definitions (`CYTOKENS`), RPC URL, and `generateSnapshotBlocks()` which uses seedrandom for deterministic block selection.
 - **`src/constants.ts`** — `ONE` (1e18 as BigInt) and `REWARD_POOL` (1M tokens as BigInt).
 - **`src/types.ts`** — TypeScript interfaces for transfers, balances, liquidity changes, reports.
+- **`scripts/fetch-dec-2025-distributed.sh`** — Decodes on-chain distribution transactions to produce `output/dec-2025-distributed.csv`. Run in CI before the main pipeline.
 
 ## Environment Variables
 
@@ -45,6 +46,7 @@ Set in `.env` (and mirrored in `.github/workflows/git-clean.yaml`):
 - `SEED` — Seed phrase for deterministic snapshot block generation
 - `START_SNAPSHOT` — Starting block number
 - `END_SNAPSHOT` — Ending block number
+- `RPC_URL` — Flare RPC endpoint
 
 ## Key Concepts
 

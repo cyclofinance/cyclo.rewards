@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { generateSnapshotBlocks, scaleTo18 } from './config';
 
 describe('Test generateSnapshotTimestampForEpoch', () => {
@@ -39,6 +39,24 @@ describe('Test generateSnapshotTimestampForEpoch', () => {
       expect(block).toBeGreaterThanOrEqual(start);
       expect(block).toBeLessThanOrEqual(end);
     });
+  });
+});
+
+describe("RPC_URL", () => {
+  it("should export RPC_URL from environment", async () => {
+    const { RPC_URL } = await import('./config');
+    expect(RPC_URL).toBe(process.env.RPC_URL);
+  });
+
+  it("should error if RPC_URL is not set", async () => {
+    const original = process.env.RPC_URL;
+    delete process.env.RPC_URL;
+    try {
+      vi.resetModules();
+      await expect(import('./config')).rejects.toThrow("RPC_URL environment variable must be set");
+    } finally {
+      process.env.RPC_URL = original;
+    }
   });
 });
 
