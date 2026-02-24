@@ -115,10 +115,8 @@ export class Processor {
           continue;
         }
 
-        // If we've exhausted all retries, log and return false
-        console.log(`Failed to check factory after ${retries} attempts:`, e);
-        this.approvedSourceCache.set(source.toLowerCase(), false);
-        return false;
+        // If we've exhausted all retries, abort rather than silently under-crediting
+        throw new Error(`Failed to check factory for ${source} after ${retries} attempts: ${e.message}`);
       }
     }
 
@@ -158,7 +156,7 @@ export class Processor {
     });
 
     const accountBalances = this.accountBalancesPerToken.get(
-      transfer.tokenAddress
+      transfer.tokenAddress.toLowerCase()
     );
 
     if (!accountBalances) {
@@ -422,7 +420,7 @@ export class Processor {
     const depositedBalanceChange = BigInt(liquidityChangeEvent.depositedBalanceChange);
 
     const accountBalances = this.accountBalancesPerToken.get(
-      liquidityChangeEvent.tokenAddress
+      liquidityChangeEvent.tokenAddress.toLowerCase()
     );
 
     if (!accountBalances) {
@@ -430,8 +428,9 @@ export class Processor {
     }
 
     // Initialize balances if needed
-    if (!accountBalances.has(liquidityChangeEvent.owner)) {
-      accountBalances.set(liquidityChangeEvent.owner, {
+    const owner = liquidityChangeEvent.owner.toLowerCase();
+    if (!accountBalances.has(owner)) {
+      accountBalances.set(owner, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
@@ -439,7 +438,7 @@ export class Processor {
       });
     }
 
-    const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
+    const ownerBalance = accountBalances.get(owner)!;
     ownerBalance.currentNetBalance += depositedBalanceChange; // include the liquidity change to the net balance
 
     // Update snapshot balances
@@ -471,7 +470,7 @@ export class Processor {
       }
     }
 
-    accountBalances.set(liquidityChangeEvent.owner, ownerBalance);
+    accountBalances.set(owner, ownerBalance);
   }
 
   // update each account's snapshots balances with lp v3 price range factored in
@@ -506,6 +505,9 @@ export class Processor {
             // deduct out of range lp position for snapshot
             balance.netBalanceAtSnapshots[i] -= lp.value;
           }; 
+          if (balance.netBalanceAtSnapshots[i] < 0n) {
+            balance.netBalanceAtSnapshots[i] = 0n;
+          }
         }
       }
     }

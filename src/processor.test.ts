@@ -1050,4 +1050,20 @@ describe("Processor", () => {
       });
     });
   });
+
+  describe("isApprovedSource", () => {
+    it("should throw after exhausting retries on transient RPC errors", async () => {
+      const failingClient = {
+        readContract: async () => {
+          throw new Error("rate limited");
+        },
+      };
+
+      const proc = new Processor(SNAPSHOTS, SNAPSHOTS.length, [], failingClient);
+      // Use 1 retry to keep the test fast
+      await expect(proc.isApprovedSource(NORMAL_USER_1, 1)).rejects.toThrow(
+        "Failed to check factory"
+      );
+    });
+  });
 });

@@ -4,7 +4,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock PublicClient
 const mockClient = {
-  multicall: vi.fn()
+  multicall: vi.fn(),
+  getCode: vi.fn()
 } as unknown as PublicClient;
 
 describe('getPoolsTickMulticall', () => {
@@ -81,6 +82,14 @@ describe('getPoolsTickMulticall', () => {
         {
           status: 'success' as const,
           result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'success' as const,
+          result: [0n, 200, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'success' as const,
+          result: [0n, 300, 1, 1, 1, 0, true]
         }
       ];
 
@@ -161,7 +170,7 @@ describe('getPoolsTickMulticall', () => {
   });
 
   describe('Error handling', () => {
-    it('should skip pools with failed multicall results', async () => {
+    it('should skip pools not yet deployed (no code)', async () => {
       const mockResults = [
         {
           status: 'success' as const,
@@ -178,17 +187,41 @@ describe('getPoolsTickMulticall', () => {
       ];
 
       (mockClient.multicall as any).mockResolvedValue(mockResults);
+      (mockClient.getCode as any).mockResolvedValue("0x");
 
       const result = await getPoolsTickMulticall(mockClient, mockPools, blockNumber);
 
       expect(result).toEqual({
         '0x1234567890123456789012345678901234567890': 100,
         '0x9876543210987654321098765432109876543210': 300
-        // Middle pool should be omitted due to failure
       });
     });
 
-    it('should handle all calls failing', async () => {
+    it('should throw for deployed pool with failed slot0', async () => {
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'failure' as const,
+          error: new Error('Pool call failed')
+        },
+        {
+          status: 'success' as const,
+          result: [0n, 300, 1, 1, 1, 0, true]
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+      (mockClient.getCode as any).mockResolvedValue("0x6080604052");
+
+      await expect(getPoolsTickMulticall(mockClient, mockPools, blockNumber))
+        .rejects
+        .toThrow('Failed to get ticks for pools');
+    });
+
+    it('should skip all pools when none are deployed', async () => {
       const mockResults = [
         {
           status: 'failure' as const,
@@ -205,6 +238,7 @@ describe('getPoolsTickMulticall', () => {
       ];
 
       (mockClient.multicall as any).mockResolvedValue(mockResults);
+      (mockClient.getCode as any).mockResolvedValue("0x");
 
       const result = await getPoolsTickMulticall(mockClient, mockPools, blockNumber);
 

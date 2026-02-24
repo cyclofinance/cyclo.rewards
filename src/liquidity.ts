@@ -72,6 +72,20 @@ export async function getPoolsTickMulticall(
         }
     }
 
+    const missingPools = pools.filter(p => !(p.toLowerCase() in ticks));
+    if (missingPools.length > 0) {
+        const realFailures: string[] = [];
+        for (const pool of missingPools) {
+            const code = await client.getCode({ address: pool, blockNumber });
+            if (code && code !== "0x") {
+                realFailures.push(pool);
+            }
+        }
+        if (realFailures.length > 0) {
+            throw new Error(`Failed to get ticks for pools: ${realFailures.join(', ')}`);
+        }
+    }
+
     return ticks;
 }
 
