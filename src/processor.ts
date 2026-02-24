@@ -40,7 +40,6 @@ export class Processor {
 
   constructor(
     private snapshots: number[],
-    private epochLength: number,
     private reports: { reporter: string; cheater: string }[] = [],
     client?: any,
     private pools: `0x${string}`[] = [],
@@ -171,7 +170,7 @@ export class Processor {
       accountBalances.set(transfer.to, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
+        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
         currentNetBalance: 0n,
       });
     }
@@ -179,7 +178,7 @@ export class Processor {
       accountBalances.set(transfer.from, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
+        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
         currentNetBalance: 0n,
       });
     }
@@ -315,7 +314,7 @@ export class Processor {
         if (!accountBalances) continue;
 
         const balance = accountBalances.get(address.toLowerCase());
-        const snapshots = balance?.netBalanceAtSnapshots ?? new Array<bigint>(this.epochLength).fill(0n);
+        const snapshots = balance?.netBalanceAtSnapshots ?? new Array<bigint>(this.snapshots.length).fill(0n);
         const average = snapshots.reduce((acc, val) => acc + val, 0n) / BigInt(snapshots.length);
 
         userBalances.set(address, {
@@ -527,7 +526,7 @@ export class Processor {
       accountBalances.set(owner, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
+        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
         currentNetBalance: 0n,
       });
     }

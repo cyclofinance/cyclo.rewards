@@ -28,13 +28,22 @@ describe("Processor", () => {
   };
 
   beforeEach(() => {
-    processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, [], mockClient);
+    processor = new Processor(SNAPSHOTS, [], mockClient);
     processor.isApprovedSource = async (source: string) => {
       return (
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase() ||
         source.toLowerCase() === FACTORY_SOURCE.toLowerCase()
       );
     };
+  });
+
+  describe("Constructor", () => {
+    it("should not accept epochLength parameter (removed)", () => {
+      // epochLength was a redundant parameter that could diverge from snapshots.length.
+      // Verify the constructor no longer accepts it — snapshots.length is used directly.
+      const p = new Processor([100, 200], [], mockClient);
+      expect(p).toBeDefined();
+    });
   });
 
   describe("Basic Transfer Processing", () => {
@@ -252,7 +261,7 @@ describe("Processor", () => {
 
   describe("Blocklist", () => {
     it("should include blocklisted addresses with penalties", async () => {
-      const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, [
+      const processor = new Processor(SNAPSHOTS, [
         { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
       ]);
       processor.isApprovedSource = async (source: string) =>
@@ -310,7 +319,7 @@ describe("Processor", () => {
       ];
 
       // Need to include NORMAL_USER_2 in the blocklist since they're reported
-      const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, reports, mockClient);
+      const processor = new Processor(SNAPSHOTS, reports, mockClient);
 
       processor.isApprovedSource = async (source: string) =>
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
@@ -1020,7 +1029,6 @@ describe("Processor", () => {
     };
     
     const snapshots = [1000, 2000, 3000];
-    const epochLength = 3;
     const pools = [
       '0x1111111111111111111111111111111111111111',
       '0x2222222222222222222222222222222222222222'
@@ -1028,7 +1036,7 @@ describe("Processor", () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
-      processor = new Processor(snapshots, epochLength, [], mockClient, pools);
+      processor = new Processor(snapshots, [], mockClient, pools);
     });
 
     afterEach(() => {
@@ -1437,7 +1445,7 @@ describe("Processor", () => {
         },
       };
 
-      const proc = new Processor(SNAPSHOTS, SNAPSHOTS.length, [], failingClient);
+      const proc = new Processor(SNAPSHOTS, [], failingClient);
       // Use 1 retry to keep the test fast
       await expect(proc.isApprovedSource(NORMAL_USER_1, 1)).rejects.toThrow(
         "Failed to check factory"

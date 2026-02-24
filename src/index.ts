@@ -70,7 +70,7 @@ async function main() {
 
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
-  const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, reports, undefined, pools);
+  const processor = new Processor(SNAPSHOTS, reports, undefined, pools);
 
   // Organize liquidity changes
   console.log(`Organizing ${liquidities.length} liquidity change events...`);

@@ -28,7 +28,7 @@
 | A04-2 | MEDIUM | `START_SNAPSHOT`/`END_SNAPSHOT` default to 0 silently | FIXED — extracted `parseEnv()` into config.ts with asserts for SEED, START_SNAPSHOT, END_SNAPSHOT |
 | A04-3 | MEDIUM | Unchecked `JSON.parse` on JSONL data files | PENDING |
 | A04-6 | MEDIUM | `transfers` typed as `any[]` with no schema validation | PENDING |
-| A06-3 | MEDIUM | `epochLength` vs `snapshots.length` divergence risk | PENDING |
+| A06-3 | MEDIUM | `epochLength` vs `snapshots.length` divergence risk | FIXED — removed redundant `epochLength` parameter; use `this.snapshots.length` directly |
 | A06-4 | MEDIUM | Division by zero in `calculateRewardsPoolsPertoken` | PENDING |
 | A06-5 | MEDIUM | Division by zero in `calculateRewards` | PENDING |
 | A06-6 | MEDIUM | Non-null assertions on `Map.get()` throughout | PENDING |
