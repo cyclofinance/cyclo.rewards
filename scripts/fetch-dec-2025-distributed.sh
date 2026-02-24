@@ -7,7 +7,7 @@ set -euo pipefail
 # Usage: RPC_URL=https://... nix develop -c bash scripts/fetch-dec-2025-distributed.sh
 
 : "${RPC_URL:?RPC_URL environment variable must be set}"
-OUTPUT="output/dec-2025-distributed.csv"
+OUTPUT="output/dispersed/dec-2025-distributed.csv"
 
 # The two December 2025 distribution transactions (block 54051127, 54051138)
 TX1="0x1e2ee309ee621fc00f6143f2e317e2d07c2993f456b2b2ba3724f8d9c70e2803"
