@@ -2,18 +2,13 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks } from "./config";
-import { REWARD_POOL } from "./constants";
+import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 // Load environment variables
 config();
 
 const START_SNAPSHOT = parseInt(process.env.START_SNAPSHOT || "0");
 const END_SNAPSHOT = parseInt(process.env.END_SNAPSHOT || "0");
-
-// Must match expected structure
-// https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data
-const REWARDS_CSV_COLUMN_HEADER_ADDRESS = "recipient address";
-const REWARDS_CSV_COLUMN_HEADER_REWARD = "amount wei";
 
 async function main() {
   // generate snapshot blocks

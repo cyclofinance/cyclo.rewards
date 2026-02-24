@@ -28,6 +28,9 @@ jobs:
           gc-max-store-size-linux: 1G
 
       - run: nix develop -c npm i
+      - run: nix develop -c bash scripts/fetch-dec-2025-distributed.sh
+        env:
+          RPC_URL: ${{ secrets.RPC_URL_FLARE_FORK }}
       - run: nix develop -c npm run start
         env:
           SEED: "cyclo-rewards-for-jan-2026"

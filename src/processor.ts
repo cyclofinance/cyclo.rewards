@@ -118,10 +118,8 @@ export class Processor {
           continue;
         }
 
-        // If we've exhausted all retries, log and return false
-        console.log(`Failed to check factory after ${retries} attempts:`, e);
-        this.approvedSourceCache.set(source.toLowerCase(), false);
-        return false;
+        // If we've exhausted all retries, abort rather than silently under-crediting
+        throw new Error(`Failed to check factory for ${source} after ${retries} attempts: ${e.message}`);
       }
     }
 
@@ -161,7 +159,7 @@ export class Processor {
     });
 
     const accountBalances = this.accountBalancesPerToken.get(
-      transfer.tokenAddress
+      transfer.tokenAddress.toLowerCase()
     );
 
     if (!accountBalances) {
@@ -516,7 +514,7 @@ export class Processor {
     const depositedBalanceChange = BigInt(liquidityChangeEvent.depositedBalanceChange);
 
     const accountBalances = this.accountBalancesPerToken.get(
-      liquidityChangeEvent.tokenAddress
+      liquidityChangeEvent.tokenAddress.toLowerCase()
     );
 
     if (!accountBalances) {
@@ -524,8 +522,9 @@ export class Processor {
     }
 
     // Initialize balances if needed
-    if (!accountBalances.has(liquidityChangeEvent.owner)) {
-      accountBalances.set(liquidityChangeEvent.owner, {
+    const owner = liquidityChangeEvent.owner.toLowerCase();
+    if (!accountBalances.has(owner)) {
+      accountBalances.set(owner, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
@@ -569,7 +568,7 @@ export class Processor {
       }
     }
 
-    accountBalances.set(liquidityChangeEvent.owner, ownerBalance);
+    accountBalances.set(owner, ownerBalance);
   }
 
   // update each account's snapshots balances with lp v3 price range factored in
