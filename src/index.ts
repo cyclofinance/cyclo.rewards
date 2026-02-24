@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
+import { parseBlocklist } from "./pipeline";
 import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 // Load environment variables
@@ -56,16 +57,7 @@ async function main() {
   // Read blocklist
   console.log("Reading blocklist...");
   const blocklistData = await readFile("data/blocklist.txt", "utf8");
-  const reports = blocklistData
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const [reporter, reported] = line.split(" ");
-      return {
-        reporter: reporter.toLowerCase(),
-        cheater: reported.toLowerCase(),
-      };
-    });
+  const reports = parseBlocklist(blocklistData);
   console.log(`Found ${reports.length} reports`);
 
   // Setup processor with snapshot blocks and blocklist
