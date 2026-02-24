@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { generateSnapshotBlocks, scaleTo18 } from './config';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { generateSnapshotBlocks, scaleTo18, parseEnv } from './config';
 
 describe('Test generateSnapshotTimestampForEpoch', () => {
   
@@ -69,6 +69,59 @@ describe("RPC_URL", () => {
     } finally {
       process.env.RPC_URL = original;
     }
+  });
+});
+
+describe("parseEnv", () => {
+  const originalEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env.SEED = originalEnv.SEED;
+    process.env.START_SNAPSHOT = originalEnv.START_SNAPSHOT;
+    process.env.END_SNAPSHOT = originalEnv.END_SNAPSHOT;
+  });
+
+  it("should return parsed values when all env vars are set", () => {
+    process.env.SEED = "test-seed";
+    process.env.START_SNAPSHOT = "1000";
+    process.env.END_SNAPSHOT = "2000";
+    const result = parseEnv();
+    expect(result).toEqual({ seed: "test-seed", startSnapshot: 1000, endSnapshot: 2000 });
+  });
+
+  it("should error if SEED is not set", () => {
+    delete process.env.SEED;
+    process.env.START_SNAPSHOT = "1000";
+    process.env.END_SNAPSHOT = "2000";
+    expect(() => parseEnv()).toThrow("SEED environment variable must be set");
+  });
+
+  it("should error if START_SNAPSHOT is not set", () => {
+    process.env.SEED = "test-seed";
+    delete process.env.START_SNAPSHOT;
+    process.env.END_SNAPSHOT = "2000";
+    expect(() => parseEnv()).toThrow("START_SNAPSHOT environment variable must be set");
+  });
+
+  it("should error if END_SNAPSHOT is not set", () => {
+    process.env.SEED = "test-seed";
+    process.env.START_SNAPSHOT = "1000";
+    delete process.env.END_SNAPSHOT;
+    expect(() => parseEnv()).toThrow("END_SNAPSHOT environment variable must be set");
+  });
+
+  it("should error if START_SNAPSHOT is not a valid number", () => {
+    process.env.SEED = "test-seed";
+    process.env.START_SNAPSHOT = "abc";
+    process.env.END_SNAPSHOT = "2000";
+    expect(() => parseEnv()).toThrow("START_SNAPSHOT must be a valid number");
+  });
+
+  it("should error if END_SNAPSHOT is not a valid number", () => {
+    process.env.SEED = "test-seed";
+    process.env.START_SNAPSHOT = "1000";
+    process.env.END_SNAPSHOT = "abc";
+    expect(() => parseEnv()).toThrow("END_SNAPSHOT must be a valid number");
   });
 });
 

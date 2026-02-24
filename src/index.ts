@@ -1,18 +1,17 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { Processor } from "./processor.js";
 import { config } from "dotenv";
-import { CYTOKENS, generateSnapshotBlocks } from "./config";
+import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
 import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 // Load environment variables
 config();
 
-const START_SNAPSHOT = parseInt(process.env.START_SNAPSHOT || "0");
-const END_SNAPSHOT = parseInt(process.env.END_SNAPSHOT || "0");
-
 async function main() {
+  const { seed: SEED, startSnapshot: START_SNAPSHOT, endSnapshot: END_SNAPSHOT } = parseEnv();
+
   // generate snapshot blocks
-  const SNAPSHOTS = generateSnapshotBlocks(process.env.SEED!, START_SNAPSHOT, END_SNAPSHOT);
+  const SNAPSHOTS = generateSnapshotBlocks(SEED, START_SNAPSHOT, END_SNAPSHOT);
 
   // write generated snapshots
   await writeFile(

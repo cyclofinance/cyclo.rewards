@@ -103,3 +103,17 @@ export function scaleTo18(value: bigint, decimals: number): bigint {
         return value * BigInt("1" + "0".repeat(18 - decimals));
     }
 }
+
+export function parseEnv(): { seed: string; startSnapshot: number; endSnapshot: number } {
+  assert(process.env.SEED, "SEED environment variable must be set");
+  assert(process.env.START_SNAPSHOT, "START_SNAPSHOT environment variable must be set");
+  assert(process.env.END_SNAPSHOT, "END_SNAPSHOT environment variable must be set");
+
+  const startSnapshot = parseInt(process.env.START_SNAPSHOT);
+  const endSnapshot = parseInt(process.env.END_SNAPSHOT);
+
+  assert(!isNaN(startSnapshot), "START_SNAPSHOT must be a valid number");
+  assert(!isNaN(endSnapshot), "END_SNAPSHOT must be a valid number");
+
+  return { seed: process.env.SEED, startSnapshot, endSnapshot };
+}
