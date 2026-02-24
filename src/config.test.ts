@@ -33,6 +33,18 @@ describe('Test generateSnapshotTimestampForEpoch', () => {
     }
   });
 
+  it('should not produce duplicate blocks', () => {
+    // Range of exactly 30 — pigeonhole principle means 30 unique blocks
+    // are possible but random draws will almost certainly collide.
+    const blocks = generateSnapshotBlocks('test-seed', 5000, 5029);
+    const unique = new Set(blocks);
+    expect(unique.size).toBe(blocks.length);
+  });
+
+  it('should error if range is less than 30', () => {
+    expect(() => generateSnapshotBlocks('test-seed', 5000, 5028)).toThrow();
+  });
+
   it('should generate blocks within the epoch range', () => {
     const blocks = generateSnapshotBlocks('test-seed', start, end);    
     blocks.forEach(block => {

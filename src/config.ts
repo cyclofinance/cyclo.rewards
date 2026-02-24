@@ -66,13 +66,16 @@ export function generateSnapshotBlocks(
   const rng = seedrandom(seed);
   const range = end - start + 1;
 
-  const snapshots: number[] = [start, end];
+  assert.ok(range >= 30, `Snapshot range must be at least 30, got ${range}`);
 
-  // start + end + 28 = 30 snapshots
-  for (let i = 0; i < 28; i++) {
-    const randomBlock = Math.floor(rng() * range) + start;
-    snapshots.push(randomBlock);
+  const snapshotSet = new Set<number>([start, end]);
+
+  // start + end + 28 = 30 snapshots, sampled without replacement
+  while (snapshotSet.size < 30) {
+    snapshotSet.add(Math.floor(rng() * range) + start);
   }
+
+  const snapshots = Array.from(snapshotSet);
 
   // making sure we have correct length
   assert.ok(
