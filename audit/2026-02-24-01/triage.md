@@ -48,7 +48,7 @@
 | A03-10 | LOW | No validation that `distributedCount` is a non-negative integer | PENDING |
 | A04-4 | LOW | Relative file paths for all I/O | PENDING |
 | A04-5 | LOW | Write-before-mkdir race condition | FIXED — moved mkdir before first writeFile |
-| A04-7 | LOW | `splice` with `indexOf` can silently remove wrong element | PENDING |
+| A04-7 | LOW | `splice` with `indexOf` can silently remove wrong element | FIXED — replaced with filterZeroRewards() which filters without mutation |
 | A04-9 | LOW | Blocklist parsing does not validate address format | PENDING |
 | A05-2 | LOW | Sequential `getCode` calls for missing pools | PENDING |
 | A05-3 | LOW | No timeout on individual RPC calls | PENDING |
@@ -80,8 +80,8 @@
 | GAP-LIQ-01 | CRITICAL | `getPoolsTick` has zero unit tests | FIXED — added 4 tests for retry wrapper: first success, BigInt conversion, retry-then-succeed, throw after 3 failures |
 | A01-2 | MEDIUM | `generateSnapshotBlocks` missing edge case tests (start===end, start>end, adjacent) | FIXED — added large range, empty seed tests; start===end/start>end/adjacent all caught by assert(range >= 30) |
 | A01-3 | MEDIUM | `scaleTo18` missing edge case tests | FIXED — added tests for decimals=0, zero value, decimals=6 (cyFXRP), truncation to zero |
-| A01-4 | MEDIUM | `REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS` have no structural validation tests | PENDING |
-| A02-P2-2 | MEDIUM | `ONE` constant not imported or tested from source | PENDING |
+| A01-4 | MEDIUM | `REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS` have no structural validation tests | FIXED — address format, uniqueness, non-negative decimals, no overlap tests |
+| A02-P2-2 | MEDIUM | `ONE` constant not imported or tested from source | FIXED — constants.test.ts asserts ONE === 10n ** 18n |
 | A03-1 | MEDIUM | No CRLF line ending test for `readCsv` | PENDING |
 | A03-4 | MEDIUM | No zero-reward entry test for `calculateDiff` | PENDING |
 | A03-6 | MEDIUM | No duplicate address test for `calculateDiff` inputs | PENDING |
@@ -90,7 +90,7 @@
 | A04-3 | MEDIUM | JSONL file parsing untested and fragile | FIXED — extracted parseJsonl with 5 tests including error context |
 | A04-4 | MEDIUM | Blocklist parsing assumes exact format | FIXED — extracted parseBlocklist with 8 tests |
 | A04-5 | MEDIUM | CSV output generation format untested | FIXED — extracted formatRewardsCsv (3 tests) and formatBalancesCsv (5 tests) |
-| A04-7 | MEDIUM | Balance verification is console-only, never fails | PENDING |
+| A04-7 | MEDIUM | Balance verification is console-only, never fails | FIXED — index.ts now throws on failed balance verification and excessive reward pool drift |
 | GAP-LIQ-02 | MEDIUM | Tick value of zero not tested | FIXED — test verifies tick=0 returned correctly |
 | GAP-LIQ-03 | MEDIUM | Duplicate pool addresses in input not tested | FIXED — test documents last-write-wins behavior |
 | GAP-LIQ-04 | MEDIUM | `getCode` returning undefined not tested | FIXED — test verifies pool skipped when getCode returns undefined |
@@ -120,11 +120,11 @@
 ## Pass 3: Documentation
 | ID | Severity | Finding | Status |
 |----|----------|---------|--------|
-| A02-1 | CRITICAL | `REWARD_POOL` has silent precision loss (8,388,608 wei deficit); no documentation of intended value | PENDING |
-| A02-2 | HIGH | `ONE` uses fragile `BigInt(Number)` pattern; happens to be correct but undocumented | PENDING |
+| A02-1 | CRITICAL | `REWARD_POOL` has silent precision loss (8,388,608 wei deficit); no documentation of intended value | FIXED — changed to 500_000_000_000_000_000_000_000n with test assertion |
+| A02-2 | HIGH | `ONE` uses fragile `BigInt(Number)` pattern; happens to be correct but undocumented | FIXED — changed to 10n ** 18n with test assertion |
 | A02-3 | HIGH | `DEC25_REWARD_POOL` has no documentation explaining its purpose or relationship to `REWARD_POOL` | PENDING |
 | A06-DOC-003 | HIGH | All 13 public methods on `Processor` class lack JSDoc | PENDING |
-| A01-6 | MEDIUM | `underlyingSymbol: "cyFXRP"` may be incorrect; breaks naming pattern of other entries | PENDING |
+| A01-6 | MEDIUM | `underlyingSymbol: "cyFXRP"` may be incorrect; breaks naming pattern of other entries | FIXED — changed to "FXRP" to match pattern (sFLR, WETH) |
 | A03-4 | MEDIUM | `calculateDiff` has no JSDoc at all (core exported function of the module) | PENDING |
 | A03-5 | MEDIUM | `DISTRIBUTED_COUNT = 100` magic constant with no explanation | PENDING |
 | A03-11 | LOW-MEDIUM | `RewardEntry`, `DiffEntry`, `DiffResult` types are undocumented | PENDING |

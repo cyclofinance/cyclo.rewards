@@ -39,7 +39,7 @@ export const CYTOKENS: CyToken[] = [
     name: "cyFXRP",
     address: "0xf23595ede14b54817397b1dab899ba061bdce7b5",
     underlyingAddress: "0xAd552A648C74D49E10027AB8a618A3ad4901c5bE", // fxrp
-    underlyingSymbol: "cyFXRP",
+    underlyingSymbol: "FXRP",
     receiptAddress: "0xc46600cebd84ed2fe60ec525df13e341d24642f2",
     decimals: 6,
   },
