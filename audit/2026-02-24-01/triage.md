@@ -240,7 +240,7 @@
 | A03-10 | LOW | Greedy budget allocation is order-dependent but undocumented | PENDING |
 | A03-11 | LOW | `structuredClone` on flat objects where shallow copy suffices | PENDING |
 | A04-3 | LOW | Duplicated JSONL parsing pattern across three data sources | PENDING |
-| A04-4 | LOW | Inconsistent import path style: `.js` extension on one import only | PENDING |
+| A04-4 | LOW | Inconsistent import path style: `.js` extension on one import only | FIXED — removed .js extension from processor import |
 | A04-5 | LOW | Hardcoded file paths and magic numbers scattered throughout | PENDING |
 | A04-6 | LOW | Misleading log messages reference wrong output filenames | FIXED — log now includes snapshot block numbers |
 | A04-7 | LOW | Mutating `addresses` array via `splice` + `indexOf` is O(n^2) with `-1` edge case | FIXED — replaced with filterZeroRewards() |

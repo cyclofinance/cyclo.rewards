@@ -1,5 +1,5 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { Processor } from "./processor.js";
+import { Processor } from "./processor";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
 import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
