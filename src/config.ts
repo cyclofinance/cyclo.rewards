@@ -108,13 +108,13 @@ export function generateSnapshotBlocks(
  * @returns The value scaled to 18 decimal places
  */
 export function scaleTo18(value: bigint, decimals: number): bigint {
-    if (decimals === 18) {
-      return value;
-    } else if (decimals > 18) {
-        return value / 10n ** BigInt(decimals - 18);
-    } else {
-        return value * 10n ** BigInt(18 - decimals);
-    }
+  if (decimals === 18) {
+    return value;
+  } else if (decimals > 18) {
+    return value / 10n ** BigInt(decimals - 18);
+  } else {
+    return value * 10n ** BigInt(18 - decimals);
+  }
 }
 
 export function parseEnv(): { seed: string; startSnapshot: number; endSnapshot: number } {
