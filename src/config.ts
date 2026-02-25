@@ -2,6 +2,7 @@ import assert from "assert";
 import { CyToken } from "./types";
 import seedrandom from "seedrandom";
 
+/** Approved DEX router and orderbook addresses whose transfers are reward-eligible */
 export const REWARDS_SOURCES = [
   "0xcee8cd002f151a536394e564b84076c41bbbcd4d", // orderbook
   "0x0f3d8a38d4c74afbebc2c42695642f0e3acb15d3", // Sparkdex Universal Router
@@ -11,6 +12,7 @@ export const REWARDS_SOURCES = [
   "0x9d70b0b90915bb8b9bdac7e6a7e6435bbf1fec4d", // Sparkdex TWAP
 ];
 
+/** DEX factory contract addresses; transfers from pools created by these factories are reward-eligible */
 export const FACTORIES = [
   "0x16b619b04c961e8f4f06c10b42fdabb328980a89", // Sparkdex V2
   "0xb3fb4f96175f6f9d716c17744e5a6d4ba9da8176", // Sparkdex V3
@@ -18,6 +20,7 @@ export const FACTORIES = [
   "0x440602f459d7dd500a74528003e6a20a46d6e2a6", // Blazeswap
 ];
 
+/** Cyclo token definitions for reward calculation */
 export const CYTOKENS: CyToken[] = [
   {
     name: "cysFLR",
@@ -46,6 +49,7 @@ export const CYTOKENS: CyToken[] = [
 ];
 
 assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
+/** Flare RPC endpoint URL for on-chain queries */
 export const RPC_URL = process.env.RPC_URL;
 
 /**

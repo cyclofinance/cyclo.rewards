@@ -143,7 +143,7 @@
 | A01-2 | LOW | Missing JSDoc on `isSameAddress` | FIXED — added JSDoc |
 | A01-3 | LOW | Missing `@returns` tag on `generateSnapshotBlocks` JSDoc | FIXED — added @returns tag |
 | A01-4 | LOW | Missing `@returns` tag on `scaleTo18` JSDoc | FIXED — added @returns tag |
-| A01-5 | LOW | No JSDoc on exported constants (`REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS`, `RPC_URL`) | PENDING |
+| A01-5 | LOW | No JSDoc on exported constants (`REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS`, `RPC_URL`) | FIXED — added JSDoc to all four constants |
 | A01-7 | LOW | Grammatical error "generated" -> "generate" in assertion message | FIXED — corrected typo |
 | A02-4 | LOW | CSV column header comment is accurate but ambiguous in scope | PENDING |
 | A02-5 | LOW | No file-level documentation in `constants.ts` | PENDING |
