@@ -1,3 +1,8 @@
+/**
+ * Subgraph scraper. Fetches ERC-20 transfer and liquidity change events from the
+ * Goldsky-hosted Cyclo subgraph up to END_SNAPSHOT, writing JSONL to data/*.dat.
+ */
+
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
@@ -6,6 +11,7 @@ import assert from "assert";
 
 config();
 
+/** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
 const SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-02-13-78a0/gn";
 const BATCH_SIZE = 1000;
@@ -15,6 +21,7 @@ const BATCH_SIZE = 1000;
 assert(process.env.END_SNAPSHOT, "undefined END_SNAPSHOT env variable")
 const UNTIL_SNAPSHOT = parseInt(process.env.END_SNAPSHOT) + 1; // +1 to make sure every transfer is gathered
 
+/** Raw transfer event shape from the Goldsky subgraph GraphQL response */
 interface SubgraphTransfer {
   id: string;
   tokenAddress: string;
@@ -26,6 +33,7 @@ interface SubgraphTransfer {
   transactionHash: string;
 }
 
+/** Common fields for V2/V3 liquidity change events from the subgraph */
 type SubgraphLiquidityChangeBase = {
   id: string;
   owner: { address: string };
@@ -39,10 +47,12 @@ type SubgraphLiquidityChangeBase = {
   transactionHash: string;
 }
 
+/** Uniswap V2 liquidity change from the subgraph */
 type SubgraphLiquidityChangeV2 = SubgraphLiquidityChangeBase & {
   __typename: "LiquidityV2Change";
 }
 
+/** Uniswap V3 liquidity change from the subgraph, with concentrated position data */
 type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
   __typename: "LiquidityV3Change";
   tokenId: string;
@@ -52,8 +62,14 @@ type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
   upperTick: string;
 }
 
+/** Discriminated union of V2 and V3 subgraph liquidity change events */
 export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquidityChangeV3
 
+/**
+ * Paginates through all transfer events up to UNTIL_SNAPSHOT and writes them
+ * as JSONL to data/transfers1.dat through data/transfersN.dat (split at 270k lines
+ * to stay under GitHub's 100MB file size limit).
+ */
 async function scrapeTransfers() {
   let skip = 0;
   let hasMore = true;
@@ -118,8 +134,8 @@ async function scrapeTransfers() {
     hasMore = batchTransfers.length === BATCH_SIZE;
     skip += batchTransfers.length;
 
-    // Save progress after each batch
-    // split into 2 files to avoid github 100MB file size limit
+    // Save progress after each batch, splitting across multiple files
+    // to stay under GitHub's 100MB file size limit
     const fileCount = Math.ceil(transfers.length / 270000);
     for (let i = 0; i < fileCount; i++) {
       await writeFile(
@@ -136,6 +152,10 @@ async function scrapeTransfers() {
   console.log(`Total transfers fetched: ${totalProcessed}`);
 }
 
+/**
+ * Paginates through all liquidity change events up to UNTIL_SNAPSHOT.
+ * Writes JSONL to data/liquidity.dat and collects V3 pool addresses to data/pools.dat.
+ */
 async function scrapeLiquidityChanges() {
   let skip = 0;
   let hasMore = true;
@@ -245,7 +265,7 @@ async function scrapeLiquidityChanges() {
   console.log(`Total liquidity changes fetched: ${totalProcessed}`);
 }
 
-// main entrypoint to capture transfers and liquidity changes
+/** Scrapes transfers then liquidity changes from the subgraph */
 async function main() {
   await scrapeTransfers();
   await scrapeLiquidityChanges();

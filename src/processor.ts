@@ -31,13 +31,18 @@ import { getPoolsTick } from "./liquidity";
  * and distribute the reward pool across accounts proportionally.
  */
 export class Processor {
+  /** Cache of isApprovedSource results keyed by lowercase address */
   private approvedSourceCache = new Map<string, boolean>();
+  /** Token address → account address → running balance state */
   private accountBalancesPerToken = new Map<
     string,
     Map<string, AccountBalance>
   >();
+  /** Viem client for on-chain RPC calls (factory checks, tick queries) */
   private client: PublicClient;
+  /** Snapshot block → position ID → V3 LP position for in-range checks */
   private lp3TrackList: Record<number, Map<string, LpV3Position>> = {};
+  /** Owner → token → txHash → liquidity event, for deposit/withdraw matching */
   private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map();
 
   /**

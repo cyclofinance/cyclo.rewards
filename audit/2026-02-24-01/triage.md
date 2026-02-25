@@ -128,14 +128,14 @@
 | A03-4 | MEDIUM | `calculateDiff` has no JSDoc at all (core exported function of the module) | PENDING |
 | A03-5 | MEDIUM | `DISTRIBUTED_COUNT = 100` magic constant with no explanation | PENDING |
 | A03-11 | LOW-MEDIUM | `RewardEntry`, `DiffEntry`, `DiffResult` types are undocumented | PENDING |
-| A04-DOC-002 | MEDIUM | `main()` in `index.ts` has no JSDoc documentation | PENDING |
+| A04-DOC-002 | MEDIUM | `main()` in `index.ts` has no JSDoc documentation | FIXED — added JSDoc covering pipeline steps, file split, blocklist format |
 | A04-DOC-003 | MEDIUM | Log message says `output/balances.csv` but file is written to dynamic name | FIXED — log now includes snapshot block numbers |
 | A04-DOC-004 | MEDIUM | Log message says `output/rewards.csv` but file is written to dynamic name | FIXED — log now includes snapshot block numbers |
 | A05-DOC-003 | MEDIUM | `getPoolsTickMulticall()` has no JSDoc documentation | FIXED — added JSDoc with params and returns |
 | A05-DOC-004 | MEDIUM | `getPoolsTick()` JSDoc inaccurately implies exponential backoff; code uses fixed 10s delay | FIXED — corrected CLAUDE.md description |
 | A06-DOC-002 | MEDIUM | `Processor` class has no JSDoc | FIXED — added class-level JSDoc |
-| A07-DOC-007 | MEDIUM | `scrapeTransfers()` has no JSDoc | PENDING |
-| A07-DOC-008 | MEDIUM | `scrapeLiquidityChanges()` has no JSDoc | PENDING |
+| A07-DOC-007 | MEDIUM | `scrapeTransfers()` has no JSDoc | FIXED — added JSDoc |
+| A07-DOC-008 | MEDIUM | `scrapeLiquidityChanges()` has no JSDoc | FIXED — added JSDoc |
 | A08-DOC-002 | MEDIUM | `CyToken` interface undocumented; `receiptAddress` purpose unclear | FIXED — added JSDoc to CyToken and all fields |
 | A08-DOC-005 | MEDIUM | `AccountBalance` interface undocumented; field invariant not documented | FIXED — added JSDoc with field descriptions |
 | A08-DOC-008 | MEDIUM | `TokenBalances` interface undocumented; `final` vs `final18` distinction critical | FIXED — added JSDoc explaining final vs final18 and all fields |
@@ -155,10 +155,10 @@
 | A03-8 | LOW | Typo: "undistruibuted" / "thos" (line 76) | PENDING |
 | A03-9 | LOW | Hardcoded "3 accounts" in log message; should use `result.underpaid.length` | PENDING |
 | A03-10 | LOW | Typo: "cant" should be "can't" (line 98) | PENDING |
-| A04-DOC-001 | LOW | No module-level JSDoc on `index.ts` | PENDING |
-| A04-DOC-008 | LOW | No comment explaining multi-file transfer split | PENDING |
-| A04-DOC-009 | LOW | No comment documenting `blocklist.txt` format | PENDING |
-| A04-DOC-010 | LOW | `any[]` type hides data shape documentation | PENDING |
+| A04-DOC-001 | LOW | No module-level JSDoc on `index.ts` | FIXED — added module-level JSDoc |
+| A04-DOC-008 | LOW | No comment explaining multi-file transfer split | FIXED — documented in main() JSDoc |
+| A04-DOC-009 | LOW | No comment documenting `blocklist.txt` format | FIXED — documented in main() JSDoc |
+| A04-DOC-010 | LOW | `any[]` type hides data shape documentation | FIXED — typed liquidities as LiquidityChange[], pools as \`0x${string}\`[] |
 | A05-DOC-001 | LOW | No module-level JSDoc on `liquidity.ts` | FIXED — added module-level JSDoc |
 | A05-DOC-002 | LOW | ABI constant undocumented | FIXED — added JSDoc to abi constant |
 | A05-DOC-007 | LOW | Hardcoded Multicall3 address undocumented | FIXED — extracted MULTICALL3_ADDRESS constant with JSDoc |
@@ -167,17 +167,17 @@
 | A06-DOC-007 | LOW | `isApprovedSource` three-phase pipeline undocumented | FIXED — JSDoc describes cache/direct/factory pipeline with retry |
 | A06-DOC-011 | LOW | "First pass" comment says penalties but pass does not calculate them | FIXED — corrected to "calculate base balances" |
 | A06-DOC-012 | LOW | "Second pass" comment omits penalty calculation | FIXED — corrected to "calculate penalties and bounties" |
-| A06-DOC-018 | LOW | No private field documentation on `Processor` | PENDING |
+| A06-DOC-018 | LOW | No private field documentation on `Processor` | FIXED — added inline JSDoc to all 5 private fields |
 | A06-DOC-019 | LOW | Constructor has no JSDoc | FIXED — added constructor JSDoc with @param tags |
-| A07-DOC-001 | LOW | No module-level JSDoc on `scraper.ts` | PENDING |
-| A07-DOC-002 | LOW | `SubgraphTransfer` interface undocumented | PENDING |
-| A07-DOC-003 | LOW | `SubgraphLiquidityChangeBase` type undocumented | PENDING |
-| A07-DOC-004 | LOW | `SubgraphLiquidityChangeV2` type undocumented | PENDING |
-| A07-DOC-005 | LOW | `SubgraphLiquidityChangeV3` type undocumented | PENDING |
-| A07-DOC-006 | LOW | `SubgraphLiquidityChange` exported type undocumented | PENDING |
-| A07-DOC-009 | LOW | `main()` in `scraper.ts` has no JSDoc | PENDING |
-| A07-DOC-012 | LOW | Comment says "split into 2 files" but code splits into N files | PENDING |
-| A07-DOC-016 | LOW | `SUBGRAPH_URL` constant undocumented | PENDING |
+| A07-DOC-001 | LOW | No module-level JSDoc on `scraper.ts` | FIXED — added module-level JSDoc |
+| A07-DOC-002 | LOW | `SubgraphTransfer` interface undocumented | FIXED — added JSDoc |
+| A07-DOC-003 | LOW | `SubgraphLiquidityChangeBase` type undocumented | FIXED — added JSDoc |
+| A07-DOC-004 | LOW | `SubgraphLiquidityChangeV2` type undocumented | FIXED — added JSDoc |
+| A07-DOC-005 | LOW | `SubgraphLiquidityChangeV3` type undocumented | FIXED — added JSDoc |
+| A07-DOC-006 | LOW | `SubgraphLiquidityChange` exported type undocumented | FIXED — added JSDoc |
+| A07-DOC-009 | LOW | `main()` in `scraper.ts` has no JSDoc | FIXED — added JSDoc |
+| A07-DOC-012 | LOW | Comment says "split into 2 files" but code splits into N files | FIXED — corrected to "multiple files" |
+| A07-DOC-016 | LOW | `SUBGRAPH_URL` constant undocumented | FIXED — added JSDoc |
 | A08-DOC-001 | LOW | No module-level JSDoc on `types.ts` | FIXED — added module-level JSDoc |
 | A08-DOC-003 | LOW | `Transfer` interface undocumented | FIXED — added JSDoc |
 | A08-DOC-004 | LOW | `TransferDetail` interface undocumented | FIXED — removed dead TransferDetail type |

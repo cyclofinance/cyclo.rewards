@@ -1,3 +1,8 @@
+/**
+ * Main pipeline entrypoint. Reads scraped data files, runs the reward processor,
+ * and writes balance/reward CSVs to the output directory.
+ */
+
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { createPublicClient, http } from "viem";
 import { flare } from "viem/chains";
@@ -6,11 +11,18 @@ import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
 import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
 import { REWARD_POOL } from "./constants";
-import { Transfer } from "./types";
+import { LiquidityChange, Transfer } from "./types";
 
 // Load environment variables
 config();
 
+/**
+ * Orchestrates the full reward calculation pipeline:
+ * loads env config, reads scraped transfer/liquidity/pool data files
+ * (transfers split across data/transfers1.dat–transfers10.dat to stay under GitHub's 100MB limit),
+ * reads blocklist (space-separated "reporter cheater" pairs, one per line),
+ * processes all events through the Processor, and writes output CSVs.
+ */
 async function main() {
   const { seed: SEED, startSnapshot: START_SNAPSHOT, endSnapshot: END_SNAPSHOT } = parseEnv();
 
@@ -41,13 +53,13 @@ async function main() {
   // Read liquidity file
   console.log("Reading liquidity file...");
   const liquidityData = await readFile("data/liquidity.dat", "utf8");
-  const liquidities = parseJsonl(liquidityData);
+  const liquidities: LiquidityChange[] = parseJsonl(liquidityData);
   console.log(`Found ${liquidities.length} liquidity changes`);
 
   // Read pools file
   console.log("Reading pools file...");
   const poolsData = await readFile("data/pools.dat", "utf8");
-  const pools = JSON.parse(poolsData);
+  const pools: `0x${string}`[] = JSON.parse(poolsData);
   console.log(`Found ${pools.length} pools`);
 
   // Read blocklist
