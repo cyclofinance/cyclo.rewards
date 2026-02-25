@@ -397,7 +397,7 @@ export class Processor {
     return tokensWithBalance;
   }
 
-  calculateRewardsPoolsPertoken(
+  calculateRewardsPoolsPerToken(
     balances: EligibleBalances,
     rewardPool: bigint
   ): Map<string, bigint> {
@@ -446,7 +446,7 @@ export class Processor {
   async calculateRewards(rewardPool: bigint): Promise<RewardsPerToken> {
     const balances = await this.getEligibleBalances();
 
-    const totalRewardsPerToken = this.calculateRewardsPoolsPertoken(
+    const totalRewardsPerToken = this.calculateRewardsPoolsPerToken(
       balances,
       rewardPool
     );

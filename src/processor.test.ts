@@ -718,7 +718,7 @@ describe("Processor", () => {
       ).toBe(88000000000000000000n);
 
       // Calculate the rewards pool for each token
-      const rewardsPools = processor.calculateRewardsPoolsPertoken(
+      const rewardsPools = processor.calculateRewardsPoolsPerToken(
         balances,
         rewardPool
       );

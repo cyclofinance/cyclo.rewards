@@ -163,7 +163,7 @@
 | A05-DOC-002 | LOW | ABI constant undocumented | PENDING |
 | A05-DOC-007 | LOW | Hardcoded Multicall3 address undocumented | PENDING |
 | A06-DOC-001 | LOW | No module-level JSDoc on `processor.ts` | PENDING |
-| A06-DOC-004 | LOW | `calculateRewardsPoolsPertoken` inconsistent casing (lowercase `t`) | PENDING |
+| A06-DOC-004 | LOW | `calculateRewardsPoolsPertoken` inconsistent casing (lowercase `t`) | FIXED — renamed to `calculateRewardsPoolsPerToken` |
 | A06-DOC-007 | LOW | `isApprovedSource` three-phase pipeline undocumented | PENDING |
 | A06-DOC-011 | LOW | "First pass" comment says penalties but pass does not calculate them | PENDING |
 | A06-DOC-012 | LOW | "Second pass" comment omits penalty calculation | PENDING |
@@ -218,7 +218,7 @@
 | A01-1 | MEDIUM | Unused `Epoch` import in `config.ts` | FIXED — removed unused import |
 | A06-1 | LOW | `accountTransfers` Map is write-only (dead code) | PENDING |
 | A06-2 | LOW | Redundant constructor parameter: `epochLength` vs `snapshots.length` | FIXED — removed redundant epochLength parameter |
-| A06-4 | LOW | Method name `calculateRewardsPoolsPertoken` has inconsistent casing | PENDING |
+| A06-4 | LOW | Method name `calculateRewardsPoolsPertoken` has inconsistent casing | FIXED — renamed to `calculateRewardsPoolsPerToken` |
 | A06-6 | LOW | Unnecessary `async` on methods that do not await | PENDING |
 | A06-7 | LOW | `console.log` in library code | PENDING |
 | A06-8 | LOW | Magic numbers for bounty percentage (10n/100n) | PENDING |
