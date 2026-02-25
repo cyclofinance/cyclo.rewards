@@ -245,6 +245,81 @@ describe('getPoolsTickMulticall', () => {
       expect(result).toEqual({});
     });
 
+    it('should handle tick value of zero', async () => {
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 0, 1, 1, 1, 0, true]
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+
+      const result = await getPoolsTickMulticall(
+        mockClient,
+        ['0x1234567890123456789012345678901234567890'] as `0x${string}`[],
+        blockNumber
+      );
+
+      expect(result).toEqual({
+        '0x1234567890123456789012345678901234567890': 0
+      });
+    });
+
+    it('should use last result when duplicate pool addresses are provided', async () => {
+      const dupPools = [
+        '0x1234567890123456789012345678901234567890',
+        '0x1234567890123456789012345678901234567890'
+      ] as `0x${string}`[];
+
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'success' as const,
+          result: [0n, 200, 1, 1, 1, 0, true]
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+
+      const result = await getPoolsTickMulticall(mockClient, dupPools, blockNumber);
+
+      // Last write wins since both map to the same lowercased key
+      expect(result).toEqual({
+        '0x1234567890123456789012345678901234567890': 200
+      });
+    });
+
+    it('should skip pool when getCode returns undefined', async () => {
+      const twoPools = [
+        '0x1234567890123456789012345678901234567890',
+        '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
+      ] as `0x${string}`[];
+
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'failure' as const,
+          error: new Error('Pool call failed')
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+      (mockClient.getCode as any).mockResolvedValue(undefined);
+
+      const result = await getPoolsTickMulticall(mockClient, twoPools, blockNumber);
+
+      expect(result).toEqual({
+        '0x1234567890123456789012345678901234567890': 100
+      });
+    });
+
     it('should propagate multicall errors', async () => {
       const multicallError = new Error('Multicall failed');
       (mockClient.multicall as any).mockRejectedValue(multicallError);
