@@ -136,9 +136,9 @@
 | A06-DOC-002 | MEDIUM | `Processor` class has no JSDoc | PENDING |
 | A07-DOC-007 | MEDIUM | `scrapeTransfers()` has no JSDoc | PENDING |
 | A07-DOC-008 | MEDIUM | `scrapeLiquidityChanges()` has no JSDoc | PENDING |
-| A08-DOC-002 | MEDIUM | `CyToken` interface undocumented; `receiptAddress` purpose unclear | PENDING |
-| A08-DOC-005 | MEDIUM | `AccountBalance` interface undocumented; field invariant not documented | PENDING |
-| A08-DOC-008 | MEDIUM | `TokenBalances` interface undocumented; `final` vs `final18` distinction critical | PENDING |
+| A08-DOC-002 | MEDIUM | `CyToken` interface undocumented; `receiptAddress` purpose unclear | FIXED — added JSDoc to CyToken and all fields |
+| A08-DOC-005 | MEDIUM | `AccountBalance` interface undocumented; field invariant not documented | FIXED — added JSDoc with field descriptions |
+| A08-DOC-008 | MEDIUM | `TokenBalances` interface undocumented; `final` vs `final18` distinction critical | FIXED — added JSDoc explaining final vs final18 and all fields |
 | A01-1 | LOW | Unused `Epoch` import on line 2 of `config.ts` | FIXED — removed unused import |
 | A01-2 | LOW | Missing JSDoc on `isSameAddress` | FIXED — added JSDoc |
 | A01-3 | LOW | Missing `@returns` tag on `generateSnapshotBlocks` JSDoc | FIXED — added @returns tag |
@@ -178,20 +178,20 @@
 | A07-DOC-009 | LOW | `main()` in `scraper.ts` has no JSDoc | PENDING |
 | A07-DOC-012 | LOW | Comment says "split into 2 files" but code splits into N files | PENDING |
 | A07-DOC-016 | LOW | `SUBGRAPH_URL` constant undocumented | PENDING |
-| A08-DOC-001 | LOW | No module-level JSDoc on `types.ts` | PENDING |
-| A08-DOC-003 | LOW | `Transfer` interface undocumented | PENDING |
+| A08-DOC-001 | LOW | No module-level JSDoc on `types.ts` | FIXED — added module-level JSDoc |
+| A08-DOC-003 | LOW | `Transfer` interface undocumented | FIXED — added JSDoc |
 | A08-DOC-004 | LOW | `TransferDetail` interface undocumented | FIXED — removed dead TransferDetail type |
 | A08-DOC-006 | LOW | `Report` interface undocumented; possibly redundant with inline type in processor | FIXED — removed dead Report type |
 | A08-DOC-007 | LOW | `AccountSummary` interface undocumented; possibly unused | FIXED — removed dead AccountSummary type |
-| A08-DOC-009 | LOW | `EligibleBalances` has inline comment but no JSDoc | PENDING |
-| A08-DOC-010 | LOW | `RewardsPerToken` has inline comment but no JSDoc | PENDING |
+| A08-DOC-009 | LOW | `EligibleBalances` has inline comment but no JSDoc | FIXED — added JSDoc |
+| A08-DOC-010 | LOW | `RewardsPerToken` has inline comment but no JSDoc | FIXED — added JSDoc |
 | A08-DOC-011 | LOW | `TransferRecord` undocumented; overlap with `Transfer` unclear | FIXED — removed dead TransferRecord type |
 | A08-DOC-012 | LOW | `AccountTransfers` undocumented; asymmetric field types | FIXED — removed dead AccountTransfers type |
-| A08-DOC-013 | LOW | `LiquidityChangeType` enum undocumented | PENDING |
-| A08-DOC-014 | LOW | `LiquidityChangeBase` undocumented; `depositedBalanceChange` name misleading | PENDING |
-| A08-DOC-015 | LOW | `LiquidityChangeV2` undocumented | PENDING |
-| A08-DOC-016 | LOW | `LiquidityChangeV3` undocumented; V3-specific fields need explanation | PENDING |
-| A08-DOC-017 | LOW | `LiquidityChange` union type undocumented | PENDING |
+| A08-DOC-013 | LOW | `LiquidityChangeType` enum undocumented | FIXED — added JSDoc |
+| A08-DOC-014 | LOW | `LiquidityChangeBase` undocumented; `depositedBalanceChange` name misleading | FIXED — added JSDoc explaining depositedBalanceChange semantics |
+| A08-DOC-015 | LOW | `LiquidityChangeV2` undocumented | FIXED — added JSDoc |
+| A08-DOC-016 | LOW | `LiquidityChangeV3` undocumented; V3-specific fields need explanation | FIXED — added JSDoc with field descriptions |
+| A08-DOC-017 | LOW | `LiquidityChange` union type undocumented | FIXED — added JSDoc |
 | A08-DOC-018 | LOW | `Epoch` has inline field comments but no JSDoc; possibly unused | FIXED — removed dead Epoch type |
 
 ## Pass 4: Code Quality
