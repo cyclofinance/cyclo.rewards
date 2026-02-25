@@ -1,5 +1,5 @@
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
-import { validateAddress } from "./config";
+import { validateAddress } from "./constants";
 import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport } from "./types";
 
 export interface TokenSummary {

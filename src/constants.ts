@@ -21,6 +21,11 @@ export const DIFF_CSV_COLUMN_HEADER_DIFF = "diff";
 
 export const VALID_ADDRESS_REGEX = /^0x[0-9a-fA-F]{40}$/;
 
+/** Validate that a string is a valid Ethereum address (0x + 40 hex chars) */
+export function validateAddress(value: string, field: string): void {
+  if (!VALID_ADDRESS_REGEX.test(value)) throw new Error(`Invalid ${field}: "${value}" is not a valid address`);
+}
+
 /** Percentage of a cheater's penalty paid to the reporter as a bounty (10%) */
 export const BOUNTY_PERCENT = 10n;
 

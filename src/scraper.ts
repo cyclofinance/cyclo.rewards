@@ -7,7 +7,7 @@ import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
 import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE } from "./constants";
-import { validateAddress } from "./config";
+import { validateAddress } from "./constants";
 import { config } from "dotenv";
 import assert from "assert";
 

@@ -1,6 +1,6 @@
 import assert from "assert";
 import { CyToken } from "./types";
-import { VALID_ADDRESS_REGEX } from "./constants";
+import { validateAddress } from "./constants";
 import seedrandom from "seedrandom";
 
 /** Approved DEX router and orderbook addresses whose transfers are reward-eligible */
@@ -52,11 +52,6 @@ export const CYTOKENS: CyToken[] = [
 assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
 /** Flare RPC endpoint URL for on-chain queries */
 export const RPC_URL = process.env.RPC_URL;
-
-/** Validate that a string is a valid Ethereum address (0x + 40 hex chars) */
-export function validateAddress(value: string, field: string): void {
-  if (!VALID_ADDRESS_REGEX.test(value)) throw new Error(`Invalid ${field}: "${value}" is not a valid address`);
-}
 
 /**
  * Case-insensitive comparison of two Ethereum addresses
