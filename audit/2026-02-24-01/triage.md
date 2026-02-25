@@ -131,7 +131,7 @@
 | A04-DOC-002 | MEDIUM | `main()` in `index.ts` has no JSDoc documentation | PENDING |
 | A04-DOC-003 | MEDIUM | Log message says `output/balances.csv` but file is written to dynamic name | FIXED — log now includes snapshot block numbers |
 | A04-DOC-004 | MEDIUM | Log message says `output/rewards.csv` but file is written to dynamic name | FIXED — log now includes snapshot block numbers |
-| A05-DOC-003 | MEDIUM | `getPoolsTickMulticall()` has no JSDoc documentation | PENDING |
+| A05-DOC-003 | MEDIUM | `getPoolsTickMulticall()` has no JSDoc documentation | FIXED — added JSDoc with params and returns |
 | A05-DOC-004 | MEDIUM | `getPoolsTick()` JSDoc inaccurately implies exponential backoff; code uses fixed 10s delay | FIXED — corrected CLAUDE.md description |
 | A06-DOC-002 | MEDIUM | `Processor` class has no JSDoc | PENDING |
 | A07-DOC-007 | MEDIUM | `scrapeTransfers()` has no JSDoc | PENDING |
@@ -159,9 +159,9 @@
 | A04-DOC-008 | LOW | No comment explaining multi-file transfer split | PENDING |
 | A04-DOC-009 | LOW | No comment documenting `blocklist.txt` format | PENDING |
 | A04-DOC-010 | LOW | `any[]` type hides data shape documentation | PENDING |
-| A05-DOC-001 | LOW | No module-level JSDoc on `liquidity.ts` | PENDING |
-| A05-DOC-002 | LOW | ABI constant undocumented | PENDING |
-| A05-DOC-007 | LOW | Hardcoded Multicall3 address undocumented | PENDING |
+| A05-DOC-001 | LOW | No module-level JSDoc on `liquidity.ts` | FIXED — added module-level JSDoc |
+| A05-DOC-002 | LOW | ABI constant undocumented | FIXED — added JSDoc to abi constant |
+| A05-DOC-007 | LOW | Hardcoded Multicall3 address undocumented | FIXED — extracted MULTICALL3_ADDRESS constant with JSDoc |
 | A06-DOC-001 | LOW | No module-level JSDoc on `processor.ts` | PENDING |
 | A06-DOC-004 | LOW | `calculateRewardsPoolsPertoken` inconsistent casing (lowercase `t`) | FIXED — renamed to `calculateRewardsPoolsPerToken` |
 | A06-DOC-007 | LOW | `isApprovedSource` three-phase pipeline undocumented | PENDING |
@@ -248,7 +248,7 @@
 | A04-9 | LOW | `mkdir("output")` called after first write to `output/` | FIXED — moved mkdir before first writeFile |
 | A05-2 | LOW | JSDoc and inline comment overstate retry count ("3 retries" vs 3 total attempts) | FIXED — corrected CLAUDE.md retry description |
 | A05-3 | LOW | Inconsistent `blockNumber` parameter type (`number` vs `bigint`) between functions | PENDING |
-| A05-4 | LOW | Hardcoded Multicall3 contract address | PENDING |
+| A05-4 | LOW | Hardcoded Multicall3 contract address | FIXED — extracted MULTICALL3_ADDRESS constant |
 | A07-1 | LOW | Module-level side effects: `config()` and `assert` execute on import | PENDING |
 | A07-2 | LOW | Structural duplication between `scrapeTransfers` and `scrapeLiquidityChanges` | PENDING |
 | A07-3 | LOW | Unsafe `any` type in liquidity change mapping defeats type safety | PENDING |

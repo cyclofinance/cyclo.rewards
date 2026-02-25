@@ -1,5 +1,13 @@
+/**
+ * Queries Uniswap V3 pool tick data via multicall for in-range LP position calculations.
+ */
+
 import { PublicClient } from "viem";
 
+/** Multicall3 canonical deployment address (same on all EVM chains) */
+const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11" as const;
+
+/** Uniswap V3 pool slot0 ABI — returns current tick and other pool state */
 const abi = [
     {
       "inputs": [],
@@ -46,6 +54,14 @@ const abi = [
     }
 ] as const;
 
+/**
+ * Fetches current tick for each pool via a single multicall at the given block.
+ * Pools that don't exist at the block (no code deployed) are silently skipped.
+ * @param client - Viem public client
+ * @param pools - Array of pool contract addresses
+ * @param blockNumber - Block number to query at
+ * @returns Map of lowercase pool address to current tick value
+ */
 export async function getPoolsTickMulticall(
     client: PublicClient,
     pools: `0x${string}`[],
@@ -55,7 +71,7 @@ export async function getPoolsTickMulticall(
     const results = await client.multicall({
         blockNumber,
         allowFailure: true,
-        multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11",
+        multicallAddress: MULTICALL3_ADDRESS,
         contracts: pools.map(
             (address) => ({
                 abi,
@@ -89,7 +105,13 @@ export async function getPoolsTickMulticall(
     return ticks;
 }
 
-/** Tries to get pools ticks (with max 3 retries) */
+/**
+ * Fetches pool ticks with retry logic (3 attempts, 10s delay between retries).
+ * @param client - Viem public client
+ * @param pools - Array of pool contract addresses
+ * @param blockNumber - Block number to query at
+ * @returns Map of lowercase pool address to current tick value
+ */
 export async function getPoolsTick(
     client: PublicClient,
     pools: `0x${string}`[],
