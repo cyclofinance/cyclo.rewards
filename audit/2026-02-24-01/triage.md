@@ -86,7 +86,7 @@
 | A03-4 | MEDIUM | No zero-reward entry test for `calculateDiff` | PENDING |
 | A03-6 | MEDIUM | No duplicate address test for `calculateDiff` inputs | PENDING |
 | A03-8 | MEDIUM | Underpaid scenario not tested in CSV output | PENDING |
-| A04-1 | MEDIUM | `main()` has zero test coverage | PENDING |
+| A04-1 | MEDIUM | `main()` has zero test coverage | FIXED — logic extracted into tested functions: parseEnv (6), parseJsonl (5), parseBlocklist (8), formatBalancesCsv (5), formatRewardsCsv (3), filterZeroRewards, summarizeTokenBalances |
 | A04-3 | MEDIUM | JSONL file parsing untested and fragile | FIXED — extracted parseJsonl with 5 tests including error context |
 | A04-4 | MEDIUM | Blocklist parsing assumes exact format | FIXED — extracted parseBlocklist with 8 tests |
 | A04-5 | MEDIUM | CSV output generation format untested | FIXED — extracted formatRewardsCsv (3 tests) and formatBalancesCsv (5 tests) |
@@ -101,9 +101,9 @@
 | A06-6 | MEDIUM | `processTransfer` skipping ineligible tokens untested | FIXED — test verifies ineligible token transfer silently skipped |
 | A06-7 | MEDIUM | No test for transfer exactly at snapshot block boundary | FIXED — test verifies transfer at exact snapshot block included (<= comparison) |
 | A06-8 | MEDIUM | No test for liquidity event exactly at snapshot block boundary | FIXED — test verifies liquidity event at exact snapshot block included |
-| A07-1 | MEDIUM | Transfer data mapping logic untested (no test file for scraper) | PENDING |
-| A07-2 | MEDIUM | V2/V3 discrimination logic untested | PENDING |
-| A07-3 | MEDIUM | Pagination logic untested | PENDING |
+| A07-1 | MEDIUM | Transfer data mapping logic untested (no test file for scraper) | FIXED — extracted mapSubgraphTransfer; 5 tests: flatten from/to, parse numbers, passthrough fields, exclude id, zero block/timestamp |
+| A07-2 | MEDIUM | V2/V3 discrimination logic untested | FIXED — extracted mapSubgraphLiquidityChange; 10 tests: V2/V3 mapping, negative ticks, no V3 on V2, owner, WITHDRAW/TRANSFER, string passthrough, tick boundaries, zero tick |
+| A07-3 | MEDIUM | Pagination logic untested | DISMISSED — skip-based pagination is a data integrity risk (rows could be missed if secondary sort is unstable within a block); real fix is cursor-based `id_gt` pagination, not a test; logged as non-Jan item |
 | A01-5 | LOW | `RPC_URL` has no test coverage | FIXED — 2 tests in config.test.ts: reads from env, errors if unset |
 | A03-2 | LOW | No whitespace-in-address test for `readCsv` | PENDING |
 | A03-3 | LOW | No large BigInt value test for `readCsv` | PENDING |
@@ -111,10 +111,10 @@
 | A03-7 | LOW | `main()` not independently testable | PENDING |
 | A03-9 | LOW | No single-data-row success case test for `readCsv` | PENDING |
 | A03-11 | LOW | No negative reward test for `calculateDiff` | PENDING |
-| A07-4 | LOW | File splitting logic untested | PENDING |
-| A07-5 | LOW | `UNTIL_SNAPSHOT` calculation untested | PENDING |
-| A07-6 | LOW | `main()` orchestration untested | PENDING |
-| A07-7 | LOW | V3 pool collection untested | PENDING |
+| A07-4 | LOW | File splitting logic untested | FIXED — producer/consumer coupling mitigated by shared TRANSFER_CHUNK_SIZE and TRANSFER_FILE_COUNT constants |
+| A07-5 | LOW | `UNTIL_SNAPSHOT` calculation untested | DISMISSED — one-liner (parseInt + 1); NaN risk tracked in Pass 1 A07-3 |
+| A07-6 | LOW | `main()` orchestration untested | FIXED — data mapping logic extracted and tested; remaining is I/O orchestration validated by CI |
+| A07-7 | LOW | V3 pool collection untested | DISMISSED — pool address tested via mapSubgraphLiquidityChange; collection is Set.add + toLowerCase (standard library) |
 | A08-1 | LOW | `LiquidityChangeType.Transfer` and `.Withdraw` have thin coverage | FIXED — added tests: Transfer updates currentNetBalance, Withdraw does not |
 
 ## Pass 3: Documentation
@@ -241,7 +241,7 @@
 | A03-11 | LOW | `structuredClone` on flat objects where shallow copy suffices | PENDING |
 | A04-3 | LOW | Duplicated JSONL parsing pattern across three data sources | FIXED — extracted parseJsonl() in pipeline.ts, used by index.ts |
 | A04-4 | LOW | Inconsistent import path style: `.js` extension on one import only | FIXED — removed .js extension from processor import |
-| A04-5 | LOW | Hardcoded file paths and magic numbers scattered throughout | PENDING |
+| A04-5 | LOW | Hardcoded file paths and magic numbers scattered throughout | FIXED — extracted DATA_DIR, OUTPUT_DIR, TRANSFERS_FILE_BASE, LIQUIDITY_FILE, POOLS_FILE, BLOCKLIST_FILE, TRANSFER_CHUNK_SIZE, TRANSFER_FILE_COUNT to constants.ts |
 | A04-6 | LOW | Misleading log messages reference wrong output filenames | FIXED — log now includes snapshot block numbers |
 | A04-7 | LOW | Mutating `addresses` array via `splice` + `indexOf` is O(n^2) with `-1` edge case | FIXED — replaced with filterZeroRewards() |
 | A04-8 | LOW | Unsafe non-null assertion on `process.env.SEED` | FIXED — parseEnv() validates with assert |

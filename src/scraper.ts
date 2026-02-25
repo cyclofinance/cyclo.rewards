@@ -23,7 +23,7 @@ assert(process.env.END_SNAPSHOT, "undefined END_SNAPSHOT env variable")
 const UNTIL_SNAPSHOT = parseInt(process.env.END_SNAPSHOT) + 1; // +1 to make sure every transfer is gathered
 
 /** Raw transfer event shape from the Goldsky subgraph GraphQL response */
-interface SubgraphTransfer {
+export interface SubgraphTransfer {
   id: string;
   tokenAddress: string;
   from: { id: string };
@@ -35,7 +35,7 @@ interface SubgraphTransfer {
 }
 
 /** Common fields for V2/V3 liquidity change events from the subgraph */
-type SubgraphLiquidityChangeBase = {
+export type SubgraphLiquidityChangeBase = {
   id: string;
   owner: { address: string };
   tokenAddress: string;
@@ -49,12 +49,12 @@ type SubgraphLiquidityChangeBase = {
 }
 
 /** Uniswap V2 liquidity change from the subgraph */
-type SubgraphLiquidityChangeV2 = SubgraphLiquidityChangeBase & {
+export type SubgraphLiquidityChangeV2 = SubgraphLiquidityChangeBase & {
   __typename: "LiquidityV2Change";
 }
 
 /** Uniswap V3 liquidity change from the subgraph, with concentrated position data */
-type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
+export type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
   __typename: "LiquidityV3Change";
   tokenId: string;
   poolAddress: string;
@@ -65,6 +65,52 @@ type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
 
 /** Discriminated union of V2 and V3 subgraph liquidity change events */
 export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquidityChangeV3
+
+/**
+ * Maps a raw subgraph transfer event to the internal Transfer type.
+ * Flattens nested from/to objects and parses numeric strings.
+ */
+export function mapSubgraphTransfer(t: SubgraphTransfer): Transfer {
+  return {
+    tokenAddress: t.tokenAddress,
+    from: t.from.id,
+    to: t.to.id,
+    value: t.value,
+    blockNumber: parseInt(t.blockNumber),
+    timestamp: parseInt(t.blockTimestamp),
+    transactionHash: t.transactionHash,
+  };
+}
+
+/**
+ * Maps a raw subgraph liquidity change event to the internal LiquidityChange type.
+ * Discriminates V2/V3 by __typename, adding V3-specific fields when present.
+ */
+export function mapSubgraphLiquidityChange(t: SubgraphLiquidityChange): LiquidityChange {
+  const base = {
+    tokenAddress: t.tokenAddress,
+    lpAddress: t.lpAddress,
+    owner: t.owner.address,
+    changeType: t.liquidityChangeType as LiquidityChangeType,
+    liquidityChange: t.liquidityChange,
+    depositedBalanceChange: t.depositedBalanceChange,
+    blockNumber: parseInt(t.blockNumber),
+    timestamp: parseInt(t.blockTimestamp),
+    transactionHash: t.transactionHash,
+  };
+  if (t.__typename === "LiquidityV3Change") {
+    return {
+      ...base,
+      __typename: t.__typename,
+      tokenId: t.tokenId,
+      poolAddress: t.poolAddress,
+      fee: parseInt(t.fee),
+      lowerTick: parseInt(t.lowerTick),
+      upperTick: parseInt(t.upperTick),
+    };
+  }
+  return { ...base, __typename: t.__typename };
+}
 
 /**
  * Paginates through all transfer events up to UNTIL_SNAPSHOT and writes them
@@ -117,15 +163,7 @@ async function scrapeTransfers() {
       }
     );
 
-    const batchTransfers = response.transfers.map((t) => ({
-      tokenAddress: t.tokenAddress,
-      from: t.from.id,
-      to: t.to.id,
-      value: t.value,
-      blockNumber: parseInt(t.blockNumber),
-      timestamp: parseInt(t.blockTimestamp),
-      transactionHash: t.transactionHash,
-    }));
+    const batchTransfers = response.transfers.map(mapSubgraphTransfer);
 
     transfers.push(...batchTransfers);
 
@@ -213,32 +251,11 @@ async function scrapeLiquidityChanges() {
       }
     );
 
-    const batchLiquidityChanges: LiquidityChange[] = response.liquidityChanges.map((t) => {
-      const base = {
-        tokenAddress: t.tokenAddress,
-        lpAddress: t.lpAddress,
-        owner: t.owner.address,
-        changeType: t.liquidityChangeType as LiquidityChangeType,
-        liquidityChange: t.liquidityChange,
-        depositedBalanceChange: t.depositedBalanceChange,
-        blockNumber: parseInt(t.blockNumber),
-        timestamp: parseInt(t.blockTimestamp),
-        transactionHash: t.transactionHash,
-      };
+    const batchLiquidityChanges = response.liquidityChanges.map((t) => {
       if (t.__typename === "LiquidityV3Change") {
-        // add to v3 pools list
         v3Pools.add(t.poolAddress.toLowerCase());
-        return {
-          ...base,
-          __typename: t.__typename,
-          tokenId: t.tokenId,
-          poolAddress: t.poolAddress,
-          fee: parseInt(t.fee),
-          lowerTick: parseInt(t.lowerTick),
-          upperTick: parseInt(t.upperTick),
-        };
       }
-      return { ...base, __typename: t.__typename };
+      return mapSubgraphLiquidityChange(t);
     });
 
     liquidityChanges.push(...batchLiquidityChanges);
