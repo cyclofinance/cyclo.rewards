@@ -208,7 +208,7 @@
 | A08-3 | MEDIUM | `AccountSummary` hardcodes 2 snapshot fields; system uses 30 | PENDING |
 | A02-1 | MEDIUM | Three different BigInt construction idioms in a 4-line span | FIXED — all constants now use `n` suffix consistently |
 | A02-2 | MEDIUM | `REWARD_POOL` uses `BigInt()` with a large numeric literal (precision risk) | FIXED — changed to 500_000_000_000_000_000_000_000n |
-| A01-2 | MEDIUM | Inconsistent address casing across constant arrays | PENDING |
+| A01-2 | MEDIUM | Inconsistent address casing across constant arrays | FIXED — lowercased all addresses in REWARDS_SOURCES, FACTORIES, CYTOKENS |
 | A03-3 | MEDIUM | Typos in comments (lines 70, 76 of `diffCalculator.ts`) | PENDING |
 | A03-4 | MEDIUM | Inconsistent indentation: `main()` uses 4-space, rest uses 2-space | PENDING |
 | A03-5 | MEDIUM | Inconsistent semicolon usage | PENDING |
