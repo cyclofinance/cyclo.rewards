@@ -8,7 +8,7 @@ export const ONE_18 = 10n ** 18n;
 // Jan 2026 epoch: 500,000 tokens (18 decimals)
 export const REWARD_POOL = 500_000_000_000_000_000_000_000n;
 // Dec 2025 epoch: 1,000,000 tokens (18 decimals) — used by diffCalculator for reconciliation
-export const DEC25_REWARD_POOL = 1_000_000_000_000_000_000_000_000n as const;
+export const DEC25_REWARD_POOL = 1_000_000_000_000_000_000_000_000n;
 
 // Must match expected structure
 // https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data

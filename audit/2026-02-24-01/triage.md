@@ -232,7 +232,7 @@
 | A01-4 | LOW | Inconsistent BigInt construction method in `scaleTo18` | FIXED — changed to `10n ** BigInt(...)` pattern |
 | A01-5 | LOW | `generateSnapshotBlocks` does not guarantee uniqueness of snapshot blocks | FIXED — uses Set for deduplication |
 | A02-3 | LOW | `ONE` naming is ambiguous (does not convey fixed-point scaling purpose) | FIXED — renamed to `ONE_18` with JSDoc |
-| A02-4 | LOW | `as const` used inconsistently across BigInt constants | PENDING |
+| A02-4 | LOW | `as const` used inconsistently across BigInt constants | FIXED — removed redundant `as const` from DEC25_REWARD_POOL |
 | A02-5 | LOW | `DEC25_REWARD_POOL` embeds a date; `REWARD_POOL` does not (naming inconsistency) | PENDING |
 | A03-7 | LOW | Inconsistent use of `./` prefix in file paths | PENDING |
 | A03-8 | LOW | CSV header construction duplicated across files | PENDING |
