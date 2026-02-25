@@ -4,26 +4,31 @@ import { CyToken, EligibleBalances, RewardsPerToken } from "./types";
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
 describe("parseBlocklist", () => {
+  const ADDR_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const ADDR_B = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const ADDR_C = "0xcccccccccccccccccccccccccccccccccccccccc";
+  const ADDR_D = "0xdddddddddddddddddddddddddddddddddddddddd";
+
   it("parses reporter and cheater from each line", () => {
-    const data = "0xReporter1 0xCheater1\n0xReporter2 0xCheater2";
+    const data = `${ADDR_A} ${ADDR_B}\n${ADDR_C} ${ADDR_D}`;
     expect(parseBlocklist(data)).toEqual([
-      { reporter: "0xreporter1", cheater: "0xcheater1" },
-      { reporter: "0xreporter2", cheater: "0xcheater2" },
+      { reporter: ADDR_A, cheater: ADDR_B },
+      { reporter: ADDR_C, cheater: ADDR_D },
     ]);
   });
 
   it("lowercases addresses", () => {
-    const data = "0xABCD 0xEFGH";
+    const data = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     expect(parseBlocklist(data)).toEqual([
-      { reporter: "0xabcd", cheater: "0xefgh" },
+      { reporter: ADDR_A, cheater: ADDR_B },
     ]);
   });
 
   it("skips empty lines", () => {
-    const data = "0xA 0xB\n\n0xC 0xD\n";
+    const data = `${ADDR_A} ${ADDR_B}\n\n${ADDR_C} ${ADDR_D}\n`;
     expect(parseBlocklist(data)).toEqual([
-      { reporter: "0xa", cheater: "0xb" },
-      { reporter: "0xc", cheater: "0xd" },
+      { reporter: ADDR_A, cheater: ADDR_B },
+      { reporter: ADDR_C, cheater: ADDR_D },
     ]);
   });
 
@@ -32,22 +37,17 @@ describe("parseBlocklist", () => {
   });
 
   it("handles single entry with no trailing newline", () => {
-    expect(parseBlocklist("0xReporter 0xCheater")).toEqual([
-      { reporter: "0xreporter", cheater: "0xcheater" },
+    expect(parseBlocklist(`${ADDR_A} ${ADDR_B}`)).toEqual([
+      { reporter: ADDR_A, cheater: ADDR_B },
     ]);
   });
 
   it("handles same reporter with multiple cheaters", () => {
-    const data =
-      "0xReporter 0xCheater1\n0xReporter 0xCheater2\n0xReporter 0xCheater3";
+    const data = `${ADDR_A} ${ADDR_B}\n${ADDR_A} ${ADDR_C}\n${ADDR_A} ${ADDR_D}`;
     const result = parseBlocklist(data);
     expect(result).toHaveLength(3);
-    expect(result.every((r) => r.reporter === "0xreporter")).toBe(true);
-    expect(result.map((r) => r.cheater)).toEqual([
-      "0xcheater1",
-      "0xcheater2",
-      "0xcheater3",
-    ]);
+    expect(result.every((r) => r.reporter === ADDR_A)).toBe(true);
+    expect(result.map((r) => r.cheater)).toEqual([ADDR_B, ADDR_C, ADDR_D]);
   });
 
   it("parses real blocklist data format", () => {
@@ -63,11 +63,19 @@ describe("parseBlocklist", () => {
   });
 
   it("handles multiple consecutive empty lines", () => {
-    const data = "0xA 0xB\n\n\n\n0xC 0xD";
+    const data = `${ADDR_A} ${ADDR_B}\n\n\n\n${ADDR_C} ${ADDR_D}`;
     expect(parseBlocklist(data)).toEqual([
-      { reporter: "0xa", cheater: "0xb" },
-      { reporter: "0xc", cheater: "0xd" },
+      { reporter: ADDR_A, cheater: ADDR_B },
+      { reporter: ADDR_C, cheater: ADDR_D },
     ]);
+  });
+
+  it("should throw on invalid reporter address", () => {
+    expect(() => parseBlocklist(`not-an-address ${ADDR_B}`)).toThrow("reporter");
+  });
+
+  it("should throw on invalid cheater address", () => {
+    expect(() => parseBlocklist(`${ADDR_A} 0xshort`)).toThrow("cheater");
   });
 });
 

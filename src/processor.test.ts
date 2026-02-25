@@ -1770,7 +1770,7 @@ describe("Processor", () => {
 
     it("should return true for direct approved source with different casing", async () => {
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      const result = await proc.isApprovedSource(REWARDS_SOURCES[0].toUpperCase());
+      const result = await proc.isApprovedSource("0x" + REWARDS_SOURCES[0].slice(2).toUpperCase());
       expect(result).toBe(true);
     });
 

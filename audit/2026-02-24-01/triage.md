@@ -33,13 +33,13 @@
 | A06-5 | MEDIUM | Division by zero in `calculateRewards` | DISMISSED — same guard via `getTokensWithBalance`; divisor always > 0 |
 | A06-6 | MEDIUM | Non-null assertions on `Map.get()` throughout | DISMISSED — all guarded by prior `.has()`/`.set()` calls or loop over known keys; safe in practice |
 | A07-1 | MEDIUM | GraphQL skip pagination ceiling | DISMISSED — incorrect; uses Goldsky not The Graph hosted service, 370K records successfully fetched |
-| A07-2 | MEDIUM | No validation of subgraph response data | PENDING |
-| A08-1 | MEDIUM | Unbranded string for Ethereum addresses | PENDING |
-| A08-2 | MEDIUM | Numeric string fields without runtime validation | PENDING |
-| A08-8 | MEDIUM | Map key type erosion in `EligibleBalances`/`RewardsPerToken` | PENDING |
+| A07-2 | MEDIUM | No validation of subgraph response data | FIXED — added runtime validation: parseIntStrict for NaN, validateAddress for address format, validateNumericString for value fields, enum check for changeType; 16 tests |
+| A08-1 | MEDIUM | Unbranded string for Ethereum addresses | DISMISSED (Jan only) — large-scale type refactor; runtime address validation now covers scraper boundary; revisit in future epoch |
+| A08-2 | MEDIUM | Numeric string fields without runtime validation | FIXED — added validateIntegerString for liquidityChange/depositedBalanceChange, validateNumericString for tokenId; 5 tests |
+| A08-8 | MEDIUM | Map key type erosion in `EligibleBalances`/`RewardsPerToken` | DISMISSED (Jan only) — branded types would require ~80+ cast sites; revisit in future epoch |
 | A01-3 | LOW | Mixed-case addresses in constants | FIXED — lowercased all addresses in config.ts |
-| A01-4 | LOW | `scaleTo18` does not validate `decimals` parameter | PENDING |
-| A01-5 | LOW | `isSameAddress` does not validate address format | PENDING |
+| A01-4 | LOW | `scaleTo18` does not validate `decimals` parameter | FIXED — added non-negative integer check; 3 tests |
+| A01-5 | LOW | `isSameAddress` does not validate address format | FIXED — added VALID_ADDRESS_REGEX check for both params; 2 tests |
 | A02-2 | LOW | `ONE` uses fragile `Number`-to-`BigInt` pattern | FIXED — changed to `10n ** 18n` with test assertion |
 | A03-2 | LOW | No address format validation in `readCsv` | PENDING |
 | A03-3 | LOW | `readCsv` does not validate CSV header row | PENDING |

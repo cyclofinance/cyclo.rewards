@@ -13,7 +13,7 @@ import {
 /** Minimal valid subgraph transfer for test construction */
 const VALID_SUBGRAPH_TRANSFER: SubgraphTransfer = {
   id: "tx1-0",
-  tokenAddress: "0x1000000000000000000000000000000000000000",
+  tokenAddress: "0x10000000000000000000000000000000000000ab",
   from: { id: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
   to: { id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
   value: "500000000000000000000",
@@ -27,8 +27,8 @@ const VALID_V2_LIQUIDITY: SubgraphLiquidityChangeV2 = {
   __typename: "LiquidityV2Change",
   id: "liq-v2-1",
   owner: { address: "0xcccccccccccccccccccccccccccccccccccccccc" },
-  tokenAddress: "0x1000000000000000000000000000000000000000",
-  lpAddress: "0xdddddddddddddddddddddddddddddddddddddd",
+  tokenAddress: "0x10000000000000000000000000000000000000ab",
+  lpAddress: "0xdddddddddddddddddddddddddddddddddddddddd",
   liquidityChangeType: "DEPOSIT",
   liquidityChange: "1000000",
   depositedBalanceChange: "500000",
@@ -42,8 +42,8 @@ const VALID_V3_LIQUIDITY: SubgraphLiquidityChangeV3 = {
   __typename: "LiquidityV3Change",
   id: "liq-v3-1",
   owner: { address: "0xcccccccccccccccccccccccccccccccccccccccc" },
-  tokenAddress: "0x1000000000000000000000000000000000000000",
-  lpAddress: "0xdddddddddddddddddddddddddddddddddddddd",
+  tokenAddress: "0x10000000000000000000000000000000000000ab",
+  lpAddress: "0xdddddddddddddddddddddddddddddddddddddddd",
   liquidityChangeType: "DEPOSIT",
   liquidityChange: "1000000",
   depositedBalanceChange: "500000",
@@ -91,6 +91,41 @@ describe("mapSubgraphTransfer", () => {
     const result = mapSubgraphTransfer(transfer);
     expect(result.blockNumber).toBe(0);
     expect(result.timestamp).toBe(0);
+  });
+
+  it("should throw on non-numeric blockNumber", () => {
+    const transfer = { ...VALID_SUBGRAPH_TRANSFER, blockNumber: "abc" };
+    expect(() => mapSubgraphTransfer(transfer)).toThrow("blockNumber");
+  });
+
+  it("should throw on non-numeric blockTimestamp", () => {
+    const transfer = { ...VALID_SUBGRAPH_TRANSFER, blockTimestamp: "xyz" };
+    expect(() => mapSubgraphTransfer(transfer)).toThrow("blockTimestamp");
+  });
+
+  it("should throw on invalid from address", () => {
+    const transfer = { ...VALID_SUBGRAPH_TRANSFER, from: { id: "not-an-address" } };
+    expect(() => mapSubgraphTransfer(transfer)).toThrow("from");
+  });
+
+  it("should throw on invalid to address", () => {
+    const transfer = { ...VALID_SUBGRAPH_TRANSFER, to: { id: "0xshort" } };
+    expect(() => mapSubgraphTransfer(transfer)).toThrow("to");
+  });
+
+  it("should throw on invalid tokenAddress", () => {
+    const transfer = { ...VALID_SUBGRAPH_TRANSFER, tokenAddress: "garbage" };
+    expect(() => mapSubgraphTransfer(transfer)).toThrow("tokenAddress");
+  });
+
+  it("should throw on non-numeric value", () => {
+    const transfer = { ...VALID_SUBGRAPH_TRANSFER, value: "not-a-number" };
+    expect(() => mapSubgraphTransfer(transfer)).toThrow("value");
+  });
+
+  it("should accept valid numeric value strings", () => {
+    const transfer = { ...VALID_SUBGRAPH_TRANSFER, value: "0" };
+    expect(() => mapSubgraphTransfer(transfer)).not.toThrow();
   });
 });
 
@@ -191,5 +226,80 @@ describe("mapSubgraphLiquidityChange", () => {
       expect(result.lowerTick).toBe(0);
       expect(result.upperTick).toBe(0);
     }
+  });
+
+  it("should throw on non-numeric blockNumber", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, blockNumber: "abc" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("blockNumber");
+  });
+
+  it("should throw on non-numeric blockTimestamp", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, blockTimestamp: "" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("blockTimestamp");
+  });
+
+  it("should throw on invalid owner address", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, owner: { address: "bad" } };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("owner");
+  });
+
+  it("should throw on invalid tokenAddress", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, tokenAddress: "0xTOOSHORT" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("tokenAddress");
+  });
+
+  it("should throw on invalid lpAddress", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, lpAddress: "" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("lpAddress");
+  });
+
+  it("should throw on unknown liquidityChangeType", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, liquidityChangeType: "SWAP" as any };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("liquidityChangeType");
+  });
+
+  it("should throw on non-numeric V3 fee", () => {
+    const liq = { ...VALID_V3_LIQUIDITY, fee: "abc" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("fee");
+  });
+
+  it("should throw on non-numeric V3 lowerTick", () => {
+    const liq = { ...VALID_V3_LIQUIDITY, lowerTick: "xyz" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("lowerTick");
+  });
+
+  it("should throw on non-numeric V3 upperTick", () => {
+    const liq = { ...VALID_V3_LIQUIDITY, upperTick: "not-a-tick" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("upperTick");
+  });
+
+  it("should throw on invalid V3 poolAddress", () => {
+    const liq = { ...VALID_V3_LIQUIDITY, poolAddress: "bad-pool" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("poolAddress");
+  });
+
+  it("should throw on non-numeric liquidityChange", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, liquidityChange: "abc" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("liquidityChange");
+  });
+
+  it("should throw on non-numeric depositedBalanceChange", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, depositedBalanceChange: "xyz" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("depositedBalanceChange");
+  });
+
+  it("should accept negative liquidityChange", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, liquidityChange: "-500000" };
+    expect(() => mapSubgraphLiquidityChange(liq)).not.toThrow();
+  });
+
+  it("should accept negative depositedBalanceChange", () => {
+    const liq = { ...VALID_V2_LIQUIDITY, depositedBalanceChange: "-123456" };
+    expect(() => mapSubgraphLiquidityChange(liq)).not.toThrow();
+  });
+
+  it("should throw on non-numeric V3 tokenId", () => {
+    const liq = { ...VALID_V3_LIQUIDITY, tokenId: "abc" };
+    expect(() => mapSubgraphLiquidityChange(liq)).toThrow("tokenId");
   });
 });

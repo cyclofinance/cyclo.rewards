@@ -7,6 +7,7 @@ import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
 import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE } from "./constants";
+import { validateAddress } from "./config";
 import { config } from "dotenv";
 import assert from "assert";
 
@@ -66,18 +67,43 @@ export type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
 /** Discriminated union of V2 and V3 subgraph liquidity change events */
 export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquidityChangeV3
 
+const VALID_CHANGE_TYPES = ["DEPOSIT", "TRANSFER", "WITHDRAW"];
+
+/** Parse a string to integer and throw if the result is NaN */
+function parseIntStrict(value: string, field: string): number {
+  const n = parseInt(value);
+  if (isNaN(n)) throw new Error(`Invalid ${field}: "${value}" is not a number`);
+  return n;
+}
+
+
+/** Validate that a string is a non-negative integer (for token values) */
+function validateNumericString(value: string, field: string): void {
+  if (!/^\d+$/.test(value)) throw new Error(`Invalid ${field}: "${value}" is not a numeric string`);
+}
+
+/** Validate that a string is a valid signed integer (for BigInt-convertible fields) */
+function validateIntegerString(value: string, field: string): void {
+  if (!/^-?\d+$/.test(value)) throw new Error(`Invalid ${field}: "${value}" is not an integer string`);
+}
+
 /**
  * Maps a raw subgraph transfer event to the internal Transfer type.
  * Flattens nested from/to objects and parses numeric strings.
+ * Throws on invalid data (NaN, malformed addresses, non-numeric values).
  */
 export function mapSubgraphTransfer(t: SubgraphTransfer): Transfer {
+  validateAddress(t.tokenAddress, "tokenAddress");
+  validateAddress(t.from.id, "from");
+  validateAddress(t.to.id, "to");
+  validateNumericString(t.value, "value");
   return {
     tokenAddress: t.tokenAddress,
     from: t.from.id,
     to: t.to.id,
     value: t.value,
-    blockNumber: parseInt(t.blockNumber),
-    timestamp: parseInt(t.blockTimestamp),
+    blockNumber: parseIntStrict(t.blockNumber, "blockNumber"),
+    timestamp: parseIntStrict(t.blockTimestamp, "blockTimestamp"),
     transactionHash: t.transactionHash,
   };
 }
@@ -85,8 +111,17 @@ export function mapSubgraphTransfer(t: SubgraphTransfer): Transfer {
 /**
  * Maps a raw subgraph liquidity change event to the internal LiquidityChange type.
  * Discriminates V2/V3 by __typename, adding V3-specific fields when present.
+ * Throws on invalid data (NaN, malformed addresses, unknown change types).
  */
 export function mapSubgraphLiquidityChange(t: SubgraphLiquidityChange): LiquidityChange {
+  validateAddress(t.tokenAddress, "tokenAddress");
+  validateAddress(t.lpAddress, "lpAddress");
+  validateAddress(t.owner.address, "owner");
+  if (!VALID_CHANGE_TYPES.includes(t.liquidityChangeType)) {
+    throw new Error(`Invalid liquidityChangeType: "${t.liquidityChangeType}"`);
+  }
+  validateIntegerString(t.liquidityChange, "liquidityChange");
+  validateIntegerString(t.depositedBalanceChange, "depositedBalanceChange");
   const base = {
     tokenAddress: t.tokenAddress,
     lpAddress: t.lpAddress,
@@ -94,22 +129,24 @@ export function mapSubgraphLiquidityChange(t: SubgraphLiquidityChange): Liquidit
     changeType: t.liquidityChangeType as LiquidityChangeType,
     liquidityChange: t.liquidityChange,
     depositedBalanceChange: t.depositedBalanceChange,
-    blockNumber: parseInt(t.blockNumber),
-    timestamp: parseInt(t.blockTimestamp),
+    blockNumber: parseIntStrict(t.blockNumber, "blockNumber"),
+    timestamp: parseIntStrict(t.blockTimestamp, "blockTimestamp"),
     transactionHash: t.transactionHash,
   };
   if (t.__typename === "LiquidityV3Change") {
+    validateAddress(t.poolAddress, "poolAddress");
+    validateNumericString(t.tokenId, "tokenId");
     return {
-      ...base,
       __typename: t.__typename,
+      ...base,
       tokenId: t.tokenId,
       poolAddress: t.poolAddress,
-      fee: parseInt(t.fee),
-      lowerTick: parseInt(t.lowerTick),
-      upperTick: parseInt(t.upperTick),
+      fee: parseIntStrict(t.fee, "fee"),
+      lowerTick: parseIntStrict(t.lowerTick, "lowerTick"),
+      upperTick: parseIntStrict(t.upperTick, "upperTick"),
     };
   }
-  return { ...base, __typename: t.__typename };
+  return { __typename: t.__typename, ...base };
 }
 
 /**

@@ -1,4 +1,5 @@
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
+import { validateAddress } from "./config";
 import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport } from "./types";
 
 export interface TokenSummary {
@@ -113,6 +114,8 @@ export function parseBlocklist(data: string): BlocklistReport[] {
     .filter(Boolean)
     .map((line) => {
       const [reporter, reported] = line.split(" ");
+      validateAddress(reporter, "reporter address");
+      validateAddress(reported, "cheater address");
       return {
         reporter: reporter.toLowerCase(),
         cheater: reported.toLowerCase(),

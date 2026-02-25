@@ -1,5 +1,6 @@
 import assert from "assert";
 import { CyToken } from "./types";
+import { VALID_ADDRESS_REGEX } from "./constants";
 import seedrandom from "seedrandom";
 
 /** Approved DEX router and orderbook addresses whose transfers are reward-eligible */
@@ -52,6 +53,11 @@ assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
 /** Flare RPC endpoint URL for on-chain queries */
 export const RPC_URL = process.env.RPC_URL;
 
+/** Validate that a string is a valid Ethereum address (0x + 40 hex chars) */
+export function validateAddress(value: string, field: string): void {
+  if (!VALID_ADDRESS_REGEX.test(value)) throw new Error(`Invalid ${field}: "${value}" is not a valid address`);
+}
+
 /**
  * Case-insensitive comparison of two Ethereum addresses
  * @param a - First address
@@ -59,6 +65,8 @@ export const RPC_URL = process.env.RPC_URL;
  * @returns True if addresses match (case-insensitive)
  */
 export function isSameAddress(a: string, b: string): boolean {
+  validateAddress(a, "address a");
+  validateAddress(b, "address b");
   return a.toLowerCase() === b.toLowerCase();
 }
 
@@ -108,6 +116,9 @@ export function generateSnapshotBlocks(
  * @returns The value scaled to 18 decimal places
  */
 export function scaleTo18(value: bigint, decimals: number): bigint {
+  if (!Number.isInteger(decimals) || decimals < 0) {
+    throw new Error(`Invalid decimals: ${decimals} (must be a non-negative integer)`);
+  }
   if (decimals === 18) {
     return value;
   } else if (decimals > 18) {

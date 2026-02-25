@@ -142,17 +142,27 @@ describe("parseEnv", () => {
 });
 
 describe("isSameAddress", () => {
+  const ADDR_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const ADDR_B = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
   it("matches identical addresses", () => {
-    expect(isSameAddress("0xabc", "0xabc")).toBe(true);
+    expect(isSameAddress(ADDR_A, ADDR_A)).toBe(true);
   });
 
   it("matches addresses with different casing", () => {
-    expect(isSameAddress("0xAbC", "0xabc")).toBe(true);
-    expect(isSameAddress("0xABC", "0xabc")).toBe(true);
+    expect(isSameAddress("0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa", ADDR_A)).toBe(true);
   });
 
   it("returns false for different addresses", () => {
-    expect(isSameAddress("0xabc", "0xdef")).toBe(false);
+    expect(isSameAddress(ADDR_A, ADDR_B)).toBe(false);
+  });
+
+  it("should throw on invalid first address", () => {
+    expect(() => isSameAddress("not-an-address", ADDR_A)).toThrow();
+  });
+
+  it("should throw on invalid second address", () => {
+    expect(() => isSameAddress(ADDR_A, "0xshort")).toThrow();
   });
 });
 
@@ -197,6 +207,18 @@ describe("Test math functions", () => {
 
   it("should truncate to zero for small values with large decimals", () => {
     expect(scaleTo18(99999n, 23)).toBe(0n);
+  });
+
+  it("should throw on negative decimals", () => {
+    expect(() => scaleTo18(100n, -1)).toThrow("decimals");
+  });
+
+  it("should throw on NaN decimals", () => {
+    expect(() => scaleTo18(100n, NaN)).toThrow("decimals");
+  });
+
+  it("should throw on non-integer decimals", () => {
+    expect(() => scaleTo18(100n, 1.5)).toThrow("decimals");
   });
 });
 
