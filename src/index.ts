@@ -107,7 +107,10 @@ async function main() {
     console.log(
       `Note: Final Total for ${summary.name} should equal Average Total - Penalties + Bounties`
     );
-    console.log(`Verification: ${summary.verified ? "✓" : "✗"}`);
+    if (!summary.verified) {
+      throw new Error(`Balance verification failed for ${summary.name}: totalAverage - totalPenalties + totalBounties !== totalFinal`);
+    }
+    console.log("Verification: ✓");
   }
 
   // Write balances with per-token data
@@ -139,9 +142,13 @@ async function main() {
     (sum, reward) => sum + reward,
     0n
   );
+  const diff = totalRewards - REWARD_POOL;
   console.log(`\nTotal rewards: ${totalRewards}`);
   console.log(`Reward pool: ${REWARD_POOL}`);
-  console.log(`Difference: ${totalRewards - REWARD_POOL}`); // Should be very small due to rounding
+  console.log(`Difference: ${diff}`);
+  if (diff < 0n ? -diff > REWARD_POOL / 1000n : diff > REWARD_POOL / 1000n) {
+    throw new Error(`Reward pool difference too large: ${diff}`);
+  }
 
   console.log("Done!");
 }
