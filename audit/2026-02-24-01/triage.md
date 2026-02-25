@@ -46,7 +46,7 @@
 | A03-7 | LOW | Hardcoded file paths and `DISTRIBUTED_COUNT` | PENDING |
 | A03-8 | LOW | Negative reward values accepted without validation | PENDING |
 | A03-10 | LOW | No validation that `distributedCount` is a non-negative integer | PENDING |
-| A04-4 | LOW | Relative file paths for all I/O | PENDING |
+| A04-4 | LOW | Relative file paths for all I/O | DISMISSED — standard for scripts run from project root; paths now use shared constants |
 | A04-5 | LOW | Write-before-mkdir race condition | FIXED — moved mkdir before first writeFile |
 | A04-7 | LOW | `splice` with `indexOf` can silently remove wrong element | FIXED — replaced with filterZeroRewards() which filters without mutation |
 | A04-9 | LOW | Blocklist parsing does not validate address format | PENDING |
@@ -60,13 +60,13 @@
 | A06-10 | LOW | `lp3TrackList` accumulates without bounds checking | PENDING |
 | A06-11 | LOW | `organizeLiquidityPositions` silently drops duplicate events | PENDING |
 | A07-3 | LOW | `parseInt(END_SNAPSHOT)` NaN not detected | PENDING |
-| A07-4 | LOW | Entire transfer array in memory with O(n^2) I/O | PENDING |
-| A07-5 | LOW | File split write-every-iteration fragile | PENDING |
+| A07-4 | LOW | Entire transfer array in memory with O(n^2) I/O | DISMISSED — performance concern, not security; already addressed in Pass 4 |
+| A07-5 | LOW | File split write-every-iteration fragile | DISMISSED — intentional crash recovery; documented in Pass 4 |
 | A07-6 | LOW | `main()` executes on import with no guard | PENDING |
 | A07-10 | LOW | Error handling swallows failures silently | PENDING |
 | A08-3 | LOW | `Transfer` and `TransferRecord` near-duplication | FIXED — removed dead TransferRecord type |
-| A08-4 | LOW | No `readonly` modifiers on financial data structures | PENDING |
-| A08-5 | LOW | `currentNetBalance` can be negative without type-level constraint | PENDING |
+| A08-4 | LOW | No `readonly` modifiers on financial data structures | DISMISSED — TypeScript style preference; no runtime impact or security risk |
+| A08-5 | LOW | `currentNetBalance` can be negative without type-level constraint | DISMISSED — negatives are clamped to zero in updateSnapshots; not exploitable |
 | A08-7 | LOW | `parseInt` on tick/fee fields with no NaN guard | PENDING |
 
 ## Pass 2: Test Coverage
