@@ -436,7 +436,6 @@ export class Processor {
       )!;
       const tokenReward =
         (tokenInverseFraction * rewardPool) / sumOfInverseFractions;
-      console.log(`Total rewards for ${token.name}: ${tokenReward}`);
       totalRewardsPerToken.set(token.address.toLowerCase(), tokenReward);
     }
 

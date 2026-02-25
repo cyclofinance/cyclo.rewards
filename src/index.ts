@@ -116,6 +116,13 @@ async function main() {
   // Write balances with per-token data
   console.log("Writing balances...");
   const rewardsPerToken = await processor.calculateRewards(REWARD_POOL);
+  for (const token of CYTOKENS) {
+    const tokenRewards = rewardsPerToken.get(token.address.toLowerCase());
+    if (tokenRewards) {
+      const totalForToken = Array.from(tokenRewards.values()).reduce((a, b) => a + b, 0n);
+      console.log(`Total rewards for ${token.name}: ${totalForToken}`);
+    }
+  }
   const totalRewardsPerAddress = aggregateRewardsPerAddress(rewardsPerToken);
   const addresses = sortAddressesByReward(totalRewardsPerAddress);
   const balancesOutput = formatBalancesCsv(addresses, CYTOKENS, SNAPSHOTS, balances, rewardsPerToken, totalRewardsPerAddress);
