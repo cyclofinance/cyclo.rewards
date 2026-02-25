@@ -303,7 +303,7 @@ export class Processor {
     const tokenBalances = new Map<string, Map<string, TokenBalances>>();
 
     for (const token of CYTOKENS) {
-      // First pass - calculate base balances and penalties
+      // First pass - calculate base balances
       const userBalances = new Map<string, TokenBalances>();
 
       for (const address of allAddresses) {
@@ -330,7 +330,7 @@ export class Processor {
       tokenBalances.set(token.address.toLowerCase(), userBalances);
     }
 
-    // Second pass - calculate bounties based on penalties
+    // Second pass - calculate penalties and bounties
     for (const token of CYTOKENS) {
       for (const report of this.reports) {
         const userBalances = tokenBalances.get(token.address.toLowerCase());

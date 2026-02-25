@@ -165,8 +165,8 @@
 | A06-DOC-001 | LOW | No module-level JSDoc on `processor.ts` | PENDING |
 | A06-DOC-004 | LOW | `calculateRewardsPoolsPertoken` inconsistent casing (lowercase `t`) | FIXED — renamed to `calculateRewardsPoolsPerToken` |
 | A06-DOC-007 | LOW | `isApprovedSource` three-phase pipeline undocumented | PENDING |
-| A06-DOC-011 | LOW | "First pass" comment says penalties but pass does not calculate them | PENDING |
-| A06-DOC-012 | LOW | "Second pass" comment omits penalty calculation | PENDING |
+| A06-DOC-011 | LOW | "First pass" comment says penalties but pass does not calculate them | FIXED — corrected to "calculate base balances" |
+| A06-DOC-012 | LOW | "Second pass" comment omits penalty calculation | FIXED — corrected to "calculate penalties and bounties" |
 | A06-DOC-018 | LOW | No private field documentation on `Processor` | PENDING |
 | A06-DOC-019 | LOW | Constructor has no JSDoc | PENDING |
 | A07-DOC-001 | LOW | No module-level JSDoc on `scraper.ts` | PENDING |
