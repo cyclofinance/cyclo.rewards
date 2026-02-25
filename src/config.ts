@@ -48,6 +48,12 @@ export const CYTOKENS: CyToken[] = [
 assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
 export const RPC_URL = process.env.RPC_URL;
 
+/**
+ * Case-insensitive comparison of two Ethereum addresses
+ * @param a - First address
+ * @param b - Second address
+ * @returns True if addresses match (case-insensitive)
+ */
 export function isSameAddress(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
 }
