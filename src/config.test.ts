@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress } from './config';
+import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress, REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
+import { VALID_ADDRESS_REGEX } from './constants';
 
 describe('Test generateSnapshotTimestampForEpoch', () => {
   
@@ -196,5 +197,72 @@ describe("Test math functions", () => {
 
   it("should truncate to zero for small values with large decimals", () => {
     expect(scaleTo18(99999n, 23)).toBe(0n);
+  });
+});
+
+describe("REWARDS_SOURCES", () => {
+  it("should have valid hex addresses", () => {
+    for (const addr of REWARDS_SOURCES) {
+      expect(addr).toMatch(VALID_ADDRESS_REGEX);
+    }
+  });
+
+  it("should have no duplicates (case-insensitive)", () => {
+    const lower = REWARDS_SOURCES.map(a => a.toLowerCase());
+    expect(new Set(lower).size).toBe(REWARDS_SOURCES.length);
+  });
+});
+
+describe("FACTORIES", () => {
+  it("should have valid hex addresses", () => {
+    for (const addr of FACTORIES) {
+      expect(addr).toMatch(VALID_ADDRESS_REGEX);
+    }
+  });
+
+  it("should have no duplicates (case-insensitive)", () => {
+    const lower = FACTORIES.map(a => a.toLowerCase());
+    expect(new Set(lower).size).toBe(FACTORIES.length);
+  });
+});
+
+describe("CYTOKENS", () => {
+  it("should have valid hex addresses for all address fields", () => {
+    for (const token of CYTOKENS) {
+      expect(token.address).toMatch(VALID_ADDRESS_REGEX);
+      expect(token.underlyingAddress).toMatch(VALID_ADDRESS_REGEX);
+      expect(token.receiptAddress).toMatch(VALID_ADDRESS_REGEX);
+    }
+  });
+
+  it("should have no duplicate addresses (case-insensitive)", () => {
+    const addresses = CYTOKENS.map(t => t.address.toLowerCase());
+    expect(new Set(addresses).size).toBe(CYTOKENS.length);
+    const underlying = CYTOKENS.map(t => t.underlyingAddress.toLowerCase());
+    expect(new Set(underlying).size).toBe(CYTOKENS.length);
+    const receipts = CYTOKENS.map(t => t.receiptAddress.toLowerCase());
+    expect(new Set(receipts).size).toBe(CYTOKENS.length);
+  });
+
+  it("should have non-negative decimals", () => {
+    for (const token of CYTOKENS) {
+      expect(token.decimals).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("should have non-empty names", () => {
+    for (const token of CYTOKENS) {
+      expect(token.name.length).toBeGreaterThan(0);
+      expect(token.underlyingSymbol.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("REWARDS_SOURCES and FACTORIES", () => {
+  it("should not overlap (case-insensitive)", () => {
+    const sources = new Set(REWARDS_SOURCES.map(a => a.toLowerCase()));
+    for (const factory of FACTORIES) {
+      expect(sources.has(factory.toLowerCase())).toBe(false);
+    }
   });
 });

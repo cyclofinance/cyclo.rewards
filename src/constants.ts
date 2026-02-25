@@ -10,3 +10,5 @@ export const REWARDS_CSV_COLUMN_HEADER_REWARD = "amount wei";
 export const DIFF_CSV_COLUMN_HEADER_OLD = "old";
 export const DIFF_CSV_COLUMN_HEADER_NEW = "new";
 export const DIFF_CSV_COLUMN_HEADER_DIFF = "diff";
+
+export const VALID_ADDRESS_REGEX = /^0x[0-9a-fA-F]{40}$/;
