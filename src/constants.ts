@@ -1,3 +1,7 @@
+/**
+ * Shared constants for reward pool amounts, CSV column headers, and validation patterns.
+ */
+
 export const ONE = 10n ** 18n;
 
 // Jan 2026 epoch: 500,000 tokens (18 decimals)

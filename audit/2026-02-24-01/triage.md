@@ -145,8 +145,8 @@
 | A01-4 | LOW | Missing `@returns` tag on `scaleTo18` JSDoc | FIXED — added @returns tag |
 | A01-5 | LOW | No JSDoc on exported constants (`REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS`, `RPC_URL`) | FIXED — added JSDoc to all four constants |
 | A01-7 | LOW | Grammatical error "generated" -> "generate" in assertion message | FIXED — corrected typo |
-| A02-4 | LOW | CSV column header comment is accurate but ambiguous in scope | PENDING |
-| A02-5 | LOW | No file-level documentation in `constants.ts` | PENDING |
+| A02-4 | LOW | CSV column header comment is accurate but ambiguous in scope | DISMISSED — comment is clear enough in context |
+| A02-5 | LOW | No file-level documentation in `constants.ts` | FIXED — added module-level JSDoc |
 | A03-1 | LOW | `readCsv` JSDoc says "array and map" but only array is returned (stale) | PENDING |
 | A03-2 | LOW | `readCsv` missing `@returns` tag | PENDING |
 | A03-3 | LOW | `readCsv` missing `@throws` documentation for 5 error conditions | PENDING |
