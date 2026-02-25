@@ -1,53 +1,63 @@
-import { createPublicClient, http, Address } from "viem";
+/**
+ * Core reward calculation engine. Replays transfers and liquidity events to compute
+ * per-account eligible balances at snapshot blocks, then distributes the reward pool.
+ */
+
+import { Address, PublicClient } from "viem";
 import {
   REWARDS_SOURCES,
   FACTORIES,
-  RPC_URL,
   isSameAddress,
   CYTOKENS,
+  scaleTo18,
 } from "./config";
 import {
   Transfer,
   AccountBalance,
   EligibleBalances,
-  AccountTransfers,
   TokenBalances,
   RewardsPerToken,
   CyToken,
   LiquidityChange,
+  LiquidityChangeType,
+  LpV3Position,
+  BlocklistReport,
 } from "./types";
-import { ONE } from "./constants";
-import { flare } from "viem/chains";
+import { ONE_18, BOUNTY_PERCENT, RETRY_BASE_DELAY_MS } from "./constants";
 import { getPoolsTick } from "./liquidity";
 
+/**
+ * Processes on-chain transfer and liquidity events to calculate reward-eligible balances
+ * and distribute the reward pool across accounts proportionally.
+ */
 export class Processor {
+  /** Cache of isApprovedSource results keyed by lowercase address */
   private approvedSourceCache = new Map<string, boolean>();
+  /** Token address → account address → running balance state */
   private accountBalancesPerToken = new Map<
     string,
     Map<string, AccountBalance>
   >();
-  private accountTransfers = new Map<string, AccountTransfers>();
-  private client;
-  private lp3TrackList: Record<number, Map<string, {
-    pool: string;
-    value: bigint;
-    lowerTick: number;
-    upperTick: number;
-  }>> = {};
+  /** Viem client for on-chain RPC calls (factory checks, tick queries) */
+  private client: PublicClient;
+  /** Snapshot block → position ID → V3 LP position for in-range checks */
+  private lp3TrackList: Record<number, Map<string, LpV3Position>> = {};
+  /** Owner → token → txHash → liquidity event, for deposit/withdraw matching */
+  private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map();
 
+  /**
+   * @param snapshots - Sorted array of 30 block numbers to sample balances at
+   * @param reports - Blocklist entries mapping reporters to cheaters
+   * @param client - Viem PublicClient for on-chain queries
+   * @param pools - V3 pool addresses for in-range tick calculations
+   */
   constructor(
     private snapshots: number[],
-    private epochLength: number,
-    private reports: { reporter: string; cheater: string }[] = [],
-    client?: any,
+    private reports: BlocklistReport[] = [],
+    client: PublicClient,
     private pools: `0x${string}`[] = [],
   ) {
-    this.client =
-      client ||
-      createPublicClient({
-        transport: http(RPC_URL),
-        chain: flare,
-      });
+    this.client = client;
 
     // Initialize token balances maps
     for (const token of CYTOKENS) {
@@ -61,6 +71,13 @@ export class Processor {
     }
   }
 
+  /**
+   * Checks whether an address is an approved transfer source (DEX router or factory-deployed pool).
+   * Results are cached. Retries with exponential backoff on transient RPC errors.
+   * @param source - Address to check
+   * @param retries - Maximum retry attempts for RPC calls
+   * @returns true if the source is a known router or deployed by a known factory
+   */
   async isApprovedSource(source: string, retries = 8): Promise<boolean> {
     // Check cache first
     if (this.approvedSourceCache.has(source.toLowerCase())) {
@@ -110,7 +127,7 @@ export class Processor {
         // For other errors (like rate limits), retry if we have attempts left
         if (attempt < retries - 1) {
           // Add exponential backoff
-          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s, etc.
+          const delay = Math.pow(2, attempt) * RETRY_BASE_DELAY_MS;
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
@@ -123,6 +140,25 @@ export class Processor {
     return false;
   }
 
+  /**
+   * Updates snapshot balances for an account at all snapshots at or after the given block.
+   * Clamps negative balances to zero.
+   */
+  private updateSnapshots(balance: AccountBalance, blockNumber: number): void {
+    const val = balance.currentNetBalance < 0n ? 0n : balance.currentNetBalance;
+    for (let i = 0; i < this.snapshots.length; i++) {
+      if (blockNumber <= this.snapshots[i]) {
+        balance.netBalanceAtSnapshots[i] = val;
+      }
+    }
+  }
+
+  /**
+   * Processes a single ERC-20 transfer, updating sender and receiver balances.
+   * Only credits the receiver if the sender is an approved source.
+   * Handles LP deposit/withdraw adjustments via linked liquidity events.
+   * @param transfer - Transfer event to process
+   */
   async processTransfer(transfer: Transfer) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === transfer.tokenAddress.toLowerCase())) {
@@ -131,29 +167,6 @@ export class Processor {
 
     const isApproved = await this.isApprovedSource(transfer.from);
     const value = BigInt(transfer.value);
-
-    // Track transfers for receiver
-    if (!this.accountTransfers.has(transfer.to)) {
-      this.accountTransfers.set(transfer.to, {
-        transfersIn: [],
-        transfersOut: [],
-      });
-    }
-    this.accountTransfers.get(transfer.to)!.transfersIn.push({
-      value: transfer.value,
-      fromIsApprovedSource: isApproved,
-    });
-
-    // Track transfers for sender
-    if (!this.accountTransfers.has(transfer.from)) {
-      this.accountTransfers.set(transfer.from, {
-        transfersIn: [],
-        transfersOut: [],
-      });
-    }
-    this.accountTransfers.get(transfer.from)!.transfersOut.push({
-      value: transfer.value,
-    });
 
     const accountBalances = this.accountBalancesPerToken.get(
       transfer.tokenAddress.toLowerCase()
@@ -168,7 +181,7 @@ export class Processor {
       accountBalances.set(transfer.to, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
+        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
         currentNetBalance: 0n,
       });
     }
@@ -176,47 +189,101 @@ export class Processor {
       accountBalances.set(transfer.from, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
+        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
         currentNetBalance: 0n,
       });
     }
 
     // Update balances
+    const toBalance = accountBalances.get(transfer.to)!;
     if (isApproved) {
-      const toBalance = accountBalances.get(transfer.to)!;
+
+      // handle if transfer is withdraw
+      const lpWithdraw = this.transferIsWithdraw(transfer)
+      if (lpWithdraw) {
+        toBalance.transfersInFromApproved += BigInt(lpWithdraw.depositedBalanceChange);
+      }
+
       toBalance.transfersInFromApproved += value;
       toBalance.currentNetBalance =
         toBalance.transfersInFromApproved - toBalance.transfersOut;
-
-      // Update snapshot balances
-      const val = toBalance.currentNetBalance < 0n ? 0n : toBalance.currentNetBalance;
-      for (let i = 0; i < this.snapshots.length; i++) {
-        if (transfer.blockNumber <= this.snapshots[i]) {
-          toBalance.netBalanceAtSnapshots[i] = val;
-        }
-      }
-
-      accountBalances.set(transfer.to, toBalance);
+      this.updateSnapshots(toBalance, transfer.blockNumber);
     }
 
     // Always track transfers out
     const fromBalance = accountBalances.get(transfer.from)!;
-    fromBalance.transfersOut += value;
+    const lpDeposit = this.transferIsDeposit(transfer)
+    // handle deposit vs non deposit transfers
+    if (lpDeposit) {
+      fromBalance.transfersInFromApproved += value
+    } else {
+      if (isApproved) {
+        toBalance.transfersInFromApproved -= value;
+        toBalance.currentNetBalance =
+          toBalance.transfersInFromApproved - toBalance.transfersOut;
+        this.updateSnapshots(toBalance, transfer.blockNumber);
+      }
+      fromBalance.transfersOut += value;
+    }
     fromBalance.currentNetBalance =
       fromBalance.transfersInFromApproved - fromBalance.transfersOut;
+    this.updateSnapshots(fromBalance, transfer.blockNumber);
 
-    // Update snapshot balances
-    const val = fromBalance.currentNetBalance < 0n ? 0n : fromBalance.currentNetBalance;
-    for (let i = 0; i < this.snapshots.length; i++) {
-      if (transfer.blockNumber <= this.snapshots[i]) {
-        fromBalance.netBalanceAtSnapshots[i] = val;
-      }
-    }
-
+    accountBalances.set(transfer.to, toBalance);
     accountBalances.set(transfer.from, fromBalance);
   }
 
-  async getUniqueAddresses(): Promise<Set<string>> {
+  /**
+   * Checks if a transfer corresponds to an LP deposit by matching against organized liquidity events.
+   * @param transfer - Transfer to check (sender is the depositor)
+   * @returns The matching deposit liquidity event, or undefined
+   */
+  transferIsDeposit(transfer: Transfer): LiquidityChange | undefined {
+    const token = transfer.tokenAddress.toLowerCase()
+    const txhash = transfer.transactionHash.toLowerCase()
+    const owner = transfer.from.toLowerCase()
+
+    const ownerEvents = this.liquidityEvents.get(owner)
+    if (!ownerEvents) return
+
+    const ownerTokenEvents = ownerEvents.get(token)
+    if (!ownerTokenEvents) return
+
+    const ownerTokenTxEvent = ownerTokenEvents.get(txhash)
+    if (!ownerTokenTxEvent) return
+
+    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Deposit) return ownerTokenTxEvent
+    return
+  }
+
+  /**
+   * Checks if a transfer corresponds to an LP withdrawal by matching against organized liquidity events.
+   * @param transfer - Transfer to check (receiver is the withdrawer)
+   * @returns The matching withdrawal liquidity event, or undefined
+   */
+  transferIsWithdraw(transfer: Transfer): LiquidityChange | undefined {
+    const token = transfer.tokenAddress.toLowerCase()
+    const txhash = transfer.transactionHash.toLowerCase()
+    const owner = transfer.to.toLowerCase()
+
+    const ownerEvents = this.liquidityEvents.get(owner)
+    if (!ownerEvents) return
+
+    const ownerTokenEvents = ownerEvents.get(token)
+    if (!ownerTokenEvents) return
+
+    const ownerTokenTxEvent = ownerTokenEvents.get(txhash)
+    if (!ownerTokenTxEvent) return
+
+    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Withdraw) return ownerTokenTxEvent
+    return
+  }
+
+  /**
+   * Collects all unique addresses from transfer balances and blocklist reporters.
+   * @returns Set of lowercased addresses
+   */
+  getUniqueAddresses(): Set<string> {
     // Get all unique addresses, include reporters as they may have no balance from transfers
     const allAddresses = new Set<string>();
     for (const report of this.reports) {
@@ -234,13 +301,18 @@ export class Processor {
     return allAddresses;
   }
 
+  /**
+   * Computes reward-eligible balances for all accounts across all tokens.
+   * Three passes: (1) average snapshot balances, (2) penalties/bounties, (3) final balances scaled to 18 decimals.
+   * @returns Token address → user address → TokenBalances
+   */
   async getEligibleBalances(): Promise<EligibleBalances> {
     const allAddresses = await this.getUniqueAddresses();
 
     const tokenBalances = new Map<string, Map<string, TokenBalances>>();
 
     for (const token of CYTOKENS) {
-      // First pass - calculate base balances and penalties
+      // First pass - calculate base balances
       const userBalances = new Map<string, TokenBalances>();
 
       for (const address of allAddresses) {
@@ -251,7 +323,7 @@ export class Processor {
         if (!accountBalances) continue;
 
         const balance = accountBalances.get(address.toLowerCase());
-        const snapshots = balance?.netBalanceAtSnapshots ?? new Array<bigint>(this.epochLength).fill(0n);
+        const snapshots = balance?.netBalanceAtSnapshots ?? new Array<bigint>(this.snapshots.length).fill(0n);
         const average = snapshots.reduce((acc, val) => acc + val, 0n) / BigInt(snapshots.length);
 
         userBalances.set(address, {
@@ -260,13 +332,14 @@ export class Processor {
           penalty: 0n,
           bounty: 0n,
           final: 0n,
+          final18: 0n,
         });
       }
 
       tokenBalances.set(token.address.toLowerCase(), userBalances);
     }
 
-    // Second pass - calculate bounties based on penalties
+    // Second pass - calculate penalties and bounties
     for (const token of CYTOKENS) {
       for (const report of this.reports) {
         const userBalances = tokenBalances.get(token.address.toLowerCase());
@@ -281,7 +354,7 @@ export class Processor {
         if (!cheaterBalance || reporterBalance === undefined) continue;
 
         const penalty = cheaterBalance.average;
-        const bounty = (penalty * 10n) / 100n;
+        const bounty = (penalty * BOUNTY_PERCENT) / 100n;
 
         cheaterBalance.penalty += penalty;
         reporterBalance.bounty += bounty;
@@ -298,12 +371,18 @@ export class Processor {
         if (!balance) continue;
 
         balance.final = balance.average - balance.penalty + balance.bounty;
+        balance.final18 = scaleTo18(balance.final, token.decimals);
       }
     }
 
     return tokenBalances;
   }
 
+  /**
+   * Sums final18 balances per token across all accounts.
+   * @param balances - Eligible balances from getEligibleBalances()
+   * @returns Token address → total final18 balance
+   */
   calculateTotalEligibleBalances(
     balances: EligibleBalances
   ): Map<string, bigint> {
@@ -313,7 +392,7 @@ export class Processor {
       const tokenBalances = balances.get(token.address.toLowerCase());
       if (!tokenBalances) continue;
       const totalBalance = Array.from(tokenBalances.values()).reduce(
-        (acc, balance) => acc + balance.final,
+        (acc, balance) => acc + balance.final18,
         0n
       );
       totalBalances.set(token.address.toLowerCase(), totalBalance);
@@ -321,6 +400,11 @@ export class Processor {
     return totalBalances;
   }
 
+  /**
+   * Filters CYTOKENS to only those with non-zero total eligible balance.
+   * @param balances - Eligible balances from getEligibleBalances()
+   * @returns CyToken definitions that have at least one account with balance
+   */
   getTokensWithBalance(balances: EligibleBalances): CyToken[] {
     const tokensWithBalance: CyToken[] = [];
     const totalBalances = this.calculateTotalEligibleBalances(balances);
@@ -332,7 +416,14 @@ export class Processor {
     return tokensWithBalance;
   }
 
-  calculateRewardsPoolsPertoken(
+  /**
+   * Splits the reward pool across tokens using inverse-fraction weighting.
+   * Tokens with smaller total balances receive a larger share of rewards.
+   * @param balances - Eligible balances from getEligibleBalances()
+   * @param rewardPool - Total reward pool in wei
+   * @returns Token address → reward pool share for that token
+   */
+  calculateRewardsPoolsPerToken(
     balances: EligibleBalances,
     rewardPool: bigint
   ): Map<string, bigint> {
@@ -350,7 +441,7 @@ export class Processor {
     const tokenInverseFractions = new Map<string, bigint>();
     for (const token of tokensWithBalance) {
       const tokenInverseFraction =
-        (sumOfAllBalances * ONE) /
+        (sumOfAllBalances * ONE_18) /
         totalBalances.get(token.address.toLowerCase())!;
       tokenInverseFractions.set(
         token.address.toLowerCase(),
@@ -371,17 +462,22 @@ export class Processor {
       )!;
       const tokenReward =
         (tokenInverseFraction * rewardPool) / sumOfInverseFractions;
-      console.log(`Total rewards for ${token.name}: ${tokenReward}`);
       totalRewardsPerToken.set(token.address.toLowerCase(), tokenReward);
     }
 
     return totalRewardsPerToken;
   }
 
+  /**
+   * End-to-end reward calculation: computes eligible balances, splits the pool across tokens,
+   * then distributes each token's share proportionally to account balances.
+   * @param rewardPool - Total reward pool in wei
+   * @returns Token address → user address → reward amount in wei
+   */
   async calculateRewards(rewardPool: bigint): Promise<RewardsPerToken> {
     const balances = await this.getEligibleBalances();
 
-    const totalRewardsPerToken = this.calculateRewardsPoolsPertoken(
+    const totalRewardsPerToken = this.calculateRewardsPoolsPerToken(
       balances,
       rewardPool
     );
@@ -398,7 +494,7 @@ export class Processor {
       const tokenRewards = new Map<string, bigint>();
       for (const [address, balance] of tokenBalances) {
         const reward =
-          (balance.final *
+          (balance.final18 *
             totalRewardsPerToken.get(token.address.toLowerCase())!) /
           totalBalances.get(token.address.toLowerCase())!;
         tokenRewards.set(address, reward);
@@ -409,7 +505,44 @@ export class Processor {
     return rewards;
   }
 
-  async processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
+  /**
+   * Indexes a liquidity change event by owner → token → txHash for later lookup
+   * during transfer processing (transferIsDeposit/transferIsWithdraw).
+   * @param liquidityChangeEvent - Liquidity event to index
+   */
+  organizeLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
+    // skip if the token is not in the eligible list
+    if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
+      return;
+    }
+    const owner = liquidityChangeEvent.owner.toLowerCase();
+    const txhash = liquidityChangeEvent.transactionHash.toLowerCase();
+    const token = liquidityChangeEvent.tokenAddress.toLowerCase();
+
+    const ownerEvents = this.liquidityEvents.get(owner);
+    if (!ownerEvents) {
+      this.liquidityEvents.set(owner, new Map([[token, new Map([[txhash, liquidityChangeEvent]])]]))
+      return
+    }
+
+    const ownerTokenEvents = ownerEvents.get(token)
+    if (!ownerTokenEvents) {
+      ownerEvents.set(token, new Map([[txhash, liquidityChangeEvent]]))
+      return
+    }
+
+    if (ownerTokenEvents.has(txhash)) {
+      throw new Error(`Duplicate liquidity event for owner=${owner} token=${token} txHash=${txhash}`);
+    }
+    ownerTokenEvents.set(txhash, liquidityChangeEvent)
+  }
+
+  /**
+   * Processes a liquidity change event, updating the owner's balance and snapshot records.
+   * For V3 positions, also tracks the position in lp3TrackList for later in-range checks.
+   * @param liquidityChangeEvent - Liquidity event to process
+   */
+  processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
       return;
@@ -433,13 +566,17 @@ export class Processor {
       accountBalances.set(owner, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.epochLength).fill(0n),
+        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
         currentNetBalance: 0n,
       });
     }
 
     const ownerBalance = accountBalances.get(owner)!;
-    ownerBalance.currentNetBalance += depositedBalanceChange; // include the liquidity change to the net balance
+    // include the liquidity direct transfer to the net balance
+    // as deposit and withdraws are handled in transfer processing function
+    if (liquidityChangeEvent.changeType === LiquidityChangeType.Transfer) {
+      ownerBalance.currentNetBalance += depositedBalanceChange;
+    }
 
     // Update snapshot balances
     const value = ownerBalance.currentNetBalance < 0n ? 0n : ownerBalance.currentNetBalance;
@@ -473,7 +610,11 @@ export class Processor {
     accountBalances.set(owner, ownerBalance);
   }
 
-  // update each account's snapshots balances with lp v3 price range factored in
+  /**
+   * Deducts out-of-range V3 LP positions from snapshot balances.
+   * Queries on-chain pool ticks at each snapshot block and subtracts position value
+   * if the pool's current tick is outside the position's [lowerTick, upperTick] range.
+   */
   async processLpRange() {
     // iter snapshots
     for (let i = 0; i < this.snapshots.length; i++) {

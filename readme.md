@@ -27,6 +27,7 @@ need to be moved into `output/dispersed`.
 
 ```
 mv output/**.csv output/dispersed
+mv output/**.txt output/dispersed
 git add .
 git commit -am'move dispersed csvs'
 ```

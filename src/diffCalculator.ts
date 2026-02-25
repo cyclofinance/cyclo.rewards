@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "fs";
-import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from "./constants";
+import { DEC25_REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from "./constants";
 
 export const DISTRIBUTED_COUNT = 100 as const;
 
@@ -136,7 +136,7 @@ function main() {
     const newRewards = readCsv("./output/rewards-51504517-52994045.csv");
     const oldRewards = readCsv("./output/rewards-51504517-52994045-old.csv");
 
-    const result = calculateDiff(newRewards, oldRewards, DISTRIBUTED_COUNT, REWARD_POOL);
+    const result = calculateDiff(newRewards, oldRewards, DISTRIBUTED_COUNT, DEC25_REWARD_POOL);
 
     // write to files
     const header = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;

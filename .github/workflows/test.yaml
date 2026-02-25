@@ -29,3 +29,6 @@ jobs:
 
       - run: nix develop -c npm i
       - run: nix develop -c npm run test
+        env:
+          END_SNAPSHOT: "99999999"
+          RPC_URL: ${{ secrets.RPC_URL_FLARE_FORK }}

@@ -1,73 +1,83 @@
+/**
+ * Main pipeline entrypoint. Reads scraped data files, runs the reward processor,
+ * and writes balance/reward CSVs to the output directory.
+ */
+
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { Processor } from "./processor.js";
+import { createPublicClient, http } from "viem";
+import { flare } from "viem/chains";
+import { Processor } from "./processor";
 import { config } from "dotenv";
-import { CYTOKENS, generateSnapshotBlocks } from "./config";
-import { REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
+import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
+import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
+import { BLOCKLIST_FILE, DATA_DIR, LIQUIDITY_FILE, OUTPUT_DIR, POOLS_FILE, REWARD_POOL, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE } from "./constants";
+import { LiquidityChange, Transfer } from "./types";
 
 // Load environment variables
 config();
 
-const START_SNAPSHOT = parseInt(process.env.START_SNAPSHOT || "0");
-const END_SNAPSHOT = parseInt(process.env.END_SNAPSHOT || "0");
-
+/**
+ * Orchestrates the full reward calculation pipeline:
+ * loads env config, reads scraped transfer/liquidity/pool data files
+ * (transfers split across data/transfers1.dat–transfers10.dat to stay under GitHub's 100MB limit),
+ * reads blocklist (space-separated "reporter cheater" pairs, one per line),
+ * processes all events through the Processor, and writes output CSVs.
+ */
 async function main() {
+  const { seed: SEED, startSnapshot: START_SNAPSHOT, endSnapshot: END_SNAPSHOT } = parseEnv();
+
   // generate snapshot blocks
-  const SNAPSHOTS = generateSnapshotBlocks(process.env.SEED!, START_SNAPSHOT, END_SNAPSHOT);
+  const SNAPSHOTS = generateSnapshotBlocks(SEED, START_SNAPSHOT, END_SNAPSHOT);
+
+  // Create output directory if it doesn't exist
+  await mkdir(OUTPUT_DIR, { recursive: true });
 
   // write generated snapshots
   await writeFile(
-    "output/snapshots-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".txt",
+    `${OUTPUT_DIR}/snapshots-${START_SNAPSHOT}-${END_SNAPSHOT}.txt`,
     SNAPSHOTS.join("\n")
   );
 
   console.log("Starting processor...");
   console.log(`Snapshot blocks: ${START_SNAPSHOT}, ${END_SNAPSHOT}`);
 
-  // Create output directory if it doesn't exist
-  await mkdir("output", { recursive: true });
-
   // Read transfers file
   console.log("Reading transfers file...");
-  const transfersData = await readFile("data/transfers.dat", "utf8");
-  const transfers = transfersData
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
+  let transfers: Transfer[] = []
+  for (let i = 0; i < TRANSFER_FILE_COUNT; i++) {
+    const transfersData = await readFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`, "utf8").catch(() => "");
+    transfers = [...transfers, ...parseJsonl(transfersData)]
+  }
   console.log(`Found ${transfers.length} transfers`);
 
   // Read liquidity file
   console.log("Reading liquidity file...");
-  const liquidityData = await readFile("data/liquidity.dat", "utf8");
-  const liquidities = liquidityData
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
+  const liquidityData = await readFile(`${DATA_DIR}/${LIQUIDITY_FILE}`, "utf8");
+  const liquidities: LiquidityChange[] = parseJsonl(liquidityData);
   console.log(`Found ${liquidities.length} liquidity changes`);
 
   // Read pools file
   console.log("Reading pools file...");
-  const poolsData = await readFile("data/pools.dat", "utf8");
-  const pools = JSON.parse(poolsData);
+  const poolsData = await readFile(`${DATA_DIR}/${POOLS_FILE}`, "utf8");
+  const pools: `0x${string}`[] = JSON.parse(poolsData);
   console.log(`Found ${pools.length} pools`);
 
   // Read blocklist
   console.log("Reading blocklist...");
-  const blocklistData = await readFile("data/blocklist.txt", "utf8");
-  const reports = blocklistData
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const [reporter, reported] = line.split(" ");
-      return {
-        reporter: reporter.toLowerCase(),
-        cheater: reported.toLowerCase(),
-      };
-    });
+  const blocklistData = await readFile(`${DATA_DIR}/${BLOCKLIST_FILE}`, "utf8");
+  const reports = parseBlocklist(blocklistData);
   console.log(`Found ${reports.length} reports`);
 
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
-  const processor = new Processor(SNAPSHOTS, SNAPSHOTS.length, reports, undefined, pools);
+  const client = createPublicClient({ chain: flare, transport: http(RPC_URL) });
+  const processor = new Processor(SNAPSHOTS, reports, client, pools);
+
+  // Organize liquidity changes
+  console.log(`Organizing ${liquidities.length} liquidity change events...`);
+  for (const liquidity of liquidities) {
+    await processor.organizeLiquidityPositions(liquidity);
+  }
 
   // Process transfers
   console.log(`Processing ${transfers.length} transfers...`);
@@ -103,129 +113,64 @@ async function main() {
   const balances = await processor.getEligibleBalances();
 
   // Add per-token balance logging
-  for (const token of CYTOKENS) {
-    console.log("Getting token balances for ", token.name);
-    const tokenBalances = balances.get(token.address.toLowerCase());
-    if (!tokenBalances) continue;
-
-    const totalAverage = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.average,
-      0n
-    );
-    const totalPenalties = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.penalty,
-      0n
-    );
-    const totalBounties = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.bounty,
-      0n
-    );
-    const totalFinal = Array.from(tokenBalances.values()).reduce(
-      (sum, bal) => sum + bal.final,
-      0n
-    );
-
-    console.log("- Total Avg:", totalAverage.toString());
-    console.log("- Total Penalties:", totalPenalties.toString());
-    console.log("- Total Bounties:", totalBounties.toString());
-    console.log("- Total Final:", totalFinal.toString());
+  for (const summary of summarizeTokenBalances(balances, CYTOKENS)) {
+    console.log("Getting token balances for ", summary.name);
+    console.log("- Total Avg:", summary.totalAverage.toString());
+    console.log("- Total Penalties:", summary.totalPenalties.toString());
+    console.log("- Total Bounties:", summary.totalBounties.toString());
+    console.log("- Total Final:", summary.totalFinal.toString());
     console.log(
-      `Note: Final Total for ${token.name} should equal Average Total - Penalties + Bounties`
+      `Note: Final Total for ${summary.name} should equal Average Total - Penalties + Bounties`
     );
-    console.log(
-      `Verification: ${
-        totalAverage - totalPenalties + totalBounties === totalFinal ? "✓" : "✗"
-      }`
-    );
+    if (!summary.verified) {
+      throw new Error(`Balance verification failed for ${summary.name}: totalAverage - totalPenalties + totalBounties !== totalFinal`);
+    }
+    console.log("Verification: ✓");
   }
 
   // Write balances with per-token data
   console.log("Writing balances...");
-  const tokenColumns = CYTOKENS.map(
-    (token) =>
-      `${SNAPSHOTS.map((_s, i) => `${token.name}_snapshot${i + 1}`).join(",")},${token.name}_average,${token.name}_penalty,${token.name}_bounty,${token.name}_final,${token.name}_rewards`
-  ).join(",");
-
-  const balancesOutput = [`address,${tokenColumns},total_rewards`];
-
-  // get the rewards for each address by summing the rewards for each token
   const rewardsPerToken = await processor.calculateRewards(REWARD_POOL);
-  const totalRewardsPerAddress = new Map<string, bigint>();
-
   for (const token of CYTOKENS) {
-    const rewardsPerAddress = rewardsPerToken.get(token.address.toLowerCase());
-    if (!rewardsPerAddress) continue;
-
-    for (const [address, reward] of rewardsPerAddress) {
-      totalRewardsPerAddress.set(
-        address,
-        (totalRewardsPerAddress.get(address) || 0n) + reward
-      );
+    const tokenRewards = rewardsPerToken.get(token.address.toLowerCase());
+    if (tokenRewards) {
+      const totalForToken = Array.from(tokenRewards.values()).reduce((a, b) => a + b, 0n);
+      console.log(`Total rewards for ${token.name}: ${totalForToken}`);
     }
   }
-
-  // create an array of all the addresses but sorted by their total rewards
-  const addresses = Array.from(totalRewardsPerAddress.keys()).sort((a, b) => {
-    const valueB = totalRewardsPerAddress.get(b)!;
-    const valueA = totalRewardsPerAddress.get(a)!;
-    // Convert comparison to a number: -1, 0, or 1
-    return valueB > valueA ? 1 : valueB < valueA ? -1 : 0;
-  });
-
-  // get the balances for each address
-  for (const address of addresses) {
-    const tokenValues = CYTOKENS.map((token) => {
-      const tokenBalances = balances.get(token.address.toLowerCase());
-      const snapshotsDefault = new Array(SNAPSHOTS.length).fill("0").join(",");
-      if (!tokenBalances) return `${snapshotsDefault},0,0,0,0,0`;
-      const tokenBalance = tokenBalances.get(address);
-      if (!tokenBalance) return `${snapshotsDefault},0,0,0,0,0`;
-      return `${tokenBalance.snapshots.join(",")},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address.toLowerCase())?.get(address) ?? 0n}`;
-    }).join(",");
-
-    balancesOutput.push(
-      `${address},` +
-        `${tokenValues},` +
-        `${totalRewardsPerAddress.get(address) || 0n}`
-    );
-  }
+  const totalRewardsPerAddress = aggregateRewardsPerAddress(rewardsPerToken);
+  const addresses = sortAddressesByReward(totalRewardsPerAddress);
+  const balancesOutput = formatBalancesCsv(addresses, CYTOKENS, SNAPSHOTS, balances, rewardsPerToken, totalRewardsPerAddress);
   await writeFile(
-    "output/balances-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
+    `${OUTPUT_DIR}/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`,
     balancesOutput.join("\n")
   );
-  console.log(`Wrote ${addresses.length} balances to output/balances.csv`);
+  console.log(`Wrote ${addresses.length} balances to ${OUTPUT_DIR}/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
 
   // Calculate and write rewards
   console.log("Calculating rewards...");
 
   // remove any addresses with no rewards
-  for (const [address, reward] of totalRewardsPerAddress) {
-    if (reward === 0n) {
-      addresses.splice(addresses.indexOf(address), 1);
-    }
-  }
-  const rewardsOutput = [
-    REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD,
-  ];
-  for (const address of addresses) {
-    rewardsOutput.push(
-      `${address},${totalRewardsPerAddress.get(address) || 0n}`
-    );
-  }
+  const rewardedAddresses = filterZeroRewards(addresses, totalRewardsPerAddress);
+  const rewardsOutput = formatRewardsCsv(rewardedAddresses, totalRewardsPerAddress);
   await writeFile(
-    "output/rewards-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
+    `${OUTPUT_DIR}/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`,
     rewardsOutput.join("\n")
   );
-  console.log(`Wrote ${addresses.length} rewards to output/rewards.csv`);
+  console.log(`Wrote ${rewardedAddresses.length} rewards to ${OUTPUT_DIR}/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
 
   // Verify total rewards equals reward pool
   const totalRewards = Array.from(totalRewardsPerAddress.values()).reduce(
     (sum, reward) => sum + reward,
     0n
   );
+  const diff = totalRewards - REWARD_POOL;
   console.log(`\nTotal rewards: ${totalRewards}`);
   console.log(`Reward pool: ${REWARD_POOL}`);
-  console.log(`Difference: ${totalRewards - REWARD_POOL}`); // Should be very small due to rounding
+  console.log(`Difference: ${diff}`);
+  if (diff < 0n ? -diff > REWARD_POOL / 1000n : diff > REWARD_POOL / 1000n) {
+    throw new Error(`Reward pool difference too large: ${diff}`);
+  }
 
   console.log("Done!");
 }

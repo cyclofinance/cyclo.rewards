@@ -1,5 +1,5 @@
 import { PublicClient } from 'viem';
-import { getPoolsTickMulticall } from './liquidity';
+import { getPoolsTickMulticall, getPoolsTick, MULTICALL3_ADDRESS } from './liquidity';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock PublicClient
@@ -101,7 +101,7 @@ describe('getPoolsTickMulticall', () => {
       expect(mockClient.multicall).toHaveBeenCalledWith({
         blockNumber,
         allowFailure: true,
-        multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11",
+        multicallAddress: MULTICALL3_ADDRESS,
         contracts: mockPools.map(address => ({
           abi: expect.any(Array),
           address,
@@ -245,6 +245,81 @@ describe('getPoolsTickMulticall', () => {
       expect(result).toEqual({});
     });
 
+    it('should handle tick value of zero', async () => {
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 0, 1, 1, 1, 0, true]
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+
+      const result = await getPoolsTickMulticall(
+        mockClient,
+        ['0x1234567890123456789012345678901234567890'] as `0x${string}`[],
+        blockNumber
+      );
+
+      expect(result).toEqual({
+        '0x1234567890123456789012345678901234567890': 0
+      });
+    });
+
+    it('should use last result when duplicate pool addresses are provided', async () => {
+      const dupPools = [
+        '0x1234567890123456789012345678901234567890',
+        '0x1234567890123456789012345678901234567890'
+      ] as `0x${string}`[];
+
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'success' as const,
+          result: [0n, 200, 1, 1, 1, 0, true]
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+
+      const result = await getPoolsTickMulticall(mockClient, dupPools, blockNumber);
+
+      // Last write wins since both map to the same lowercased key
+      expect(result).toEqual({
+        '0x1234567890123456789012345678901234567890': 200
+      });
+    });
+
+    it('should skip pool when getCode returns undefined', async () => {
+      const twoPools = [
+        '0x1234567890123456789012345678901234567890',
+        '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
+      ] as `0x${string}`[];
+
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'failure' as const,
+          error: new Error('Pool call failed')
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+      (mockClient.getCode as any).mockResolvedValue(undefined);
+
+      const result = await getPoolsTickMulticall(mockClient, twoPools, blockNumber);
+
+      expect(result).toEqual({
+        '0x1234567890123456789012345678901234567890': 100
+      });
+    });
+
     it('should propagate multicall errors', async () => {
       const multicallError = new Error('Multicall failed');
       (mockClient.multicall as any).mockRejectedValue(multicallError);
@@ -253,5 +328,70 @@ describe('getPoolsTickMulticall', () => {
         .rejects
         .toThrow('Multicall failed');
     });
+  });
+});
+
+describe('getPoolsTick', () => {
+  const pools = ['0x1234567890123456789012345678901234567890'] as `0x${string}`[];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      fn();
+      return 0 as any;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns on first success without retry', async () => {
+    (mockClient.multicall as any).mockResolvedValue([
+      { status: 'success' as const, result: [0n, 42, 1, 1, 1, 0, true] },
+    ]);
+
+    const result = await getPoolsTick(mockClient, pools, 100);
+    expect(result).toEqual({ '0x1234567890123456789012345678901234567890': 42 });
+    expect(mockClient.multicall).toHaveBeenCalledTimes(1);
+  });
+
+  it('converts blockNumber to BigInt', async () => {
+    (mockClient.multicall as any).mockResolvedValue([
+      { status: 'success' as const, result: [0n, 42, 1, 1, 1, 0, true] },
+    ]);
+
+    await getPoolsTick(mockClient, pools, 12345);
+    expect(mockClient.multicall).toHaveBeenCalledWith(
+      expect.objectContaining({ blockNumber: 12345n }),
+    );
+  });
+
+  it('retries and succeeds on second attempt', async () => {
+    (mockClient.multicall as any)
+      .mockRejectedValueOnce(new Error('transient'))
+      .mockResolvedValueOnce([
+        { status: 'success' as const, result: [0n, 99, 1, 1, 1, 0, true] },
+      ]);
+
+    const result = await getPoolsTick(mockClient, pools, 100);
+
+    expect(result).toEqual({ '0x1234567890123456789012345678901234567890': 99 });
+    expect(mockClient.multicall).toHaveBeenCalledTimes(2);
+  });
+
+  it('throws after 3 failures', async () => {
+    (mockClient.multicall as any).mockRejectedValue(new Error('persistent'));
+
+    await expect(getPoolsTick(mockClient, pools, 100)).rejects.toThrow('persistent');
+    expect(mockClient.multicall).toHaveBeenCalledTimes(3);
+  });
+
+  it('throws on NaN blockNumber', async () => {
+    await expect(getPoolsTick(mockClient, pools, NaN)).rejects.toThrow('blockNumber');
+  });
+
+  it('throws on negative blockNumber', async () => {
+    await expect(getPoolsTick(mockClient, pools, -1)).rejects.toThrow('blockNumber');
   });
 });
