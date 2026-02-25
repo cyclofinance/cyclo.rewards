@@ -1,5 +1,6 @@
 /**
- * Shared constants for reward pool amounts, CSV column headers, and validation patterns.
+ * Shared constants for reward pool amounts, CSV column headers, validation patterns,
+ * and data file paths used by both the scraper and processor.
  */
 
 /** 1e18 as BigInt — the fixed-point unit for 18-decimal token arithmetic */
@@ -25,3 +26,27 @@ export const BOUNTY_PERCENT = 10n;
 
 /** Base delay in ms for exponential backoff on RPC retries */
 export const RETRY_BASE_DELAY_MS = 500;
+
+/** Directory for scraped data files */
+export const DATA_DIR = "data";
+
+/** Directory for output CSV files */
+export const OUTPUT_DIR = "output";
+
+/** Base filename for transfer JSONL data (appended with 1-based index, e.g. transfers1.dat) */
+export const TRANSFERS_FILE_BASE = "transfers";
+
+/** Filename for liquidity change JSONL data */
+export const LIQUIDITY_FILE = "liquidity.dat";
+
+/** Filename for V3 pool addresses JSON */
+export const POOLS_FILE = "pools.dat";
+
+/** Filename for penalty/bounty blocklist */
+export const BLOCKLIST_FILE = "blocklist.txt";
+
+/** Max lines per transfer data file to stay under GitHub's 100MB file size limit */
+export const TRANSFER_CHUNK_SIZE = 270000;
+
+/** Max number of transfer data files to read */
+export const TRANSFER_FILE_COUNT = 10;

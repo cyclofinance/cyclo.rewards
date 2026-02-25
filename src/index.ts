@@ -10,7 +10,7 @@ import { Processor } from "./processor";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
 import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
-import { REWARD_POOL } from "./constants";
+import { BLOCKLIST_FILE, DATA_DIR, LIQUIDITY_FILE, OUTPUT_DIR, POOLS_FILE, REWARD_POOL, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE } from "./constants";
 import { LiquidityChange, Transfer } from "./types";
 
 // Load environment variables
@@ -30,11 +30,11 @@ async function main() {
   const SNAPSHOTS = generateSnapshotBlocks(SEED, START_SNAPSHOT, END_SNAPSHOT);
 
   // Create output directory if it doesn't exist
-  await mkdir("output", { recursive: true });
+  await mkdir(OUTPUT_DIR, { recursive: true });
 
   // write generated snapshots
   await writeFile(
-    "output/snapshots-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".txt",
+    `${OUTPUT_DIR}/snapshots-${START_SNAPSHOT}-${END_SNAPSHOT}.txt`,
     SNAPSHOTS.join("\n")
   );
 
@@ -44,27 +44,27 @@ async function main() {
   // Read transfers file
   console.log("Reading transfers file...");
   let transfers: Transfer[] = []
-  for (let i = 0; i < 10; i++) {
-    const transfersData = await readFile(`data/transfers${i + 1}.dat`, "utf8").catch(() => "");
+  for (let i = 0; i < TRANSFER_FILE_COUNT; i++) {
+    const transfersData = await readFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`, "utf8").catch(() => "");
     transfers = [...transfers, ...parseJsonl(transfersData)]
   }
   console.log(`Found ${transfers.length} transfers`);
 
   // Read liquidity file
   console.log("Reading liquidity file...");
-  const liquidityData = await readFile("data/liquidity.dat", "utf8");
+  const liquidityData = await readFile(`${DATA_DIR}/${LIQUIDITY_FILE}`, "utf8");
   const liquidities: LiquidityChange[] = parseJsonl(liquidityData);
   console.log(`Found ${liquidities.length} liquidity changes`);
 
   // Read pools file
   console.log("Reading pools file...");
-  const poolsData = await readFile("data/pools.dat", "utf8");
+  const poolsData = await readFile(`${DATA_DIR}/${POOLS_FILE}`, "utf8");
   const pools: `0x${string}`[] = JSON.parse(poolsData);
   console.log(`Found ${pools.length} pools`);
 
   // Read blocklist
   console.log("Reading blocklist...");
-  const blocklistData = await readFile("data/blocklist.txt", "utf8");
+  const blocklistData = await readFile(`${DATA_DIR}/${BLOCKLIST_FILE}`, "utf8");
   const reports = parseBlocklist(blocklistData);
   console.log(`Found ${reports.length} reports`);
 
@@ -142,10 +142,10 @@ async function main() {
   const addresses = sortAddressesByReward(totalRewardsPerAddress);
   const balancesOutput = formatBalancesCsv(addresses, CYTOKENS, SNAPSHOTS, balances, rewardsPerToken, totalRewardsPerAddress);
   await writeFile(
-    "output/balances-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
+    `${OUTPUT_DIR}/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`,
     balancesOutput.join("\n")
   );
-  console.log(`Wrote ${addresses.length} balances to output/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
+  console.log(`Wrote ${addresses.length} balances to ${OUTPUT_DIR}/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
 
   // Calculate and write rewards
   console.log("Calculating rewards...");
@@ -154,10 +154,10 @@ async function main() {
   const rewardedAddresses = filterZeroRewards(addresses, totalRewardsPerAddress);
   const rewardsOutput = formatRewardsCsv(rewardedAddresses, totalRewardsPerAddress);
   await writeFile(
-    "output/rewards-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
+    `${OUTPUT_DIR}/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`,
     rewardsOutput.join("\n")
   );
-  console.log(`Wrote ${rewardedAddresses.length} rewards to output/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
+  console.log(`Wrote ${rewardedAddresses.length} rewards to ${OUTPUT_DIR}/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
 
   // Verify total rewards equals reward pool
   const totalRewards = Array.from(totalRewardsPerAddress.values()).reduce(

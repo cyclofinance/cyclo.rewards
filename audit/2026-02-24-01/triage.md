@@ -202,7 +202,7 @@
 | A03-1 | HIGH | Side effect on import: `main()` executes unconditionally at module level | PENDING |
 | A03-2 | HIGH | Hardcoded file paths and epoch-specific values in `main()` | PENDING |
 | A05-1 | MEDIUM | Fixed 10-second retry delay documented as "exponential backoff" in CLAUDE.md | FIXED — corrected to "3 attempts with fixed 10-second delay" |
-| A06-3 | MEDIUM | Duplicated snapshot balance update logic (3+ repetitions) | PENDING |
+| A06-3 | MEDIUM | Duplicated snapshot balance update logic (3+ repetitions) | FIXED — extracted private `updateSnapshots` helper; 6 tests added |
 | A06-5 | MEDIUM | `client` typed as `any` defeats type safety | FIXED — typed as PublicClient on field and constructor parameter |
 | A08-2 | MEDIUM | `Transfer` and `TransferRecord` are near-duplicates | FIXED — removed dead TransferRecord type |
 | A08-3 | MEDIUM | `AccountSummary` hardcodes 2 snapshot fields; system uses 30 | FIXED — removed dead AccountSummary type |
@@ -213,7 +213,7 @@
 | A03-4 | MEDIUM | Inconsistent indentation: `main()` uses 4-space, rest uses 2-space | PENDING |
 | A03-5 | MEDIUM | Inconsistent semicolon usage | PENDING |
 | A03-6 | MEDIUM | Redundant `.toLowerCase()` calls in `calculateDiff` | PENDING |
-| A04-1 | MEDIUM | God function: `main()` spans ~230 lines handling I/O, processing, reporting, CSV generation | PENDING |
+| A04-1 | MEDIUM | God function: `main()` spans ~230 lines handling I/O, processing, reporting, CSV generation | FIXED — extracted parseEnv, parseJsonl, parseBlocklist, formatBalancesCsv, formatRewardsCsv, filterZeroRewards, summarizeTokenBalances; now ~150 lines |
 | A04-2 | MEDIUM | `any[]` type on transfers array defeats type safety for entire pipeline | FIXED — typed as Transfer[] in index.ts |
 | A01-1 | MEDIUM | Unused `Epoch` import in `config.ts` | FIXED — removed unused import |
 | A06-1 | LOW | `accountTransfers` Map is write-only (dead code) | FIXED — removed dead code, AccountTransfers and TransferDetail types |
@@ -239,7 +239,7 @@
 | A03-9 | LOW | `DISTRIBUTED_COUNT` is epoch-specific but exported as general constant | PENDING |
 | A03-10 | LOW | Greedy budget allocation is order-dependent but undocumented | PENDING |
 | A03-11 | LOW | `structuredClone` on flat objects where shallow copy suffices | PENDING |
-| A04-3 | LOW | Duplicated JSONL parsing pattern across three data sources | PENDING |
+| A04-3 | LOW | Duplicated JSONL parsing pattern across three data sources | FIXED — extracted parseJsonl() in pipeline.ts, used by index.ts |
 | A04-4 | LOW | Inconsistent import path style: `.js` extension on one import only | FIXED — removed .js extension from processor import |
 | A04-5 | LOW | Hardcoded file paths and magic numbers scattered throughout | PENDING |
 | A04-6 | LOW | Misleading log messages reference wrong output filenames | FIXED — log now includes snapshot block numbers |
@@ -247,14 +247,14 @@
 | A04-8 | LOW | Unsafe non-null assertion on `process.env.SEED` | FIXED — parseEnv() validates with assert |
 | A04-9 | LOW | `mkdir("output")` called after first write to `output/` | FIXED — moved mkdir before first writeFile |
 | A05-2 | LOW | JSDoc and inline comment overstate retry count ("3 retries" vs 3 total attempts) | FIXED — corrected CLAUDE.md retry description |
-| A05-3 | LOW | Inconsistent `blockNumber` parameter type (`number` vs `bigint`) between functions | PENDING |
+| A05-3 | LOW | Inconsistent `blockNumber` parameter type (`number` vs `bigint`) between functions | DISMISSED — deliberate: `getPoolsTick` accepts `number` (matching snapshot type) and converts to `bigint` for viem's multicall; bridges the type boundary |
 | A05-4 | LOW | Hardcoded Multicall3 contract address | FIXED — extracted MULTICALL3_ADDRESS constant |
-| A07-1 | LOW | Module-level side effects: `config()` and `assert` execute on import | PENDING |
-| A07-2 | LOW | Structural duplication between `scrapeTransfers` and `scrapeLiquidityChanges` | PENDING |
-| A07-3 | LOW | Unsafe `any` type in liquidity change mapping defeats type safety | PENDING |
-| A07-4 | LOW | Hardcoded magic number `270000` for file splitting with no shared constant | PENDING |
-| A07-5 | LOW | Full accumulator rewritten on every batch iteration | PENDING |
+| A07-1 | LOW | Module-level side effects: `config()` and `assert` execute on import | DISMISSED — scraper.ts is a standalone script (`npm run scrape`), never imported by other modules; side effects are standard for script entrypoints |
+| A07-2 | LOW | Structural duplication between `scrapeTransfers` and `scrapeLiquidityChanges` | DISMISSED — shared pattern is just GraphQL pagination; functions differ in query, response mapping, and file output strategy (split vs single); abstracting would add complexity for 2 call sites |
+| A07-3 | LOW | Unsafe `any` type in liquidity change mapping defeats type safety | FIXED — replaced `any` with discriminated construction; V2/V3 branches return properly typed objects |
+| A07-4 | LOW | Hardcoded magic number `270000` for file splitting with no shared constant | FIXED — extracted TRANSFER_CHUNK_SIZE constant |
+| A07-5 | LOW | Full accumulator rewritten on every batch iteration | DISMISSED — intentional crash recovery: saves progress after each batch so partial data survives scraper failures |
 | A08-4 | LOW | Mixed type definition keywords: `interface` vs `type` for plain object shapes | FIXED — changed LiquidityChangeBase to interface; type kept where needed for unions/intersections |
 | A08-5 | LOW | Inline anonymous type in `AccountTransfers.transfersOut` | FIXED — removed dead AccountTransfers type |
 | A08-6 | LOW | `Epoch` type imported in `config.ts` but unused | FIXED — removed unused Epoch import |
-| A08-7 | LOW | Numeric string fields lack documentation on denomination/encoding | PENDING |
+| A08-7 | LOW | Numeric string fields lack documentation on denomination/encoding | FIXED — JSDoc added to Transfer.value, LiquidityChangeBase.liquidityChange, depositedBalanceChange; dead types removed |

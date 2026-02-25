@@ -6,6 +6,7 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
+import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE } from "./constants";
 import { config } from "dotenv";
 import assert from "assert";
 
@@ -134,13 +135,14 @@ async function scrapeTransfers() {
     hasMore = batchTransfers.length === BATCH_SIZE;
     skip += batchTransfers.length;
 
-    // Save progress after each batch, splitting across multiple files
-    // to stay under GitHub's 100MB file size limit
-    const fileCount = Math.ceil(transfers.length / 270000);
+    // Rewrite all transfer files after each batch for crash recovery —
+    // if the scraper fails mid-run, previously fetched data is preserved on disk.
+    // Files are split at TRANSFER_CHUNK_SIZE lines to stay under GitHub's 100MB file size limit.
+    const fileCount = Math.ceil(transfers.length / TRANSFER_CHUNK_SIZE);
     for (let i = 0; i < fileCount; i++) {
       await writeFile(
-        `data/transfers${i + 1}.dat`,
-        transfers.slice(270000 * i, 270000 * (i + 1)).map((t) => JSON.stringify(t)).join("\n")
+        `${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`,
+        transfers.slice(TRANSFER_CHUNK_SIZE * i, TRANSFER_CHUNK_SIZE * (i + 1)).map((t) => JSON.stringify(t)).join("\n")
       );
     }
 
@@ -211,9 +213,8 @@ async function scrapeLiquidityChanges() {
       }
     );
 
-    const batchLiquidityChanges = response.liquidityChanges.map((t) => {
-      const base: any = {
-        __typename: t.__typename,
+    const batchLiquidityChanges: LiquidityChange[] = response.liquidityChanges.map((t) => {
+      const base = {
         tokenAddress: t.tokenAddress,
         lpAddress: t.lpAddress,
         owner: t.owner.address,
@@ -225,16 +226,19 @@ async function scrapeLiquidityChanges() {
         transactionHash: t.transactionHash,
       };
       if (t.__typename === "LiquidityV3Change") {
-        base.tokenId = t.tokenId;
-        base.poolAddress = t.poolAddress;
-        base.fee = parseInt(t.fee);
-        base.lowerTick = parseInt(t.lowerTick);
-        base.upperTick = parseInt(t.upperTick);
-
         // add to v3 pools list
         v3Pools.add(t.poolAddress.toLowerCase());
+        return {
+          ...base,
+          __typename: t.__typename,
+          tokenId: t.tokenId,
+          poolAddress: t.poolAddress,
+          fee: parseInt(t.fee),
+          lowerTick: parseInt(t.lowerTick),
+          upperTick: parseInt(t.upperTick),
+        };
       }
-      return base as LiquidityChange;
+      return { ...base, __typename: t.__typename };
     });
 
     liquidityChanges.push(...batchLiquidityChanges);
@@ -245,9 +249,10 @@ async function scrapeLiquidityChanges() {
     hasMore = batchLiquidityChanges.length === BATCH_SIZE;
     skip += batchLiquidityChanges.length;
 
-    // Save progress after each batch
+    // Rewrite full file after each batch for crash recovery —
+    // if the scraper fails mid-run, previously fetched data is preserved on disk.
     await writeFile(
-      "data/liquidity.dat",
+      `${DATA_DIR}/${LIQUIDITY_FILE}`,
       liquidityChanges.map((t) => JSON.stringify(t)).join("\n")
     );
 
@@ -257,7 +262,7 @@ async function scrapeLiquidityChanges() {
 
   // save v3 pools list
   await writeFile(
-    "data/pools.dat",
+    `${DATA_DIR}/${POOLS_FILE}`,
     JSON.stringify(Array.from(v3Pools))
   );
 
