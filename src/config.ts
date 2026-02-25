@@ -57,6 +57,7 @@ export function isSameAddress(a: string, b: string): boolean {
  * @param seed - The seed phrase
  * @param start - The start block number
  * @param end - The end block number
+ * @returns Sorted array of 30 unique block numbers between start and end (inclusive)
  */
 export function generateSnapshotBlocks(
   seed: string,
@@ -94,6 +95,7 @@ export function generateSnapshotBlocks(
  * Scales a given value and its decimals to 18 fixed point decimals
  * @param value - The value to scale to 18
  * @param decimals - The decimals of the value to scale to 18
+ * @returns The value scaled to 18 decimal places
  */
 export function scaleTo18(value: bigint, decimals: number): bigint {
     if (decimals === 18) {

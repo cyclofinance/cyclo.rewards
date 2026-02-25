@@ -141,8 +141,8 @@
 | A08-DOC-008 | MEDIUM | `TokenBalances` interface undocumented; `final` vs `final18` distinction critical | PENDING |
 | A01-1 | LOW | Unused `Epoch` import on line 2 of `config.ts` | FIXED — removed unused import |
 | A01-2 | LOW | Missing JSDoc on `isSameAddress` | PENDING |
-| A01-3 | LOW | Missing `@returns` tag on `generateSnapshotBlocks` JSDoc | PENDING |
-| A01-4 | LOW | Missing `@returns` tag on `scaleTo18` JSDoc | PENDING |
+| A01-3 | LOW | Missing `@returns` tag on `generateSnapshotBlocks` JSDoc | FIXED — added @returns tag |
+| A01-4 | LOW | Missing `@returns` tag on `scaleTo18` JSDoc | FIXED — added @returns tag |
 | A01-5 | LOW | No JSDoc on exported constants (`REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS`, `RPC_URL`) | PENDING |
 | A01-7 | LOW | Grammatical error "generated" -> "generate" in assertion message | FIXED — corrected typo |
 | A02-4 | LOW | CSV column header comment is accurate but ambiguous in scope | PENDING |
@@ -227,7 +227,7 @@
 | A06-11 | LOW | Inconsistent semicolons and brace style in `processor.ts` | PENDING |
 | A06-13 | LOW | Inconsistent address normalization in `accountTransfers` | PENDING |
 | A06-14 | LOW | Constructor `reports` uses inline type instead of `Report` interface | PENDING |
-| A06-15 | LOW | Unreachable `return false` at end of `isApprovedSource` | PENDING |
+| A06-15 | LOW | Unreachable `return false` at end of `isApprovedSource` | DISMISSED — harmless TypeScript return guard |
 | A01-3 | LOW | Inconsistent indentation in `scaleTo18` function | PENDING |
 | A01-4 | LOW | Inconsistent BigInt construction method in `scaleTo18` | PENDING |
 | A01-5 | LOW | `generateSnapshotBlocks` does not guarantee uniqueness of snapshot blocks | FIXED — uses Set for deduplication |
