@@ -81,7 +81,7 @@ export function generateSnapshotBlocks(
   // making sure we have correct length
   assert.ok(
     snapshots.length === 30,
-    `failed to generated expected number of snapshots, expected: 30, got: ${snapshots.length}`
+    `failed to generate expected number of snapshots, expected: 30, got: ${snapshots.length}`
   );
 
   // sort asc
