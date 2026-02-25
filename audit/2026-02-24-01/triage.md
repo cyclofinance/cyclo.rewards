@@ -37,7 +37,7 @@
 | A08-1 | MEDIUM | Unbranded string for Ethereum addresses | PENDING |
 | A08-2 | MEDIUM | Numeric string fields without runtime validation | PENDING |
 | A08-8 | MEDIUM | Map key type erosion in `EligibleBalances`/`RewardsPerToken` | PENDING |
-| A01-3 | LOW | Mixed-case addresses in constants | PENDING |
+| A01-3 | LOW | Mixed-case addresses in constants | FIXED — lowercased all addresses in config.ts |
 | A01-4 | LOW | `scaleTo18` does not validate `decimals` parameter | PENDING |
 | A01-5 | LOW | `isSameAddress` does not validate address format | PENDING |
 | A02-2 | LOW | `ONE` uses fragile `Number`-to-`BigInt` pattern | FIXED — changed to `10n ** 18n` with test assertion |
@@ -64,7 +64,7 @@
 | A07-5 | LOW | File split write-every-iteration fragile | PENDING |
 | A07-6 | LOW | `main()` executes on import with no guard | PENDING |
 | A07-10 | LOW | Error handling swallows failures silently | PENDING |
-| A08-3 | LOW | `Transfer` and `TransferRecord` near-duplication | PENDING |
+| A08-3 | LOW | `Transfer` and `TransferRecord` near-duplication | FIXED — removed dead TransferRecord type |
 | A08-4 | LOW | No `readonly` modifiers on financial data structures | PENDING |
 | A08-5 | LOW | `currentNetBalance` can be negative without type-level constraint | PENDING |
 | A08-7 | LOW | `parseInt` on tick/fee fields with no NaN guard | PENDING |
@@ -132,7 +132,7 @@
 | A04-DOC-003 | MEDIUM | Log message says `output/balances.csv` but file is written to dynamic name | PENDING |
 | A04-DOC-004 | MEDIUM | Log message says `output/rewards.csv` but file is written to dynamic name | PENDING |
 | A05-DOC-003 | MEDIUM | `getPoolsTickMulticall()` has no JSDoc documentation | PENDING |
-| A05-DOC-004 | MEDIUM | `getPoolsTick()` JSDoc inaccurately implies exponential backoff; code uses fixed 10s delay | PENDING |
+| A05-DOC-004 | MEDIUM | `getPoolsTick()` JSDoc inaccurately implies exponential backoff; code uses fixed 10s delay | FIXED — corrected CLAUDE.md description |
 | A06-DOC-002 | MEDIUM | `Processor` class has no JSDoc | PENDING |
 | A07-DOC-007 | MEDIUM | `scrapeTransfers()` has no JSDoc | PENDING |
 | A07-DOC-008 | MEDIUM | `scrapeLiquidityChanges()` has no JSDoc | PENDING |
@@ -181,18 +181,18 @@
 | A08-DOC-001 | LOW | No module-level JSDoc on `types.ts` | PENDING |
 | A08-DOC-003 | LOW | `Transfer` interface undocumented | PENDING |
 | A08-DOC-004 | LOW | `TransferDetail` interface undocumented | PENDING |
-| A08-DOC-006 | LOW | `Report` interface undocumented; possibly redundant with inline type in processor | PENDING |
-| A08-DOC-007 | LOW | `AccountSummary` interface undocumented; possibly unused | PENDING |
+| A08-DOC-006 | LOW | `Report` interface undocumented; possibly redundant with inline type in processor | FIXED — removed dead Report type |
+| A08-DOC-007 | LOW | `AccountSummary` interface undocumented; possibly unused | FIXED — removed dead AccountSummary type |
 | A08-DOC-009 | LOW | `EligibleBalances` has inline comment but no JSDoc | PENDING |
 | A08-DOC-010 | LOW | `RewardsPerToken` has inline comment but no JSDoc | PENDING |
-| A08-DOC-011 | LOW | `TransferRecord` undocumented; overlap with `Transfer` unclear | PENDING |
+| A08-DOC-011 | LOW | `TransferRecord` undocumented; overlap with `Transfer` unclear | FIXED — removed dead TransferRecord type |
 | A08-DOC-012 | LOW | `AccountTransfers` undocumented; asymmetric field types | PENDING |
 | A08-DOC-013 | LOW | `LiquidityChangeType` enum undocumented | PENDING |
 | A08-DOC-014 | LOW | `LiquidityChangeBase` undocumented; `depositedBalanceChange` name misleading | PENDING |
 | A08-DOC-015 | LOW | `LiquidityChangeV2` undocumented | PENDING |
 | A08-DOC-016 | LOW | `LiquidityChangeV3` undocumented; V3-specific fields need explanation | PENDING |
 | A08-DOC-017 | LOW | `LiquidityChange` union type undocumented | PENDING |
-| A08-DOC-018 | LOW | `Epoch` has inline field comments but no JSDoc; possibly unused | PENDING |
+| A08-DOC-018 | LOW | `Epoch` has inline field comments but no JSDoc; possibly unused | FIXED — removed dead Epoch type |
 
 ## Pass 4: Code Quality
 | ID | Severity | Finding | Status |
@@ -204,8 +204,8 @@
 | A05-1 | MEDIUM | Fixed 10-second retry delay documented as "exponential backoff" in CLAUDE.md | FIXED — corrected to "3 attempts with fixed 10-second delay" |
 | A06-3 | MEDIUM | Duplicated snapshot balance update logic (3+ repetitions) | PENDING |
 | A06-5 | MEDIUM | `client` typed as `any` defeats type safety | FIXED — typed as PublicClient on field and constructor parameter |
-| A08-2 | MEDIUM | `Transfer` and `TransferRecord` are near-duplicates | PENDING |
-| A08-3 | MEDIUM | `AccountSummary` hardcodes 2 snapshot fields; system uses 30 | PENDING |
+| A08-2 | MEDIUM | `Transfer` and `TransferRecord` are near-duplicates | FIXED — removed dead TransferRecord type |
+| A08-3 | MEDIUM | `AccountSummary` hardcodes 2 snapshot fields; system uses 30 | FIXED — removed dead AccountSummary type |
 | A02-1 | MEDIUM | Three different BigInt construction idioms in a 4-line span | FIXED — all constants now use `n` suffix consistently |
 | A02-2 | MEDIUM | `REWARD_POOL` uses `BigInt()` with a large numeric literal (precision risk) | FIXED — changed to 500_000_000_000_000_000_000_000n |
 | A01-2 | MEDIUM | Inconsistent address casing across constant arrays | FIXED — lowercased all addresses in REWARDS_SOURCES, FACTORIES, CYTOKENS |
@@ -230,7 +230,7 @@
 | A06-15 | LOW | Unreachable `return false` at end of `isApprovedSource` | PENDING |
 | A01-3 | LOW | Inconsistent indentation in `scaleTo18` function | PENDING |
 | A01-4 | LOW | Inconsistent BigInt construction method in `scaleTo18` | PENDING |
-| A01-5 | LOW | `generateSnapshotBlocks` does not guarantee uniqueness of snapshot blocks | PENDING |
+| A01-5 | LOW | `generateSnapshotBlocks` does not guarantee uniqueness of snapshot blocks | FIXED — uses Set for deduplication |
 | A02-3 | LOW | `ONE` naming is ambiguous (does not convey fixed-point scaling purpose) | PENDING |
 | A02-4 | LOW | `as const` used inconsistently across BigInt constants | PENDING |
 | A02-5 | LOW | `DEC25_REWARD_POOL` embeds a date; `REWARD_POOL` does not (naming inconsistency) | PENDING |
@@ -243,10 +243,10 @@
 | A04-4 | LOW | Inconsistent import path style: `.js` extension on one import only | PENDING |
 | A04-5 | LOW | Hardcoded file paths and magic numbers scattered throughout | PENDING |
 | A04-6 | LOW | Misleading log messages reference wrong output filenames | PENDING |
-| A04-7 | LOW | Mutating `addresses` array via `splice` + `indexOf` is O(n^2) with `-1` edge case | PENDING |
-| A04-8 | LOW | Unsafe non-null assertion on `process.env.SEED` | PENDING |
-| A04-9 | LOW | `mkdir("output")` called after first write to `output/` | PENDING |
-| A05-2 | LOW | JSDoc and inline comment overstate retry count ("3 retries" vs 3 total attempts) | PENDING |
+| A04-7 | LOW | Mutating `addresses` array via `splice` + `indexOf` is O(n^2) with `-1` edge case | FIXED — replaced with filterZeroRewards() |
+| A04-8 | LOW | Unsafe non-null assertion on `process.env.SEED` | FIXED — parseEnv() validates with assert |
+| A04-9 | LOW | `mkdir("output")` called after first write to `output/` | FIXED — moved mkdir before first writeFile |
+| A05-2 | LOW | JSDoc and inline comment overstate retry count ("3 retries" vs 3 total attempts) | FIXED — corrected CLAUDE.md retry description |
 | A05-3 | LOW | Inconsistent `blockNumber` parameter type (`number` vs `bigint`) between functions | PENDING |
 | A05-4 | LOW | Hardcoded Multicall3 contract address | PENDING |
 | A07-1 | LOW | Module-level side effects: `config()` and `assert` execute on import | PENDING |
@@ -256,5 +256,5 @@
 | A07-5 | LOW | Full accumulator rewritten on every batch iteration | PENDING |
 | A08-4 | LOW | Mixed type definition keywords: `interface` vs `type` for plain object shapes | PENDING |
 | A08-5 | LOW | Inline anonymous type in `AccountTransfers.transfersOut` | PENDING |
-| A08-6 | LOW | `Epoch` type imported in `config.ts` but unused | PENDING |
+| A08-6 | LOW | `Epoch` type imported in `config.ts` but unused | FIXED — removed unused Epoch import |
 | A08-7 | LOW | Numeric string fields lack documentation on denomination/encoding | PENDING |
