@@ -32,7 +32,7 @@ export class Processor {
   private accountTransfers = new Map<string, AccountTransfers>();
   private client: PublicClient;
   private lp3TrackList: Record<number, Map<string, LpV3Position>> = {};
-  private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map()
+  private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map();
 
   constructor(
     private snapshots: number[],
