@@ -152,6 +152,28 @@ describe("Processor", () => {
           ?.average
       ).toBe(0n);
     });
+
+    it("should skip transfers for ineligible tokens", async () => {
+      const transfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: "0x0000000000000000000000000000000000000099", // not in CYTOKENS
+        transactionHash: "0xtxhash",
+      };
+
+      await processor.processTransfer(transfer);
+      const balances = await processor.getEligibleBalances();
+
+      // No balances should be affected for any token
+      for (const [, tokenBalances] of balances) {
+        for (const [, balance] of tokenBalances) {
+          expect(balance.average).toBe(0n);
+        }
+      }
+    });
   });
 
   describe("Snapshot Timing", () => {
@@ -256,6 +278,44 @@ describe("Processor", () => {
           .get(CYTOKENS[0].address.toLowerCase())
           ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[1]
       ).toBe(0n);
+    });
+
+    it("should include transfer exactly at snapshot block boundary", async () => {
+      const transfer: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0xpool",
+        value: ONE,
+        blockNumber: 100, // Exactly at snapshot 1
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0xtxhash",
+      };
+      const liquidityChangeEvent: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE,
+        blockNumber: 100,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash",
+      };
+
+      await processor.organizeLiquidityPositions(liquidityChangeEvent);
+      await processor.processTransfer(transfer);
+      const balances = await processor.getEligibleBalances();
+
+      // Transfer at block 100 (== snapshot[0]) should be included in snapshot[0] due to <= comparison
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())
+          ?.get(NORMAL_USER_1)?.snapshots[0]
+      ).toBe(ONEn);
+      expect(
+        balances.get(CYTOKENS[0].address.toLowerCase())
+          ?.get(NORMAL_USER_1)?.snapshots[1]
+      ).toBe(ONEn);
     });
   });
 
