@@ -123,7 +123,7 @@
 | A02-1 | CRITICAL | `REWARD_POOL` has silent precision loss (8,388,608 wei deficit); no documentation of intended value | FIXED — changed to 500_000_000_000_000_000_000_000n with test assertion |
 | A02-2 | HIGH | `ONE` uses fragile `BigInt(Number)` pattern; happens to be correct but undocumented | FIXED — changed to 10n ** 18n with test assertion |
 | A02-3 | HIGH | `DEC25_REWARD_POOL` has no documentation explaining its purpose or relationship to `REWARD_POOL` | DOCUMENTED — added comments explaining epoch, amount, and usage |
-| A06-DOC-003 | HIGH | All 13 public methods on `Processor` class lack JSDoc | PENDING — isApprovedSource done; 12 remaining |
+| A06-DOC-003 | HIGH | All 13 public methods on `Processor` class lack JSDoc | FIXED — JSDoc added to all 13 methods |
 | A01-6 | MEDIUM | `underlyingSymbol: "cyFXRP"` may be incorrect; breaks naming pattern of other entries | FIXED — changed to "FXRP" to match pattern (sFLR, WETH) |
 | A03-4 | MEDIUM | `calculateDiff` has no JSDoc at all (core exported function of the module) | PENDING |
 | A03-5 | MEDIUM | `DISTRIBUTED_COUNT = 100` magic constant with no explanation | PENDING |
@@ -164,7 +164,7 @@
 | A05-DOC-007 | LOW | Hardcoded Multicall3 address undocumented | FIXED — extracted MULTICALL3_ADDRESS constant with JSDoc |
 | A06-DOC-001 | LOW | No module-level JSDoc on `processor.ts` | FIXED — added module-level JSDoc |
 | A06-DOC-004 | LOW | `calculateRewardsPoolsPertoken` inconsistent casing (lowercase `t`) | FIXED — renamed to `calculateRewardsPoolsPerToken` |
-| A06-DOC-007 | LOW | `isApprovedSource` three-phase pipeline undocumented | PENDING |
+| A06-DOC-007 | LOW | `isApprovedSource` three-phase pipeline undocumented | FIXED — JSDoc describes cache/direct/factory pipeline with retry |
 | A06-DOC-011 | LOW | "First pass" comment says penalties but pass does not calculate them | FIXED — corrected to "calculate base balances" |
 | A06-DOC-012 | LOW | "Second pass" comment omits penalty calculation | FIXED — corrected to "calculate penalties and bounties" |
 | A06-DOC-018 | LOW | No private field documentation on `Processor` | PENDING |

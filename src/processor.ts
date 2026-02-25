@@ -135,6 +135,12 @@ export class Processor {
     return false;
   }
 
+  /**
+   * Processes a single ERC-20 transfer, updating sender and receiver balances.
+   * Only credits the receiver if the sender is an approved source.
+   * Handles LP deposit/withdraw adjustments via linked liquidity events.
+   * @param transfer - Transfer event to process
+   */
   async processTransfer(transfer: Transfer) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === transfer.tokenAddress.toLowerCase())) {
@@ -230,6 +236,11 @@ export class Processor {
     accountBalances.set(transfer.from, fromBalance);
   }
 
+  /**
+   * Checks if a transfer corresponds to an LP deposit by matching against organized liquidity events.
+   * @param transfer - Transfer to check (sender is the depositor)
+   * @returns The matching deposit liquidity event, or undefined
+   */
   transferIsDeposit(transfer: Transfer): LiquidityChange | undefined {
     const token = transfer.tokenAddress.toLowerCase()
     const txhash = transfer.transactionHash.toLowerCase()
@@ -248,6 +259,11 @@ export class Processor {
     return
   }
 
+  /**
+   * Checks if a transfer corresponds to an LP withdrawal by matching against organized liquidity events.
+   * @param transfer - Transfer to check (receiver is the withdrawer)
+   * @returns The matching withdrawal liquidity event, or undefined
+   */
   transferIsWithdraw(transfer: Transfer): LiquidityChange | undefined {
     const token = transfer.tokenAddress.toLowerCase()
     const txhash = transfer.transactionHash.toLowerCase()
@@ -266,6 +282,10 @@ export class Processor {
     return
   }
 
+  /**
+   * Collects all unique addresses from transfer balances and blocklist reporters.
+   * @returns Set of lowercased addresses
+   */
   getUniqueAddresses(): Set<string> {
     // Get all unique addresses, include reporters as they may have no balance from transfers
     const allAddresses = new Set<string>();
@@ -284,6 +304,11 @@ export class Processor {
     return allAddresses;
   }
 
+  /**
+   * Computes reward-eligible balances for all accounts across all tokens.
+   * Three passes: (1) average snapshot balances, (2) penalties/bounties, (3) final balances scaled to 18 decimals.
+   * @returns Token address → user address → TokenBalances
+   */
   async getEligibleBalances(): Promise<EligibleBalances> {
     const allAddresses = await this.getUniqueAddresses();
 
@@ -356,6 +381,11 @@ export class Processor {
     return tokenBalances;
   }
 
+  /**
+   * Sums final18 balances per token across all accounts.
+   * @param balances - Eligible balances from getEligibleBalances()
+   * @returns Token address → total final18 balance
+   */
   calculateTotalEligibleBalances(
     balances: EligibleBalances
   ): Map<string, bigint> {
@@ -373,6 +403,11 @@ export class Processor {
     return totalBalances;
   }
 
+  /**
+   * Filters CYTOKENS to only those with non-zero total eligible balance.
+   * @param balances - Eligible balances from getEligibleBalances()
+   * @returns CyToken definitions that have at least one account with balance
+   */
   getTokensWithBalance(balances: EligibleBalances): CyToken[] {
     const tokensWithBalance: CyToken[] = [];
     const totalBalances = this.calculateTotalEligibleBalances(balances);
@@ -384,6 +419,13 @@ export class Processor {
     return tokensWithBalance;
   }
 
+  /**
+   * Splits the reward pool across tokens using inverse-fraction weighting.
+   * Tokens with smaller total balances receive a larger share of rewards.
+   * @param balances - Eligible balances from getEligibleBalances()
+   * @param rewardPool - Total reward pool in wei
+   * @returns Token address → reward pool share for that token
+   */
   calculateRewardsPoolsPerToken(
     balances: EligibleBalances,
     rewardPool: bigint
@@ -429,6 +471,12 @@ export class Processor {
     return totalRewardsPerToken;
   }
 
+  /**
+   * End-to-end reward calculation: computes eligible balances, splits the pool across tokens,
+   * then distributes each token's share proportionally to account balances.
+   * @param rewardPool - Total reward pool in wei
+   * @returns Token address → user address → reward amount in wei
+   */
   async calculateRewards(rewardPool: bigint): Promise<RewardsPerToken> {
     const balances = await this.getEligibleBalances();
 
@@ -460,6 +508,11 @@ export class Processor {
     return rewards;
   }
 
+  /**
+   * Indexes a liquidity change event by owner → token → txHash for later lookup
+   * during transfer processing (transferIsDeposit/transferIsWithdraw).
+   * @param liquidityChangeEvent - Liquidity event to index
+   */
   organizeLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
@@ -488,6 +541,11 @@ export class Processor {
     }
   }
 
+  /**
+   * Processes a liquidity change event, updating the owner's balance and snapshot records.
+   * For V3 positions, also tracks the position in lp3TrackList for later in-range checks.
+   * @param liquidityChangeEvent - Liquidity event to process
+   */
   processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
@@ -556,7 +614,11 @@ export class Processor {
     accountBalances.set(owner, ownerBalance);
   }
 
-  // update each account's snapshots balances with lp v3 price range factored in
+  /**
+   * Deducts out-of-range V3 LP positions from snapshot balances.
+   * Queries on-chain pool ticks at each snapshot block and subtracts position value
+   * if the pool's current tick is outside the position's [lowerTick, upperTick] range.
+   */
   async processLpRange() {
     // iter snapshots
     for (let i = 0; i < this.snapshots.length; i++) {
