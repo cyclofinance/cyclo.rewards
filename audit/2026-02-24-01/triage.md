@@ -219,7 +219,7 @@
 | A06-1 | LOW | `accountTransfers` Map is write-only (dead code) | PENDING |
 | A06-2 | LOW | Redundant constructor parameter: `epochLength` vs `snapshots.length` | FIXED — removed redundant epochLength parameter |
 | A06-4 | LOW | Method name `calculateRewardsPoolsPertoken` has inconsistent casing | FIXED — renamed to `calculateRewardsPoolsPerToken` |
-| A06-6 | LOW | Unnecessary `async` on methods that do not await | PENDING |
+| A06-6 | LOW | Unnecessary `async` on methods that do not await | FIXED — removed async from getUniqueAddresses, organizeLiquidityPositions, processLiquidityPositions |
 | A06-7 | LOW | `console.log` in library code | PENDING |
 | A06-8 | LOW | Magic numbers for bounty percentage (10n/100n) | PENDING |
 | A06-9 | LOW | Magic number for retry backoff base delay (500ms) | PENDING |
@@ -233,7 +233,7 @@
 | A01-5 | LOW | `generateSnapshotBlocks` does not guarantee uniqueness of snapshot blocks | FIXED — uses Set for deduplication |
 | A02-3 | LOW | `ONE` naming is ambiguous (does not convey fixed-point scaling purpose) | FIXED — renamed to `ONE_18` with JSDoc |
 | A02-4 | LOW | `as const` used inconsistently across BigInt constants | FIXED — removed redundant `as const` from DEC25_REWARD_POOL |
-| A02-5 | LOW | `DEC25_REWARD_POOL` embeds a date; `REWARD_POOL` does not (naming inconsistency) | PENDING |
+| A02-5 | LOW | `DEC25_REWARD_POOL` embeds a date; `REWARD_POOL` does not (naming inconsistency) | DISMISSED — REWARD_POOL is the current epoch; DEC25 is historical, date prefix is appropriate |
 | A03-7 | LOW | Inconsistent use of `./` prefix in file paths | PENDING |
 | A03-8 | LOW | CSV header construction duplicated across files | PENDING |
 | A03-9 | LOW | `DISTRIBUTED_COUNT` is epoch-specific but exported as general constant | PENDING |

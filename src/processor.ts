@@ -279,7 +279,7 @@ export class Processor {
     return
   }
 
-  async getUniqueAddresses(): Promise<Set<string>> {
+  getUniqueAddresses(): Set<string> {
     // Get all unique addresses, include reporters as they may have no balance from transfers
     const allAddresses = new Set<string>();
     for (const report of this.reports) {
@@ -474,7 +474,7 @@ export class Processor {
     return rewards;
   }
 
-  async organizeLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
+  organizeLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
       return;
@@ -502,7 +502,7 @@ export class Processor {
     }
   }
 
-  async processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
+  processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
     if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
       return;
