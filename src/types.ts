@@ -43,7 +43,7 @@ export enum LiquidityChangeType {
   Withdraw = 'WITHDRAW'
 }
 
-export type LiquidityChangeBase = {
+export interface LiquidityChangeBase {
   tokenAddress: string;
   lpAddress: string;
   owner: string;

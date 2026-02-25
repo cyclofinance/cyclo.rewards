@@ -254,7 +254,7 @@
 | A07-3 | LOW | Unsafe `any` type in liquidity change mapping defeats type safety | PENDING |
 | A07-4 | LOW | Hardcoded magic number `270000` for file splitting with no shared constant | PENDING |
 | A07-5 | LOW | Full accumulator rewritten on every batch iteration | PENDING |
-| A08-4 | LOW | Mixed type definition keywords: `interface` vs `type` for plain object shapes | PENDING |
+| A08-4 | LOW | Mixed type definition keywords: `interface` vs `type` for plain object shapes | FIXED — changed LiquidityChangeBase to interface; type kept where needed for unions/intersections |
 | A08-5 | LOW | Inline anonymous type in `AccountTransfers.transfersOut` | FIXED — removed dead AccountTransfers type |
 | A08-6 | LOW | `Epoch` type imported in `config.ts` but unused | FIXED — removed unused Epoch import |
 | A08-7 | LOW | Numeric string fields lack documentation on denomination/encoding | PENDING |
