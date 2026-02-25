@@ -1042,6 +1042,115 @@ describe("Processor", () => {
         final18: 7000000000000000000n,
       });
     });
+
+    it("should skip liquidity events for ineligible tokens", async () => {
+      const liquidityChangeEvent: LiquidityChange = {
+        tokenAddress: "0x0000000000000000000000000000000000000099", // not in CYTOKENS
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash",
+      };
+
+      await processor.processLiquidityPositions(liquidityChangeEvent);
+      const balances = await processor.getEligibleBalances();
+
+      for (const [, tokenBalances] of balances) {
+        for (const [, balance] of tokenBalances) {
+          expect(balance.average).toBe(0n);
+        }
+      }
+    });
+
+    it("should include liquidity event exactly at snapshot block boundary", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+
+      const transfer: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0xpool",
+        value: ONE,
+        blockNumber: 100, // Exactly at snapshot 1
+        timestamp: 1000,
+        tokenAddress,
+        transactionHash: "0xtxhash",
+      };
+      const liquidityChangeEvent: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE,
+        blockNumber: 100, // Exactly at snapshot 1
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash",
+      };
+
+      await processor.organizeLiquidityPositions(liquidityChangeEvent);
+      await processor.processTransfer(transfer);
+      await processor.processLiquidityPositions(liquidityChangeEvent);
+
+      const balances = await processor.getEligibleBalances();
+
+      // Event at block 100 (== snapshot[0]) should be included due to <= comparison
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
+      ).toBe(ONEn);
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
+      ).toBe(ONEn);
+    });
+
+    it("should track V3 liquidity positions in lp3TrackList", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const poolAddress = "0x5000000000000000000000000000000000000000";
+
+      const transfer: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0xpool",
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
+        transactionHash: "0xtxhash",
+      };
+      const v3Event: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV3Change",
+        transactionHash: "0xtxhash",
+        tokenId: "42",
+        poolAddress,
+        fee: 3000,
+        lowerTick: -887220,
+        upperTick: 887220,
+      };
+
+      await processor.organizeLiquidityPositions(v3Event);
+      await processor.processTransfer(transfer);
+      await processor.processLiquidityPositions(v3Event);
+
+      const balances = await processor.getEligibleBalances();
+
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
+      ).toBe(ONEn);
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
+      ).toBe(ONEn);
+    });
   });
 
   describe("Mixed-case owner address in liquidity positions", () => {
