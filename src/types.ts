@@ -29,34 +29,6 @@ export interface AccountBalance {
   currentNetBalance: bigint;
 }
 
-export interface Report {
-  reporter: string;
-  cheater: string;
-}
-
-export interface AccountSummary {
-  address: string;
-  balanceAtSnapshot1: string;
-  balanceAtSnapshot2: string;
-  averageBalance: string;
-  penalty: string;
-  bounty: string;
-  finalBalance: string;
-  reports: {
-    asReporter: {
-      cheater: string;
-      penalizedAmount: string;
-      bountyAwarded: string;
-    }[];
-    asCheater: {
-      reporter: string;
-      penalizedAmount: string;
-      bountyAwarded: string;
-    }[];
-  };
-  transfers: AccountTransfers;
-}
-
 export interface TokenBalances {
   snapshots: bigint[];
   average: bigint;
@@ -69,16 +41,6 @@ export interface TokenBalances {
 export type EligibleBalances = Map<string, Map<string, TokenBalances>>; // token address -> user address -> balances
 
 export type RewardsPerToken = Map<string, Map<string, bigint>>; // token address -> user address -> reward
-
-export interface TransferRecord {
-  from: string;
-  to: string;
-  value: string;
-  blockNumber: number;
-  timestamp: number;
-  fromIsApprovedSource?: boolean;
-  transactionHash: string;
-}
 
 export interface AccountTransfers {
   transfersIn: TransferDetail[];
@@ -118,10 +80,3 @@ export type LiquidityChangeV3 = LiquidityChangeBase & {
 
 export type LiquidityChange = LiquidityChangeV2 | LiquidityChangeV3;
 
-export type Epoch = {
-  // number of days in the epoch
-  length: number;
-  // epoch timestamp
-  timestamp: number;
-  date?: string;
-};

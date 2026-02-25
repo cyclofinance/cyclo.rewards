@@ -198,7 +198,7 @@
 | ID | Severity | Finding | Status |
 |----|----------|---------|--------|
 | A06-12 | HIGH | Case mismatch on map key in `processLiquidityPositions` (line 525 vs 535) | FIXED — use `owner` (lowercased) instead of `liquidityChangeEvent.owner` on line 535 |
-| A08-1 | HIGH | Five exported types are dead code: `Report`, `AccountSummary`, `TransferRecord`, `TransferDetail`, `AccountTransfers` | PENDING |
+| A08-1 | HIGH | Five exported types are dead code: `Report`, `AccountSummary`, `TransferRecord`, `TransferDetail`, `AccountTransfers` | FIXED — removed Report, AccountSummary, TransferRecord, Epoch; TransferDetail/AccountTransfers still used by processor |
 | A03-1 | HIGH | Side effect on import: `main()` executes unconditionally at module level | PENDING |
 | A03-2 | HIGH | Hardcoded file paths and epoch-specific values in `main()` | PENDING |
 | A05-1 | MEDIUM | Fixed 10-second retry delay documented as "exponential backoff" in CLAUDE.md | PENDING |
@@ -206,18 +206,18 @@
 | A06-5 | MEDIUM | `client` typed as `any` defeats type safety | PENDING |
 | A08-2 | MEDIUM | `Transfer` and `TransferRecord` are near-duplicates | PENDING |
 | A08-3 | MEDIUM | `AccountSummary` hardcodes 2 snapshot fields; system uses 30 | PENDING |
-| A02-1 | MEDIUM | Three different BigInt construction idioms in a 4-line span | PENDING |
-| A02-2 | MEDIUM | `REWARD_POOL` uses `BigInt()` with a large numeric literal (precision risk) | PENDING |
+| A02-1 | MEDIUM | Three different BigInt construction idioms in a 4-line span | FIXED — all constants now use `n` suffix consistently |
+| A02-2 | MEDIUM | `REWARD_POOL` uses `BigInt()` with a large numeric literal (precision risk) | FIXED — changed to 500_000_000_000_000_000_000_000n |
 | A01-2 | MEDIUM | Inconsistent address casing across constant arrays | PENDING |
 | A03-3 | MEDIUM | Typos in comments (lines 70, 76 of `diffCalculator.ts`) | PENDING |
 | A03-4 | MEDIUM | Inconsistent indentation: `main()` uses 4-space, rest uses 2-space | PENDING |
 | A03-5 | MEDIUM | Inconsistent semicolon usage | PENDING |
 | A03-6 | MEDIUM | Redundant `.toLowerCase()` calls in `calculateDiff` | PENDING |
 | A04-1 | MEDIUM | God function: `main()` spans ~230 lines handling I/O, processing, reporting, CSV generation | PENDING |
-| A04-2 | MEDIUM | `any[]` type on transfers array defeats type safety for entire pipeline | PENDING |
-| A01-1 | MEDIUM | Unused `Epoch` import in `config.ts` | PENDING |
+| A04-2 | MEDIUM | `any[]` type on transfers array defeats type safety for entire pipeline | FIXED — typed as Transfer[] in index.ts |
+| A01-1 | MEDIUM | Unused `Epoch` import in `config.ts` | FIXED — removed unused import |
 | A06-1 | LOW | `accountTransfers` Map is write-only (dead code) | PENDING |
-| A06-2 | LOW | Redundant constructor parameter: `epochLength` vs `snapshots.length` | PENDING |
+| A06-2 | LOW | Redundant constructor parameter: `epochLength` vs `snapshots.length` | FIXED — removed redundant epochLength parameter |
 | A06-4 | LOW | Method name `calculateRewardsPoolsPertoken` has inconsistent casing | PENDING |
 | A06-6 | LOW | Unnecessary `async` on methods that do not await | PENDING |
 | A06-7 | LOW | `console.log` in library code | PENDING |
