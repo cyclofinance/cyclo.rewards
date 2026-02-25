@@ -18,7 +18,7 @@ import {
   LiquidityChange,
   LiquidityChangeType,
 } from "./types";
-import { ONE_18, BOUNTY_PERCENT } from "./constants";
+import { ONE_18, BOUNTY_PERCENT, RETRY_BASE_DELAY_MS } from "./constants";
 import { flare } from "viem/chains";
 import { getPoolsTick } from "./liquidity";
 
@@ -112,7 +112,7 @@ export class Processor {
         // For other errors (like rate limits), retry if we have attempts left
         if (attempt < retries - 1) {
           // Add exponential backoff
-          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s, etc.
+          const delay = Math.pow(2, attempt) * RETRY_BASE_DELAY_MS;
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
