@@ -2,7 +2,8 @@
  * Shared constants for reward pool amounts, CSV column headers, and validation patterns.
  */
 
-export const ONE = 10n ** 18n;
+/** 1e18 as BigInt — the fixed-point unit for 18-decimal token arithmetic */
+export const ONE_18 = 10n ** 18n;
 
 // Jan 2026 epoch: 500,000 tokens (18 decimals)
 export const REWARD_POOL = 500_000_000_000_000_000_000_000n;

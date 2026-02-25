@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ONE, REWARD_POOL, VALID_ADDRESS_REGEX } from "./constants";
+import { ONE_18, REWARD_POOL, VALID_ADDRESS_REGEX } from "./constants";
 
 describe("constants", () => {
-  it("ONE is exactly 1e18", () => {
-    expect(ONE).toBe(10n ** 18n);
+  it("ONE_18 is exactly 1e18", () => {
+    expect(ONE_18).toBe(10n ** 18n);
   });
 
   it("REWARD_POOL is exactly 500_000 tokens in wei", () => {

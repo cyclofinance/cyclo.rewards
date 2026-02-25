@@ -18,7 +18,7 @@ import {
   LiquidityChange,
   LiquidityChangeType,
 } from "./types";
-import { ONE } from "./constants";
+import { ONE_18 } from "./constants";
 import { flare } from "viem/chains";
 import { getPoolsTick } from "./liquidity";
 
@@ -415,7 +415,7 @@ export class Processor {
     const tokenInverseFractions = new Map<string, bigint>();
     for (const token of tokensWithBalance) {
       const tokenInverseFraction =
-        (sumOfAllBalances * ONE) /
+        (sumOfAllBalances * ONE_18) /
         totalBalances.get(token.address.toLowerCase())!;
       tokenInverseFractions.set(
         token.address.toLowerCase(),
