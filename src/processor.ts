@@ -1,8 +1,12 @@
-import { createPublicClient, http, Address, PublicClient } from "viem";
+/**
+ * Core reward calculation engine. Replays transfers and liquidity events to compute
+ * per-account eligible balances at snapshot blocks, then distributes the reward pool.
+ */
+
+import { Address, PublicClient } from "viem";
 import {
   REWARDS_SOURCES,
   FACTORIES,
-  RPC_URL,
   isSameAddress,
   CYTOKENS,
   scaleTo18,
@@ -20,9 +24,12 @@ import {
   BlocklistReport,
 } from "./types";
 import { ONE_18, BOUNTY_PERCENT, RETRY_BASE_DELAY_MS } from "./constants";
-import { flare } from "viem/chains";
 import { getPoolsTick } from "./liquidity";
 
+/**
+ * Processes on-chain transfer and liquidity events to calculate reward-eligible balances
+ * and distribute the reward pool across accounts proportionally.
+ */
 export class Processor {
   private approvedSourceCache = new Map<string, boolean>();
   private accountBalancesPerToken = new Map<
@@ -33,18 +40,19 @@ export class Processor {
   private lp3TrackList: Record<number, Map<string, LpV3Position>> = {};
   private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map();
 
+  /**
+   * @param snapshots - Sorted array of 30 block numbers to sample balances at
+   * @param reports - Blocklist entries mapping reporters to cheaters
+   * @param client - Viem PublicClient for on-chain queries
+   * @param pools - V3 pool addresses for in-range tick calculations
+   */
   constructor(
     private snapshots: number[],
     private reports: BlocklistReport[] = [],
-    client?: PublicClient,
+    client: PublicClient,
     private pools: `0x${string}`[] = [],
   ) {
-    this.client =
-      client ||
-      createPublicClient({
-        transport: http(RPC_URL),
-        chain: flare,
-      });
+    this.client = client;
 
     // Initialize token balances maps
     for (const token of CYTOKENS) {
@@ -58,6 +66,13 @@ export class Processor {
     }
   }
 
+  /**
+   * Checks whether an address is an approved transfer source (DEX router or factory-deployed pool).
+   * Results are cached. Retries with exponential backoff on transient RPC errors.
+   * @param source - Address to check
+   * @param retries - Maximum retry attempts for RPC calls
+   * @returns true if the source is a known router or deployed by a known factory
+   */
   async isApprovedSource(source: string, retries = 8): Promise<boolean> {
     // Check cache first
     if (this.approvedSourceCache.has(source.toLowerCase())) {

@@ -1,5 +1,5 @@
 import { PublicClient } from 'viem';
-import { getPoolsTickMulticall, getPoolsTick } from './liquidity';
+import { getPoolsTickMulticall, getPoolsTick, MULTICALL3_ADDRESS } from './liquidity';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock PublicClient
@@ -101,7 +101,7 @@ describe('getPoolsTickMulticall', () => {
       expect(mockClient.multicall).toHaveBeenCalledWith({
         blockNumber,
         allowFailure: true,
-        multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11",
+        multicallAddress: MULTICALL3_ADDRESS,
         contracts: mockPools.map(address => ({
           abi: expect.any(Array),
           address,

@@ -5,7 +5,7 @@
 import { PublicClient } from "viem";
 
 /** Multicall3 canonical deployment address (same on all EVM chains) */
-const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11" as const;
+export const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11" as const;
 
 /** Uniswap V3 pool slot0 ABI — returns current tick and other pool state */
 const abi = [

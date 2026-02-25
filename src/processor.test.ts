@@ -1,4 +1,5 @@
-import { CYTOKENS } from "./config";
+import { PublicClient } from "viem";
+import { CYTOKENS, REWARDS_SOURCES, FACTORIES } from "./config";
 import { Processor } from "./processor";
 import { getPoolsTick } from "./liquidity";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
@@ -21,11 +22,17 @@ describe("Processor", () => {
 
   const ONE = "1000000000000000000";
   const ONEn = 1000000000000000000n;
+  /** Token address not in CYTOKENS — used to test ineligible token filtering */
+  const INELIGIBLE_TOKEN = "0x0000000000000000000000000000000000000099";
+  /** Arbitrary pool address for V3 LP tests */
+  const POOL_ADDRESS = "0x5000000000000000000000000000000000000000";
+  /** Mixed-case address for case-sensitivity tests */
+  const MIXED_CASE_USER = "0x3000000000000000000000000000000000000Abc";
 
   // Create a mock client
   const mockClient = {
     readContract: async () => "0x0000000000000000000000000000000000000000",
-  };
+  } as unknown as PublicClient;
 
   beforeEach(() => {
     processor = new Processor(SNAPSHOTS, [], mockClient);
@@ -160,7 +167,7 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: "0x0000000000000000000000000000000000000099", // not in CYTOKENS
+        tokenAddress: INELIGIBLE_TOKEN,
         transactionHash: "0xtxhash",
       };
 
@@ -323,7 +330,7 @@ describe("Processor", () => {
     it("should include blocklisted addresses with penalties", async () => {
       const processor = new Processor(SNAPSHOTS, [
         { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
-      ]);
+      ], mockClient);
       processor.isApprovedSource = async (source: string) =>
         source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
 
@@ -1115,7 +1122,7 @@ describe("Processor", () => {
 
     it("should skip liquidity events for ineligible tokens", async () => {
       const liquidityChangeEvent: LiquidityChange = {
-        tokenAddress: "0x0000000000000000000000000000000000000099", // not in CYTOKENS
+        tokenAddress: INELIGIBLE_TOKEN,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -1179,8 +1186,6 @@ describe("Processor", () => {
 
     it("should track V3 liquidity positions in lp3TrackList", async () => {
       const tokenAddress = CYTOKENS[0].address.toLowerCase();
-      const poolAddress = "0x5000000000000000000000000000000000000000";
-
       const transfer: Transfer = {
         from: NORMAL_USER_1,
         to: "0xpool",
@@ -1202,7 +1207,7 @@ describe("Processor", () => {
         __typename: "LiquidityV3Change",
         transactionHash: "0xtxhash",
         tokenId: "42",
-        poolAddress,
+        poolAddress: POOL_ADDRESS,
         fee: 3000,
         lowerTick: -887220,
         upperTick: 887220,
@@ -1226,10 +1231,6 @@ describe("Processor", () => {
   describe("Mixed-case owner address in liquidity positions", () => {
     it("should not crash when processLiquidityPositions sees mixed-case owner with no prior transfer", async () => {
       const tokenAddress = CYTOKENS[0].address.toLowerCase();
-      // Mixed-case address: processLiquidityPositions init creates entry under
-      // lowercase, but the .get() on line 535 used the original mixed-case,
-      // returning undefined and crashing on the non-null assertion.
-      const MIXED_CASE_USER = "0x3000000000000000000000000000000000000Abc";
 
       // Direct LP Transfer event with no prior processTransfer call —
       // the only entry in accountBalances will be the one created by
@@ -1265,7 +1266,7 @@ describe("Processor", () => {
     const mockClient = {
       readContract: vi.fn(),
       multicall: vi.fn()
-    };
+    } as unknown as PublicClient;
     
     const snapshots = [1000, 2000, 3000];
     const pools = [
@@ -1677,60 +1678,68 @@ describe("Processor", () => {
   });
 
   describe("isApprovedSource", () => {
+    /** Address not in REWARDS_SOURCES or FACTORIES — triggers factory() RPC lookup */
+    const UNKNOWN_CONTRACT = "0x0000000000000000000000000000000000000099";
+    /** Factory address not in the approved FACTORIES list */
+    const NON_APPROVED_FACTORY = "0x0000000000000000000000000000000000000001";
+    /** Mixed-case address pair for cache case-insensitivity tests */
+    const MIXED_CASE_LOWER = "0x0000000000000000000000000000000000000aBc";
+    const MIXED_CASE_UPPER = "0x0000000000000000000000000000000000000ABC";
+
     it("should return true for direct approved source", async () => {
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      const result = await proc.isApprovedSource("0xcee8cd002f151a536394e564b84076c41bbbcd4d");
+      const result = await proc.isApprovedSource(REWARDS_SOURCES[0]);
       expect(result).toBe(true);
     });
 
     it("should return true for direct approved source with different casing", async () => {
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      const result = await proc.isApprovedSource("0xCEE8CD002F151A536394E564B84076C41BBBCD4D");
+      const result = await proc.isApprovedSource(REWARDS_SOURCES[0].toUpperCase());
       expect(result).toBe(true);
     });
 
     it("should return true for factory-based approved source", async () => {
       const factoryClient = {
-        readContract: async () => "0x16b619B04c961E8f4F06C10B42FDAbb328980A89",
-      };
+        readContract: async () => FACTORIES[0],
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], factoryClient);
-      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
       expect(result).toBe(true);
     });
 
     it("should return false for non-approved factory", async () => {
       const nonApprovedFactoryClient = {
-        readContract: async () => "0x0000000000000000000000000000000000000001",
-      };
+        readContract: async () => NON_APPROVED_FACTORY,
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], nonApprovedFactoryClient);
-      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
       expect(result).toBe(false);
     });
 
     it("should return false when contract has no factory function", async () => {
       const noFactoryClient = {
         readContract: async () => { throw { shortMessage: 'returned no data ("0x")' }; },
-      };
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], noFactoryClient);
-      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
       expect(result).toBe(false);
     });
 
     it("should return false when contract reverts", async () => {
       const revertClient = {
         readContract: async () => { throw { shortMessage: "execution reverted" }; },
-      };
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], revertClient);
-      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
       expect(result).toBe(false);
     });
 
     it("should return false for invalid parameters error", async () => {
       const invalidParamsClient = {
         readContract: async () => { throw { shortMessage: "invalid parameters" }; },
-      };
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], invalidParamsClient);
-      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099");
+      const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
       expect(result).toBe(false);
     });
 
@@ -1740,33 +1749,32 @@ describe("Processor", () => {
         readContract: async () => {
           callCount++;
           if (callCount === 1) throw new Error("rate limited");
-          return "0x16b619B04c961E8f4F06C10B42FDAbb328980A89";
+          return FACTORIES[0];
         },
-      };
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], retryClient);
-      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000099", 2);
+      const result = await proc.isApprovedSource(UNKNOWN_CONTRACT, 2);
       expect(result).toBe(true);
       expect(callCount).toBe(2);
     });
 
     it("should cache results and not call RPC again", async () => {
       const spyClient = {
-        readContract: vi.fn().mockResolvedValue("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"),
-      };
+        readContract: vi.fn().mockResolvedValue(FACTORIES[0]),
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], spyClient);
-      const addr = "0x0000000000000000000000000000000000000099";
-      await proc.isApprovedSource(addr);
-      await proc.isApprovedSource(addr);
+      await proc.isApprovedSource(UNKNOWN_CONTRACT);
+      await proc.isApprovedSource(UNKNOWN_CONTRACT);
       expect(spyClient.readContract).toHaveBeenCalledTimes(1);
     });
 
     it("should use cache across different casings of the same address", async () => {
       const spyClient = {
-        readContract: vi.fn().mockResolvedValue("0x16b619B04c961E8f4F06C10B42FDAbb328980A89"),
-      };
+        readContract: vi.fn().mockResolvedValue(FACTORIES[0]),
+      } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], spyClient);
-      await proc.isApprovedSource("0x0000000000000000000000000000000000000aBc");
-      const result = await proc.isApprovedSource("0x0000000000000000000000000000000000000ABC");
+      await proc.isApprovedSource(MIXED_CASE_LOWER);
+      const result = await proc.isApprovedSource(MIXED_CASE_UPPER);
       expect(result).toBe(true);
       expect(spyClient.readContract).toHaveBeenCalledTimes(1);
     });
@@ -1776,7 +1784,7 @@ describe("Processor", () => {
         readContract: async () => {
           throw new Error("rate limited");
         },
-      };
+      } as unknown as PublicClient;
 
       const proc = new Processor(SNAPSHOTS, [], failingClient);
       // Use 1 retry to keep the test fast

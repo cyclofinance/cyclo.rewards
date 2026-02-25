@@ -1,7 +1,9 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
+import { createPublicClient, http } from "viem";
+import { flare } from "viem/chains";
 import { Processor } from "./processor";
 import { config } from "dotenv";
-import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
+import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
 import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
 import { REWARD_POOL } from "./constants";
 import { Transfer } from "./types";
@@ -56,7 +58,8 @@ async function main() {
 
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
-  const processor = new Processor(SNAPSHOTS, reports, undefined, pools);
+  const client = createPublicClient({ chain: flare, transport: http(RPC_URL) });
+  const processor = new Processor(SNAPSHOTS, reports, client, pools);
 
   // Organize liquidity changes
   console.log(`Organizing ${liquidities.length} liquidity change events...`);
