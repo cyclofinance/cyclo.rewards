@@ -18,7 +18,7 @@ import {
   LiquidityChange,
   LiquidityChangeType,
 } from "./types";
-import { ONE_18 } from "./constants";
+import { ONE_18, BOUNTY_PERCENT } from "./constants";
 import { flare } from "viem/chains";
 import { getPoolsTick } from "./liquidity";
 
@@ -345,7 +345,7 @@ export class Processor {
         if (!cheaterBalance || reporterBalance === undefined) continue;
 
         const penalty = cheaterBalance.average;
-        const bounty = (penalty * 10n) / 100n;
+        const bounty = (penalty * BOUNTY_PERCENT) / 100n;
 
         cheaterBalance.penalty += penalty;
         reporterBalance.bounty += bounty;

@@ -19,3 +19,6 @@ export const DIFF_CSV_COLUMN_HEADER_NEW = "new";
 export const DIFF_CSV_COLUMN_HEADER_DIFF = "diff";
 
 export const VALID_ADDRESS_REGEX = /^0x[0-9a-fA-F]{40}$/;
+
+/** Percentage of a cheater's penalty paid to the reporter as a bounty (10%) */
+export const BOUNTY_PERCENT = 10n;

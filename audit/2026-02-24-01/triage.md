@@ -221,7 +221,7 @@
 | A06-4 | LOW | Method name `calculateRewardsPoolsPertoken` has inconsistent casing | FIXED — renamed to `calculateRewardsPoolsPerToken` |
 | A06-6 | LOW | Unnecessary `async` on methods that do not await | FIXED — removed async from getUniqueAddresses, organizeLiquidityPositions, processLiquidityPositions |
 | A06-7 | LOW | `console.log` in library code | FIXED — moved per-token reward logging from processor.ts to index.ts |
-| A06-8 | LOW | Magic numbers for bounty percentage (10n/100n) | PENDING |
+| A06-8 | LOW | Magic numbers for bounty percentage (10n/100n) | FIXED — extracted BOUNTY_PERCENT constant |
 | A06-9 | LOW | Magic number for retry backoff base delay (500ms) | PENDING |
 | A06-10 | LOW | Complex anonymous type for `lp3TrackList` | PENDING |
 | A06-11 | LOW | Inconsistent semicolons and brace style in `processor.ts` | PENDING |
