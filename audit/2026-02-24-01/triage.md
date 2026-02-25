@@ -226,7 +226,7 @@
 | A06-10 | LOW | Complex anonymous type for `lp3TrackList` | FIXED — extracted LpV3Position interface to types.ts |
 | A06-11 | LOW | Inconsistent semicolons and brace style in `processor.ts` | FIXED — added missing semicolon on liquidityEvents declaration |
 | A06-13 | LOW | Inconsistent address normalization in `accountTransfers` | FIXED — removed dead accountTransfers code entirely |
-| A06-14 | LOW | Constructor `reports` uses inline type instead of `Report` interface | PENDING |
+| A06-14 | LOW | Constructor `reports` uses inline type instead of `Report` interface | FIXED — extracted BlocklistReport interface to types.ts |
 | A06-15 | LOW | Unreachable `return false` at end of `isApprovedSource` | DISMISSED — harmless TypeScript return guard |
 | A01-3 | LOW | Inconsistent indentation in `scaleTo18` function | FIXED — normalized to 2-space indent |
 | A01-4 | LOW | Inconsistent BigInt construction method in `scaleTo18` | FIXED — changed to `10n ** BigInt(...)` pattern |

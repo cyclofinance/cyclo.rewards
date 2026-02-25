@@ -17,6 +17,7 @@ import {
   LiquidityChange,
   LiquidityChangeType,
   LpV3Position,
+  BlocklistReport,
 } from "./types";
 import { ONE_18, BOUNTY_PERCENT, RETRY_BASE_DELAY_MS } from "./constants";
 import { flare } from "viem/chains";
@@ -34,7 +35,7 @@ export class Processor {
 
   constructor(
     private snapshots: number[],
-    private reports: { reporter: string; cheater: string }[] = [],
+    private reports: BlocklistReport[] = [],
     client?: PublicClient,
     private pools: `0x${string}`[] = [],
   ) {

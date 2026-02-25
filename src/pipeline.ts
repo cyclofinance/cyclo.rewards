@@ -1,5 +1,5 @@
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
-import { CyToken, EligibleBalances, RewardsPerToken } from "./types";
+import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport } from "./types";
 
 export interface TokenSummary {
   name: string;
@@ -107,7 +107,7 @@ export function parseJsonl(data: string): any[] {
   return results;
 }
 
-export function parseBlocklist(data: string): {reporter: string; cheater: string}[] {
+export function parseBlocklist(data: string): BlocklistReport[] {
   return data
     .split("\n")
     .filter(Boolean)

@@ -70,6 +70,11 @@ export type LiquidityChangeV3 = LiquidityChangeBase & {
 
 export type LiquidityChange = LiquidityChangeV2 | LiquidityChangeV3;
 
+export interface BlocklistReport {
+  reporter: string;
+  cheater: string;
+}
+
 export interface LpV3Position {
   pool: string;
   value: bigint;
