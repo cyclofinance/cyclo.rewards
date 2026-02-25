@@ -180,13 +180,13 @@
 | A07-DOC-016 | LOW | `SUBGRAPH_URL` constant undocumented | PENDING |
 | A08-DOC-001 | LOW | No module-level JSDoc on `types.ts` | PENDING |
 | A08-DOC-003 | LOW | `Transfer` interface undocumented | PENDING |
-| A08-DOC-004 | LOW | `TransferDetail` interface undocumented | PENDING |
+| A08-DOC-004 | LOW | `TransferDetail` interface undocumented | FIXED — removed dead TransferDetail type |
 | A08-DOC-006 | LOW | `Report` interface undocumented; possibly redundant with inline type in processor | FIXED — removed dead Report type |
 | A08-DOC-007 | LOW | `AccountSummary` interface undocumented; possibly unused | FIXED — removed dead AccountSummary type |
 | A08-DOC-009 | LOW | `EligibleBalances` has inline comment but no JSDoc | PENDING |
 | A08-DOC-010 | LOW | `RewardsPerToken` has inline comment but no JSDoc | PENDING |
 | A08-DOC-011 | LOW | `TransferRecord` undocumented; overlap with `Transfer` unclear | FIXED — removed dead TransferRecord type |
-| A08-DOC-012 | LOW | `AccountTransfers` undocumented; asymmetric field types | PENDING |
+| A08-DOC-012 | LOW | `AccountTransfers` undocumented; asymmetric field types | FIXED — removed dead AccountTransfers type |
 | A08-DOC-013 | LOW | `LiquidityChangeType` enum undocumented | PENDING |
 | A08-DOC-014 | LOW | `LiquidityChangeBase` undocumented; `depositedBalanceChange` name misleading | PENDING |
 | A08-DOC-015 | LOW | `LiquidityChangeV2` undocumented | PENDING |
@@ -216,7 +216,7 @@
 | A04-1 | MEDIUM | God function: `main()` spans ~230 lines handling I/O, processing, reporting, CSV generation | PENDING |
 | A04-2 | MEDIUM | `any[]` type on transfers array defeats type safety for entire pipeline | FIXED — typed as Transfer[] in index.ts |
 | A01-1 | MEDIUM | Unused `Epoch` import in `config.ts` | FIXED — removed unused import |
-| A06-1 | LOW | `accountTransfers` Map is write-only (dead code) | PENDING |
+| A06-1 | LOW | `accountTransfers` Map is write-only (dead code) | FIXED — removed dead code, AccountTransfers and TransferDetail types |
 | A06-2 | LOW | Redundant constructor parameter: `epochLength` vs `snapshots.length` | FIXED — removed redundant epochLength parameter |
 | A06-4 | LOW | Method name `calculateRewardsPoolsPertoken` has inconsistent casing | FIXED — renamed to `calculateRewardsPoolsPerToken` |
 | A06-6 | LOW | Unnecessary `async` on methods that do not await | FIXED — removed async from getUniqueAddresses, organizeLiquidityPositions, processLiquidityPositions |
@@ -225,7 +225,7 @@
 | A06-9 | LOW | Magic number for retry backoff base delay (500ms) | FIXED — extracted RETRY_BASE_DELAY_MS constant |
 | A06-10 | LOW | Complex anonymous type for `lp3TrackList` | FIXED — extracted LpV3Position interface to types.ts |
 | A06-11 | LOW | Inconsistent semicolons and brace style in `processor.ts` | FIXED — added missing semicolon on liquidityEvents declaration |
-| A06-13 | LOW | Inconsistent address normalization in `accountTransfers` | PENDING |
+| A06-13 | LOW | Inconsistent address normalization in `accountTransfers` | FIXED — removed dead accountTransfers code entirely |
 | A06-14 | LOW | Constructor `reports` uses inline type instead of `Report` interface | PENDING |
 | A06-15 | LOW | Unreachable `return false` at end of `isApprovedSource` | DISMISSED — harmless TypeScript return guard |
 | A01-3 | LOW | Inconsistent indentation in `scaleTo18` function | FIXED — normalized to 2-space indent |
@@ -255,6 +255,6 @@
 | A07-4 | LOW | Hardcoded magic number `270000` for file splitting with no shared constant | PENDING |
 | A07-5 | LOW | Full accumulator rewritten on every batch iteration | PENDING |
 | A08-4 | LOW | Mixed type definition keywords: `interface` vs `type` for plain object shapes | PENDING |
-| A08-5 | LOW | Inline anonymous type in `AccountTransfers.transfersOut` | PENDING |
+| A08-5 | LOW | Inline anonymous type in `AccountTransfers.transfersOut` | FIXED — removed dead AccountTransfers type |
 | A08-6 | LOW | `Epoch` type imported in `config.ts` but unused | FIXED — removed unused Epoch import |
 | A08-7 | LOW | Numeric string fields lack documentation on denomination/encoding | PENDING |

@@ -17,11 +17,6 @@ export interface Transfer {
   transactionHash: string;
 }
 
-export interface TransferDetail {
-  value: string;
-  fromIsApprovedSource: boolean;
-}
-
 export interface AccountBalance {
   transfersInFromApproved: bigint;
   transfersOut: bigint;
@@ -41,11 +36,6 @@ export interface TokenBalances {
 export type EligibleBalances = Map<string, Map<string, TokenBalances>>; // token address -> user address -> balances
 
 export type RewardsPerToken = Map<string, Map<string, bigint>>; // token address -> user address -> reward
-
-export interface AccountTransfers {
-  transfersIn: TransferDetail[];
-  transfersOut: { value: string }[];
-}
 
 export enum LiquidityChangeType {
   Deposit = 'DEPOSIT',

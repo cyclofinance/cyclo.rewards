@@ -11,7 +11,6 @@ import {
   Transfer,
   AccountBalance,
   EligibleBalances,
-  AccountTransfers,
   TokenBalances,
   RewardsPerToken,
   CyToken,
@@ -29,7 +28,6 @@ export class Processor {
     string,
     Map<string, AccountBalance>
   >();
-  private accountTransfers = new Map<string, AccountTransfers>();
   private client: PublicClient;
   private lp3TrackList: Record<number, Map<string, LpV3Position>> = {};
   private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map();
@@ -129,29 +127,6 @@ export class Processor {
 
     const isApproved = await this.isApprovedSource(transfer.from);
     const value = BigInt(transfer.value);
-
-    // Track transfers for receiver
-    if (!this.accountTransfers.has(transfer.to)) {
-      this.accountTransfers.set(transfer.to, {
-        transfersIn: [],
-        transfersOut: [],
-      });
-    }
-    this.accountTransfers.get(transfer.to)!.transfersIn.push({
-      value: transfer.value,
-      fromIsApprovedSource: isApproved,
-    });
-
-    // Track transfers for sender
-    if (!this.accountTransfers.has(transfer.from)) {
-      this.accountTransfers.set(transfer.from, {
-        transfersIn: [],
-        transfersOut: [],
-      });
-    }
-    this.accountTransfers.get(transfer.from)!.transfersOut.push({
-      value: transfer.value,
-    });
 
     const accountBalances = this.accountBalancesPerToken.get(
       transfer.tokenAddress.toLowerCase()
