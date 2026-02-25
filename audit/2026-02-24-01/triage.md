@@ -40,7 +40,7 @@
 | A01-3 | LOW | Mixed-case addresses in constants | PENDING |
 | A01-4 | LOW | `scaleTo18` does not validate `decimals` parameter | PENDING |
 | A01-5 | LOW | `isSameAddress` does not validate address format | PENDING |
-| A02-2 | LOW | `ONE` uses fragile `Number`-to-`BigInt` pattern | PENDING |
+| A02-2 | LOW | `ONE` uses fragile `Number`-to-`BigInt` pattern | FIXED — changed to `10n ** 18n` with test assertion |
 | A03-2 | LOW | No address format validation in `readCsv` | PENDING |
 | A03-3 | LOW | `readCsv` does not validate CSV header row | PENDING |
 | A03-7 | LOW | Hardcoded file paths and `DISTRIBUTED_COUNT` | PENDING |
