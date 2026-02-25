@@ -531,11 +531,10 @@ export class Processor {
       return
     }
 
-    const ownerTokenTxEvents = ownerTokenEvents.get(txhash)
-    if (!ownerTokenTxEvents) {
-      ownerTokenEvents.set(txhash, liquidityChangeEvent)
-      return
+    if (ownerTokenEvents.has(txhash)) {
+      throw new Error(`Duplicate liquidity event for owner=${owner} token=${token} txHash=${txhash}`);
     }
+    ownerTokenEvents.set(txhash, liquidityChangeEvent)
   }
 
   /**

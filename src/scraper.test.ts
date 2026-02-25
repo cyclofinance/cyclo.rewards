@@ -1,7 +1,7 @@
 // Must be set before importing scraper.ts (module-level assert)
 process.env.END_SNAPSHOT = "99999999";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   mapSubgraphTransfer,
   mapSubgraphLiquidityChange,
@@ -301,5 +301,18 @@ describe("mapSubgraphLiquidityChange", () => {
   it("should throw on non-numeric V3 tokenId", () => {
     const liq = { ...VALID_V3_LIQUIDITY, tokenId: "abc" };
     expect(() => mapSubgraphLiquidityChange(liq)).toThrow("tokenId");
+  });
+});
+
+describe("END_SNAPSHOT validation", () => {
+  it("should error if END_SNAPSHOT is not a valid number", async () => {
+    const original = process.env.END_SNAPSHOT;
+    process.env.END_SNAPSHOT = "abc";
+    try {
+      vi.resetModules();
+      await expect(import('./scraper')).rejects.toThrow("END_SNAPSHOT must be a valid number");
+    } finally {
+      process.env.END_SNAPSHOT = original;
+    }
   });
 });

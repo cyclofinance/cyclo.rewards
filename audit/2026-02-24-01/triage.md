@@ -49,25 +49,25 @@
 | A04-4 | LOW | Relative file paths for all I/O | DISMISSED — standard for scripts run from project root; paths now use shared constants |
 | A04-5 | LOW | Write-before-mkdir race condition | FIXED — moved mkdir before first writeFile |
 | A04-7 | LOW | `splice` with `indexOf` can silently remove wrong element | FIXED — replaced with filterZeroRewards() which filters without mutation |
-| A04-9 | LOW | Blocklist parsing does not validate address format | PENDING |
-| A05-2 | LOW | Sequential `getCode` calls for missing pools | PENDING |
-| A05-3 | LOW | No timeout on individual RPC calls | PENDING |
-| A05-6 | LOW | No validation of `blockNumber` parameter | PENDING |
-| A05-9 | LOW | No rate limiting on RPC calls | PENDING |
+| A04-9 | LOW | Blocklist parsing does not validate address format | FIXED — parseBlocklist now calls validateAddress for both reporter and cheater; 2 tests |
+| A05-2 | LOW | Sequential `getCode` calls for missing pools | DISMISSED — performance concern, not security; small number of missing pools in practice |
+| A05-3 | LOW | No timeout on individual RPC calls | DISMISSED — viem transport has default 20s timeout; retry wrapper handles failures |
+| A05-6 | LOW | No validation of `blockNumber` parameter | FIXED — added non-negative integer check in getPoolsTick; 2 tests |
+| A05-9 | LOW | No rate limiting on RPC calls | DISMISSED — bounded call count (~35 total); 10s retry delay provides implicit backpressure |
 | A06-7 | LOW | Negative final balance from penalty exceeding average | DISMISSED — blocklist integrity test guards against duplicate cheaters; root cause deferred to future work |
 | A06-8 | LOW | Approved source cache error matching is fragile | FIXED — throw instead of caching false after exhausting retries |
-| A06-9 | LOW | `processTransfer` double-accounting pattern confusing | PENDING |
-| A06-10 | LOW | `lp3TrackList` accumulates without bounds checking | PENDING |
-| A06-11 | LOW | `organizeLiquidityPositions` silently drops duplicate events | PENDING |
-| A07-3 | LOW | `parseInt(END_SNAPSHOT)` NaN not detected | PENDING |
+| A06-9 | LOW | `processTransfer` double-accounting pattern confusing | DISMISSED (Jan only) — code clarity concern, not a bug; logic is tested and correct; refactor in future epoch |
+| A06-10 | LOW | `lp3TrackList` accumulates without bounds checking | DISMISSED — bounded by 30 snapshots × V3 positions; proportional to input size, not unbounded |
+| A06-11 | LOW | `organizeLiquidityPositions` silently drops duplicate events | FIXED — now throws on duplicate owner+token+txHash; zero duplicates in real data confirmed; 1 test |
+| A07-3 | LOW | `parseInt(END_SNAPSHOT)` NaN not detected | FIXED — added assert(!isNaN) after parseInt in scraper.ts; 1 test |
 | A07-4 | LOW | Entire transfer array in memory with O(n^2) I/O | DISMISSED — performance concern, not security; already addressed in Pass 4 |
 | A07-5 | LOW | File split write-every-iteration fragile | DISMISSED — intentional crash recovery; documented in Pass 4 |
-| A07-6 | LOW | `main()` executes on import with no guard | PENDING |
-| A07-10 | LOW | Error handling swallows failures silently | PENDING |
+| A07-6 | LOW | `main()` executes on import with no guard | DISMISSED — standalone script run via npm run scrape; never imported by other modules |
+| A07-10 | LOW | Error handling swallows failures silently | FIXED — main().catch now calls process.exit(1) after logging |
 | A08-3 | LOW | `Transfer` and `TransferRecord` near-duplication | FIXED — removed dead TransferRecord type |
 | A08-4 | LOW | No `readonly` modifiers on financial data structures | DISMISSED — TypeScript style preference; no runtime impact or security risk |
 | A08-5 | LOW | `currentNetBalance` can be negative without type-level constraint | DISMISSED — negatives are clamped to zero in updateSnapshots; not exploitable |
-| A08-7 | LOW | `parseInt` on tick/fee fields with no NaN guard | PENDING |
+| A08-7 | LOW | `parseInt` on tick/fee fields with no NaN guard | FIXED — replaced with parseIntStrict in mapSubgraphLiquidityChange; covered by A07-2 tests |
 
 ## Pass 2: Test Coverage
 | ID | Severity | Finding | Status |

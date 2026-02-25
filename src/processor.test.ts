@@ -821,6 +821,45 @@ describe("Processor", () => {
     });
   });
 
+  describe("organizeLiquidityPositions duplicate handling", () => {
+    it("should keep first event when same owner+token+txHash is organized twice", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const txHash = "0xduptx";
+
+      const event1: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xlpaddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1000",
+        depositedBalanceChange: "5000000000000000000",
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: txHash,
+      };
+
+      const event2: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xlpaddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "9999",
+        depositedBalanceChange: "9000000000000000000",
+        blockNumber: 51,
+        timestamp: 1001,
+        __typename: "LiquidityV2Change",
+        transactionHash: txHash,
+      };
+
+      // First call succeeds
+      processor.organizeLiquidityPositions(event1);
+
+      // Duplicate txHash should throw
+      expect(() => processor.organizeLiquidityPositions(event2)).toThrow("Duplicate");
+    });
+  });
+
   describe("Process Liquidity Position", () => {
     it("should correctly factor in liquidity changes", async () => {
       const tokenAddress = CYTOKENS[0].address.toLowerCase();

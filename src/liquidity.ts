@@ -117,6 +117,9 @@ export async function getPoolsTick(
     pools: `0x${string}`[],
     blockNumber: number,
 ): Promise<Record<string, number>> {
+    if (!Number.isInteger(blockNumber) || blockNumber < 0) {
+        throw new Error(`Invalid blockNumber: ${blockNumber}`);
+    }
     // retry 3 times
     for (let i = 0; i < 3; i++) {
         try {

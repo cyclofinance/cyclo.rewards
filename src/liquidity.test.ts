@@ -386,4 +386,12 @@ describe('getPoolsTick', () => {
     await expect(getPoolsTick(mockClient, pools, 100)).rejects.toThrow('persistent');
     expect(mockClient.multicall).toHaveBeenCalledTimes(3);
   });
+
+  it('throws on NaN blockNumber', async () => {
+    await expect(getPoolsTick(mockClient, pools, NaN)).rejects.toThrow('blockNumber');
+  });
+
+  it('throws on negative blockNumber', async () => {
+    await expect(getPoolsTick(mockClient, pools, -1)).rejects.toThrow('blockNumber');
+  });
 });

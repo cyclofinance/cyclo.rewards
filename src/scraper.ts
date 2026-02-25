@@ -22,6 +22,7 @@ const BATCH_SIZE = 1000;
 // as we will fetch transfers up until the end of the snapshot block numbers
 assert(process.env.END_SNAPSHOT, "undefined END_SNAPSHOT env variable")
 const UNTIL_SNAPSHOT = parseInt(process.env.END_SNAPSHOT) + 1; // +1 to make sure every transfer is gathered
+assert(!isNaN(UNTIL_SNAPSHOT), "END_SNAPSHOT must be a valid number");
 
 /** Raw transfer event shape from the Goldsky subgraph GraphQL response */
 export interface SubgraphTransfer {
@@ -330,4 +331,4 @@ async function main() {
   await scrapeLiquidityChanges();
 }
 
-main().catch(console.error);
+main().catch((e) => { console.error(e); process.exit(1); });
