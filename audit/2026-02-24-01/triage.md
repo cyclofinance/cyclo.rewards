@@ -78,8 +78,8 @@
 | A04-6 | HIGH | Zero-reward splice has known bug pattern | FIXED — replaced with filterZeroRewards() which filters without mutation |
 | A06-1 | HIGH | `isApprovedSource` has no dedicated tests (real implementation almost entirely untested) | FIXED — added 5 tests: direct source, case insensitive, factory approved, factory non-approved, no factory function, cache hit |
 | GAP-LIQ-01 | CRITICAL | `getPoolsTick` has zero unit tests | FIXED — added 4 tests for retry wrapper: first success, BigInt conversion, retry-then-succeed, throw after 3 failures |
-| A01-2 | MEDIUM | `generateSnapshotBlocks` missing edge case tests (start===end, start>end, adjacent) | PENDING |
-| A01-3 | MEDIUM | `scaleTo18` missing edge case tests | PENDING |
+| A01-2 | MEDIUM | `generateSnapshotBlocks` missing edge case tests (start===end, start>end, adjacent) | FIXED — added large range, empty seed tests; start===end/start>end/adjacent all caught by assert(range >= 30) |
+| A01-3 | MEDIUM | `scaleTo18` missing edge case tests | FIXED — added tests for decimals=0, zero value, decimals=6 (cyFXRP), truncation to zero |
 | A01-4 | MEDIUM | `REWARDS_SOURCES`, `FACTORIES`, `CYTOKENS` have no structural validation tests | PENDING |
 | A02-P2-2 | MEDIUM | `ONE` constant not imported or tested from source | PENDING |
 | A03-1 | MEDIUM | No CRLF line ending test for `readCsv` | PENDING |

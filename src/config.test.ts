@@ -178,4 +178,23 @@ describe("Test math functions", () => {
     const expected3 = 123456789n;
     expect(result3).toBe(expected3);
   });
+
+  it("should handle decimals=0", () => {
+    expect(scaleTo18(5n, 0)).toBe(5_000_000_000_000_000_000n);
+  });
+
+  it("should return 0n for zero value regardless of decimals", () => {
+    expect(scaleTo18(0n, 0)).toBe(0n);
+    expect(scaleTo18(0n, 6)).toBe(0n);
+    expect(scaleTo18(0n, 18)).toBe(0n);
+    expect(scaleTo18(0n, 30)).toBe(0n);
+  });
+
+  it("should handle decimals=6 (cyFXRP production case)", () => {
+    expect(scaleTo18(1_000_000n, 6)).toBe(1_000_000_000_000_000_000n);
+  });
+
+  it("should truncate to zero for small values with large decimals", () => {
+    expect(scaleTo18(99999n, 23)).toBe(0n);
+  });
 });
