@@ -229,7 +229,7 @@
 | A06-14 | LOW | Constructor `reports` uses inline type instead of `Report` interface | PENDING |
 | A06-15 | LOW | Unreachable `return false` at end of `isApprovedSource` | DISMISSED — harmless TypeScript return guard |
 | A01-3 | LOW | Inconsistent indentation in `scaleTo18` function | PENDING |
-| A01-4 | LOW | Inconsistent BigInt construction method in `scaleTo18` | PENDING |
+| A01-4 | LOW | Inconsistent BigInt construction method in `scaleTo18` | FIXED — changed to `10n ** BigInt(...)` pattern |
 | A01-5 | LOW | `generateSnapshotBlocks` does not guarantee uniqueness of snapshot blocks | FIXED — uses Set for deduplication |
 | A02-3 | LOW | `ONE` naming is ambiguous (does not convey fixed-point scaling purpose) | PENDING |
 | A02-4 | LOW | `as const` used inconsistently across BigInt constants | PENDING |

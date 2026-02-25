@@ -111,9 +111,9 @@ export function scaleTo18(value: bigint, decimals: number): bigint {
     if (decimals === 18) {
       return value;
     } else if (decimals > 18) {
-        return value / BigInt("1" + "0".repeat(decimals - 18));
+        return value / 10n ** BigInt(decimals - 18);
     } else {
-        return value * BigInt("1" + "0".repeat(18 - decimals));
+        return value * 10n ** BigInt(18 - decimals);
     }
 }
 
