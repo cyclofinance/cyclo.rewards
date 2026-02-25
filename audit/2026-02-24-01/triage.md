@@ -87,20 +87,20 @@
 | A03-6 | MEDIUM | No duplicate address test for `calculateDiff` inputs | PENDING |
 | A03-8 | MEDIUM | Underpaid scenario not tested in CSV output | PENDING |
 | A04-1 | MEDIUM | `main()` has zero test coverage | PENDING |
-| A04-3 | MEDIUM | JSONL file parsing untested and fragile | PENDING |
-| A04-4 | MEDIUM | Blocklist parsing assumes exact format | PENDING |
-| A04-5 | MEDIUM | CSV output generation format untested | PENDING |
+| A04-3 | MEDIUM | JSONL file parsing untested and fragile | FIXED — extracted parseJsonl with 5 tests including error context |
+| A04-4 | MEDIUM | Blocklist parsing assumes exact format | FIXED — extracted parseBlocklist with 8 tests |
+| A04-5 | MEDIUM | CSV output generation format untested | FIXED — extracted formatRewardsCsv (3 tests) and formatBalancesCsv (5 tests) |
 | A04-7 | MEDIUM | Balance verification is console-only, never fails | PENDING |
-| GAP-LIQ-02 | MEDIUM | Tick value of zero not tested | PENDING |
-| GAP-LIQ-03 | MEDIUM | Duplicate pool addresses in input not tested | PENDING |
-| GAP-LIQ-04 | MEDIUM | `getCode` returning undefined not tested | PENDING |
-| A06-2 | MEDIUM | `processTransfer` unknown `tokenAddress` throw path untested | PENDING |
-| A06-3 | MEDIUM | `processLiquidityPositions` unknown `tokenAddress` throw untested | PENDING |
-| A06-4 | MEDIUM | `processLiquidityPositions` with V3 events not tested | PENDING |
-| A06-5 | MEDIUM | `processLiquidityPositions` skipping ineligible tokens untested | PENDING |
-| A06-6 | MEDIUM | `processTransfer` skipping ineligible tokens untested | PENDING |
-| A06-7 | MEDIUM | No test for transfer exactly at snapshot block boundary | PENDING |
-| A06-8 | MEDIUM | No test for liquidity event exactly at snapshot block boundary | PENDING |
+| GAP-LIQ-02 | MEDIUM | Tick value of zero not tested | FIXED — test verifies tick=0 returned correctly |
+| GAP-LIQ-03 | MEDIUM | Duplicate pool addresses in input not tested | FIXED — test documents last-write-wins behavior |
+| GAP-LIQ-04 | MEDIUM | `getCode` returning undefined not tested | FIXED — test verifies pool skipped when getCode returns undefined |
+| A06-2 | MEDIUM | `processTransfer` unknown `tokenAddress` throw path untested | DISMISSED — unreachable; constructor initializes all CYTOKENS in map |
+| A06-3 | MEDIUM | `processLiquidityPositions` unknown `tokenAddress` throw untested | DISMISSED — same as A06-2; defensive guard only |
+| A06-4 | MEDIUM | `processLiquidityPositions` with V3 events not tested | FIXED — test with LiquidityV3Change including tokenId, poolAddress, tick range |
+| A06-5 | MEDIUM | `processLiquidityPositions` skipping ineligible tokens untested | FIXED — test verifies ineligible token silently skipped |
+| A06-6 | MEDIUM | `processTransfer` skipping ineligible tokens untested | FIXED — test verifies ineligible token transfer silently skipped |
+| A06-7 | MEDIUM | No test for transfer exactly at snapshot block boundary | FIXED — test verifies transfer at exact snapshot block included (<= comparison) |
+| A06-8 | MEDIUM | No test for liquidity event exactly at snapshot block boundary | FIXED — test verifies liquidity event at exact snapshot block included |
 | A07-1 | MEDIUM | Transfer data mapping logic untested (no test file for scraper) | PENDING |
 | A07-2 | MEDIUM | V2/V3 discrimination logic untested | PENDING |
 | A07-3 | MEDIUM | Pagination logic untested | PENDING |
