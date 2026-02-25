@@ -123,7 +123,7 @@ async function main() {
     "output/balances-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
     balancesOutput.join("\n")
   );
-  console.log(`Wrote ${addresses.length} balances to output/balances.csv`);
+  console.log(`Wrote ${addresses.length} balances to output/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
 
   // Calculate and write rewards
   console.log("Calculating rewards...");
@@ -135,7 +135,7 @@ async function main() {
     "output/rewards-" + START_SNAPSHOT + "-" + END_SNAPSHOT + ".csv",
     rewardsOutput.join("\n")
   );
-  console.log(`Wrote ${rewardedAddresses.length} rewards to output/rewards.csv`);
+  console.log(`Wrote ${rewardedAddresses.length} rewards to output/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
 
   // Verify total rewards equals reward pool
   const totalRewards = Array.from(totalRewardsPerAddress.values()).reduce(

@@ -129,8 +129,8 @@
 | A03-5 | MEDIUM | `DISTRIBUTED_COUNT = 100` magic constant with no explanation | PENDING |
 | A03-11 | LOW-MEDIUM | `RewardEntry`, `DiffEntry`, `DiffResult` types are undocumented | PENDING |
 | A04-DOC-002 | MEDIUM | `main()` in `index.ts` has no JSDoc documentation | PENDING |
-| A04-DOC-003 | MEDIUM | Log message says `output/balances.csv` but file is written to dynamic name | PENDING |
-| A04-DOC-004 | MEDIUM | Log message says `output/rewards.csv` but file is written to dynamic name | PENDING |
+| A04-DOC-003 | MEDIUM | Log message says `output/balances.csv` but file is written to dynamic name | FIXED — log now includes snapshot block numbers |
+| A04-DOC-004 | MEDIUM | Log message says `output/rewards.csv` but file is written to dynamic name | FIXED — log now includes snapshot block numbers |
 | A05-DOC-003 | MEDIUM | `getPoolsTickMulticall()` has no JSDoc documentation | PENDING |
 | A05-DOC-004 | MEDIUM | `getPoolsTick()` JSDoc inaccurately implies exponential backoff; code uses fixed 10s delay | FIXED — corrected CLAUDE.md description |
 | A06-DOC-002 | MEDIUM | `Processor` class has no JSDoc | PENDING |
@@ -242,7 +242,7 @@
 | A04-3 | LOW | Duplicated JSONL parsing pattern across three data sources | PENDING |
 | A04-4 | LOW | Inconsistent import path style: `.js` extension on one import only | PENDING |
 | A04-5 | LOW | Hardcoded file paths and magic numbers scattered throughout | PENDING |
-| A04-6 | LOW | Misleading log messages reference wrong output filenames | PENDING |
+| A04-6 | LOW | Misleading log messages reference wrong output filenames | FIXED — log now includes snapshot block numbers |
 | A04-7 | LOW | Mutating `addresses` array via `splice` + `indexOf` is O(n^2) with `-1` edge case | FIXED — replaced with filterZeroRewards() |
 | A04-8 | LOW | Unsafe non-null assertion on `process.env.SEED` | FIXED — parseEnv() validates with assert |
 | A04-9 | LOW | `mkdir("output")` called after first write to `output/` | FIXED — moved mkdir before first writeFile |
