@@ -104,7 +104,7 @@
 | A07-1 | MEDIUM | Transfer data mapping logic untested (no test file for scraper) | PENDING |
 | A07-2 | MEDIUM | V2/V3 discrimination logic untested | PENDING |
 | A07-3 | MEDIUM | Pagination logic untested | PENDING |
-| A01-5 | LOW | `RPC_URL` has no test coverage | PENDING |
+| A01-5 | LOW | `RPC_URL` has no test coverage | FIXED — 2 tests in config.test.ts: reads from env, errors if unset |
 | A03-2 | LOW | No whitespace-in-address test for `readCsv` | PENDING |
 | A03-3 | LOW | No large BigInt value test for `readCsv` | PENDING |
 | A03-5 | LOW | No mixed-case address test for `calculateDiff` | PENDING |
@@ -115,7 +115,7 @@
 | A07-5 | LOW | `UNTIL_SNAPSHOT` calculation untested | PENDING |
 | A07-6 | LOW | `main()` orchestration untested | PENDING |
 | A07-7 | LOW | V3 pool collection untested | PENDING |
-| A08-1 | LOW | `LiquidityChangeType.Transfer` and `.Withdraw` have thin coverage | PENDING |
+| A08-1 | LOW | `LiquidityChangeType.Transfer` and `.Withdraw` have thin coverage | FIXED — added tests: Transfer updates currentNetBalance, Withdraw does not |
 
 ## Pass 3: Documentation
 | ID | Severity | Finding | Status |

@@ -1043,6 +1043,76 @@ describe("Processor", () => {
       });
     });
 
+    it("should update currentNetBalance for LiquidityChangeType.Transfer", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+
+      // Transfer type directly adjusts currentNetBalance (unlike Deposit/Withdraw
+      // which are handled by processTransfer)
+      const lpTransferEvent: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Transfer,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE, // positive = incoming transfer
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash",
+      };
+
+      await processor.processLiquidityPositions(lpTransferEvent);
+      const balances = await processor.getEligibleBalances();
+
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
+      ).toBe(ONEn);
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1.toLowerCase())?.snapshots[1]
+      ).toBe(ONEn);
+    });
+
+    it("should not update currentNetBalance for LiquidityChangeType.Withdraw", async () => {
+      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+
+      // First deposit via Transfer to give user a balance
+      const lpTransferEvent: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Transfer,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtx1",
+      };
+
+      // Withdraw does NOT adjust currentNetBalance — that's handled by processTransfer
+      const withdrawEvent: LiquidityChange = {
+        tokenAddress,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: "1234",
+        depositedBalanceChange: `-${ONE}`, // negative for withdraw
+        blockNumber: 55,
+        timestamp: 1005,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtx2",
+      };
+
+      await processor.processLiquidityPositions(lpTransferEvent);
+      await processor.processLiquidityPositions(withdrawEvent);
+      const balances = await processor.getEligibleBalances();
+
+      // Balance should still be ONEn because Withdraw doesn't change currentNetBalance
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
+      ).toBe(ONEn);
+    });
+
     it("should skip liquidity events for ineligible tokens", async () => {
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: "0x0000000000000000000000000000000000000099", // not in CYTOKENS
