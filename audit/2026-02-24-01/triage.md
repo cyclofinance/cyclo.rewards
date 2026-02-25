@@ -139,7 +139,7 @@
 | A08-DOC-002 | MEDIUM | `CyToken` interface undocumented; `receiptAddress` purpose unclear | PENDING |
 | A08-DOC-005 | MEDIUM | `AccountBalance` interface undocumented; field invariant not documented | PENDING |
 | A08-DOC-008 | MEDIUM | `TokenBalances` interface undocumented; `final` vs `final18` distinction critical | PENDING |
-| A01-1 | LOW | Unused `Epoch` import on line 2 of `config.ts` | PENDING |
+| A01-1 | LOW | Unused `Epoch` import on line 2 of `config.ts` | FIXED — removed unused import |
 | A01-2 | LOW | Missing JSDoc on `isSameAddress` | PENDING |
 | A01-3 | LOW | Missing `@returns` tag on `generateSnapshotBlocks` JSDoc | PENDING |
 | A01-4 | LOW | Missing `@returns` tag on `scaleTo18` JSDoc | PENDING |

@@ -1,5 +1,5 @@
 import assert from "assert";
-import { CyToken, Epoch } from "./types";
+import { CyToken } from "./types";
 import seedrandom from "seedrandom";
 
 export const REWARDS_SOURCES = [
