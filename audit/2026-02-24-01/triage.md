@@ -122,7 +122,7 @@
 |----|----------|---------|--------|
 | A02-1 | CRITICAL | `REWARD_POOL` has silent precision loss (8,388,608 wei deficit); no documentation of intended value | FIXED — changed to 500_000_000_000_000_000_000_000n with test assertion |
 | A02-2 | HIGH | `ONE` uses fragile `BigInt(Number)` pattern; happens to be correct but undocumented | FIXED — changed to 10n ** 18n with test assertion |
-| A02-3 | HIGH | `DEC25_REWARD_POOL` has no documentation explaining its purpose or relationship to `REWARD_POOL` | PENDING |
+| A02-3 | HIGH | `DEC25_REWARD_POOL` has no documentation explaining its purpose or relationship to `REWARD_POOL` | DOCUMENTED — added comments explaining epoch, amount, and usage |
 | A06-DOC-003 | HIGH | All 13 public methods on `Processor` class lack JSDoc | PENDING |
 | A01-6 | MEDIUM | `underlyingSymbol: "cyFXRP"` may be incorrect; breaks naming pattern of other entries | FIXED — changed to "FXRP" to match pattern (sFLR, WETH) |
 | A03-4 | MEDIUM | `calculateDiff` has no JSDoc at all (core exported function of the module) | PENDING |

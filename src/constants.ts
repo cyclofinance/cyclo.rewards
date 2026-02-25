@@ -1,6 +1,8 @@
 export const ONE = 10n ** 18n;
 
+// Jan 2026 epoch: 500,000 tokens (18 decimals)
 export const REWARD_POOL = 500_000_000_000_000_000_000_000n;
+// Dec 2025 epoch: 1,000,000 tokens (18 decimals) — used by diffCalculator for reconciliation
 export const DEC25_REWARD_POOL = 1_000_000_000_000_000_000_000_000n as const;
 
 // Must match expected structure
