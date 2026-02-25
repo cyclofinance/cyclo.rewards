@@ -80,3 +80,10 @@ export type LiquidityChangeV3 = LiquidityChangeBase & {
 
 export type LiquidityChange = LiquidityChangeV2 | LiquidityChangeV3;
 
+export interface LpV3Position {
+  pool: string;
+  value: bigint;
+  lowerTick: number;
+  upperTick: number;
+}
+

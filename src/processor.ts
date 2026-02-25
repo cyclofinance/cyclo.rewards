@@ -17,6 +17,7 @@ import {
   CyToken,
   LiquidityChange,
   LiquidityChangeType,
+  LpV3Position,
 } from "./types";
 import { ONE_18, BOUNTY_PERCENT, RETRY_BASE_DELAY_MS } from "./constants";
 import { flare } from "viem/chains";
@@ -30,12 +31,7 @@ export class Processor {
   >();
   private accountTransfers = new Map<string, AccountTransfers>();
   private client: PublicClient;
-  private lp3TrackList: Record<number, Map<string, {
-    pool: string;
-    value: bigint;
-    lowerTick: number;
-    upperTick: number;
-  }>> = {};
+  private lp3TrackList: Record<number, Map<string, LpV3Position>> = {};
   private liquidityEvents: Map<string, Map<string, Map<string, LiquidityChange>>> = new Map()
 
   constructor(

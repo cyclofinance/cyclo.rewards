@@ -223,7 +223,7 @@
 | A06-7 | LOW | `console.log` in library code | FIXED — moved per-token reward logging from processor.ts to index.ts |
 | A06-8 | LOW | Magic numbers for bounty percentage (10n/100n) | FIXED — extracted BOUNTY_PERCENT constant |
 | A06-9 | LOW | Magic number for retry backoff base delay (500ms) | FIXED — extracted RETRY_BASE_DELAY_MS constant |
-| A06-10 | LOW | Complex anonymous type for `lp3TrackList` | PENDING |
+| A06-10 | LOW | Complex anonymous type for `lp3TrackList` | FIXED — extracted LpV3Position interface to types.ts |
 | A06-11 | LOW | Inconsistent semicolons and brace style in `processor.ts` | PENDING |
 | A06-13 | LOW | Inconsistent address normalization in `accountTransfers` | PENDING |
 | A06-14 | LOW | Constructor `reports` uses inline type instead of `Report` interface | PENDING |
