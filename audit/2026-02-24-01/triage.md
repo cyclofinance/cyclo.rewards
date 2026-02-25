@@ -201,9 +201,9 @@
 | A08-1 | HIGH | Five exported types are dead code: `Report`, `AccountSummary`, `TransferRecord`, `TransferDetail`, `AccountTransfers` | FIXED — removed Report, AccountSummary, TransferRecord, Epoch; TransferDetail/AccountTransfers still used by processor |
 | A03-1 | HIGH | Side effect on import: `main()` executes unconditionally at module level | PENDING |
 | A03-2 | HIGH | Hardcoded file paths and epoch-specific values in `main()` | PENDING |
-| A05-1 | MEDIUM | Fixed 10-second retry delay documented as "exponential backoff" in CLAUDE.md | PENDING |
+| A05-1 | MEDIUM | Fixed 10-second retry delay documented as "exponential backoff" in CLAUDE.md | FIXED — corrected to "3 attempts with fixed 10-second delay" |
 | A06-3 | MEDIUM | Duplicated snapshot balance update logic (3+ repetitions) | PENDING |
-| A06-5 | MEDIUM | `client` typed as `any` defeats type safety | PENDING |
+| A06-5 | MEDIUM | `client` typed as `any` defeats type safety | FIXED — typed as PublicClient on field and constructor parameter |
 | A08-2 | MEDIUM | `Transfer` and `TransferRecord` are near-duplicates | PENDING |
 | A08-3 | MEDIUM | `AccountSummary` hardcodes 2 snapshot fields; system uses 30 | PENDING |
 | A02-1 | MEDIUM | Three different BigInt construction idioms in a 4-line span | FIXED — all constants now use `n` suffix consistently |

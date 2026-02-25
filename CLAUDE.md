@@ -32,7 +32,7 @@ Vitest runs in watch mode. For a single run, use `nix develop -c npx vitest run`
 
 - **`src/scraper.ts`** — Fetches transfer and liquidity events from Goldsky GraphQL subgraph up to END_SNAPSHOT block. Writes JSONL to `data/transfers1.dat` through `data/transfersN.dat` (split to avoid GitHub 100MB limit) and `data/liquidity.dat`.
 - **`src/processor.ts`** — Core logic. Replays all transfers to compute per-account balances at each snapshot block. Handles approved source detection (DEX routers in config), Uniswap V2/V3 LP position tracking via factory contracts, penalties/bounties from `data/blocklist.txt`. Outputs `balances-*.csv` and `rewards-*.csv`.
-- **`src/liquidity.ts`** — Queries Uniswap V3 pool tick data via multicall at specific blocks. Uses 3 retries with exponential backoff.
+- **`src/liquidity.ts`** — Queries Uniswap V3 pool tick data via multicall at specific blocks. Uses 3 attempts with fixed 10-second delay between retries.
 - **`src/diffCalculator.ts`** — Compares new rewards CSV against a previous rewards CSV (e.g., `output/rewards-*-old.csv`) to produce diff CSVs for underpaid, covered, and uncovered accounts.
 - **`src/config.ts`** — Approved DEX routers (`REWARDS_SOURCES`), factory contracts (`FACTORIES`), cyToken definitions (`CYTOKENS`), RPC URL, and `generateSnapshotBlocks()` which uses seedrandom for deterministic block selection.
 - **`src/constants.ts`** — `ONE` (1e18 as BigInt) and `REWARD_POOL` (1M tokens as BigInt).

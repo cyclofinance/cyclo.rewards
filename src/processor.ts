@@ -1,4 +1,4 @@
-import { createPublicClient, http, Address } from "viem";
+import { createPublicClient, http, Address, PublicClient } from "viem";
 import {
   REWARDS_SOURCES,
   FACTORIES,
@@ -29,7 +29,7 @@ export class Processor {
     Map<string, AccountBalance>
   >();
   private accountTransfers = new Map<string, AccountTransfers>();
-  private client;
+  private client: PublicClient;
   private lp3TrackList: Record<number, Map<string, {
     pool: string;
     value: bigint;
@@ -41,7 +41,7 @@ export class Processor {
   constructor(
     private snapshots: number[],
     private reports: { reporter: string; cheater: string }[] = [],
-    client?: any,
+    client?: PublicClient,
     private pools: `0x${string}`[] = [],
   ) {
     this.client =
