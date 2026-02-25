@@ -1677,6 +1677,82 @@ describe("Processor", () => {
     });
   });
 
+  describe("updateSnapshots", () => {
+    it("should update snapshots at and after the given block", async () => {
+      const balance = {
+        transfersInFromApproved: 500n,
+        transfersOut: 0n,
+        netBalanceAtSnapshots: [0n, 0n],
+        currentNetBalance: 500n,
+      };
+      (processor as any).updateSnapshots(balance, 150);
+      // block 150 is after snapshot[0]=100, so only snapshot[1]=200 is updated
+      expect(balance.netBalanceAtSnapshots[0]).toBe(0n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(500n);
+    });
+
+    it("should update all snapshots when block is before all of them", async () => {
+      const balance = {
+        transfersInFromApproved: 300n,
+        transfersOut: 0n,
+        netBalanceAtSnapshots: [0n, 0n],
+        currentNetBalance: 300n,
+      };
+      (processor as any).updateSnapshots(balance, 50);
+      expect(balance.netBalanceAtSnapshots[0]).toBe(300n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(300n);
+    });
+
+    it("should update no snapshots when block is after all of them", async () => {
+      const balance = {
+        transfersInFromApproved: 300n,
+        transfersOut: 0n,
+        netBalanceAtSnapshots: [0n, 0n],
+        currentNetBalance: 300n,
+      };
+      (processor as any).updateSnapshots(balance, 300);
+      expect(balance.netBalanceAtSnapshots[0]).toBe(0n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(0n);
+    });
+
+    it("should clamp negative currentNetBalance to zero", async () => {
+      const balance = {
+        transfersInFromApproved: 100n,
+        transfersOut: 500n,
+        netBalanceAtSnapshots: [999n, 999n],
+        currentNetBalance: -400n,
+      };
+      (processor as any).updateSnapshots(balance, 50);
+      expect(balance.netBalanceAtSnapshots[0]).toBe(0n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(0n);
+    });
+
+    it("should set zero when currentNetBalance is exactly zero", async () => {
+      const balance = {
+        transfersInFromApproved: 100n,
+        transfersOut: 100n,
+        netBalanceAtSnapshots: [999n, 999n],
+        currentNetBalance: 0n,
+      };
+      (processor as any).updateSnapshots(balance, 50);
+      expect(balance.netBalanceAtSnapshots[0]).toBe(0n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(0n);
+    });
+
+    it("should include snapshot at exact block boundary (<=)", async () => {
+      const balance = {
+        transfersInFromApproved: 200n,
+        transfersOut: 0n,
+        netBalanceAtSnapshots: [0n, 0n],
+        currentNetBalance: 200n,
+      };
+      // block 100 === SNAPSHOTS[0], should be included
+      (processor as any).updateSnapshots(balance, 100);
+      expect(balance.netBalanceAtSnapshots[0]).toBe(200n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(200n);
+    });
+  });
+
   describe("isApprovedSource", () => {
     /** Address not in REWARDS_SOURCES or FACTORIES — triggers factory() RPC lookup */
     const UNKNOWN_CONTRACT = "0x0000000000000000000000000000000000000099";

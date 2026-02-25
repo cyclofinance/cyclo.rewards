@@ -141,6 +141,19 @@ export class Processor {
   }
 
   /**
+   * Updates snapshot balances for an account at all snapshots at or after the given block.
+   * Clamps negative balances to zero.
+   */
+  private updateSnapshots(balance: AccountBalance, blockNumber: number): void {
+    const val = balance.currentNetBalance < 0n ? 0n : balance.currentNetBalance;
+    for (let i = 0; i < this.snapshots.length; i++) {
+      if (blockNumber <= this.snapshots[i]) {
+        balance.netBalanceAtSnapshots[i] = val;
+      }
+    }
+  }
+
+  /**
    * Processes a single ERC-20 transfer, updating sender and receiver balances.
    * Only credits the receiver if the sender is an approved source.
    * Handles LP deposit/withdraw adjustments via linked liquidity events.
@@ -194,14 +207,7 @@ export class Processor {
       toBalance.transfersInFromApproved += value;
       toBalance.currentNetBalance =
         toBalance.transfersInFromApproved - toBalance.transfersOut;
-
-      // Update snapshot balances
-      const val = toBalance.currentNetBalance < 0n ? 0n : toBalance.currentNetBalance;
-      for (let i = 0; i < this.snapshots.length; i++) {
-        if (transfer.blockNumber <= this.snapshots[i]) {
-          toBalance.netBalanceAtSnapshots[i] = val;
-        }
-      }
+      this.updateSnapshots(toBalance, transfer.blockNumber);
     }
 
     // Always track transfers out
@@ -215,27 +221,13 @@ export class Processor {
         toBalance.transfersInFromApproved -= value;
         toBalance.currentNetBalance =
           toBalance.transfersInFromApproved - toBalance.transfersOut;
-
-        // Update snapshot balances
-        const val = toBalance.currentNetBalance < 0n ? 0n : toBalance.currentNetBalance;
-        for (let i = 0; i < this.snapshots.length; i++) {
-          if (transfer.blockNumber <= this.snapshots[i]) {
-            toBalance.netBalanceAtSnapshots[i] = val;
-          }
-        }
+        this.updateSnapshots(toBalance, transfer.blockNumber);
       }
       fromBalance.transfersOut += value;
     }
     fromBalance.currentNetBalance =
       fromBalance.transfersInFromApproved - fromBalance.transfersOut;
-
-    // Update snapshot balances
-    const val = fromBalance.currentNetBalance < 0n ? 0n : fromBalance.currentNetBalance;
-    for (let i = 0; i < this.snapshots.length; i++) {
-      if (transfer.blockNumber <= this.snapshots[i]) {
-        fromBalance.netBalanceAtSnapshots[i] = val;
-      }
-    }
+    this.updateSnapshots(fromBalance, transfer.blockNumber);
 
     accountBalances.set(transfer.to, toBalance);
     accountBalances.set(transfer.from, fromBalance);
