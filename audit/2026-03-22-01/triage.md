@@ -27,7 +27,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A05-1 | LOW | Unnecessary 10s sleep on final retry failure before rethrowing | FIXED — swapped throw before sleep on final iteration |
 | A05-2 | LOW | No runtime validation of pool addresses in `getPoolsTickMulticall` | DOCUMENTED — validation belongs at boundary (parsePools); added precondition note to JSDoc |
 | A06-1 | MEDIUM | `parseJsonl` returns `any[]` with no schema validation (also P4-PIPE-1) | FIXED — generic validate callback on parseJsonl; validateTransfer and validateLiquidityChange with full field, format, txHash, non-negative block/timestamp checks; 43 tests; wired into index.ts |
-| A06-2 | LOW | `parseBlocklist` silently ignores extra space-separated tokens per line | PENDING |
+| A06-2 | LOW | `parseBlocklist` silently ignores extra space-separated tokens per line | FIXED — validate exactly 2 parts per line; 2 tests added |
 | A06-3 | LOW | Non-null assertions in `sortAddressesByReward` | PENDING |
 | A07-1 | MEDIUM | `processTransfer` uses un-normalized addresses as Map keys; case mismatch with other methods | PENDING |
 | A07-2 | MEDIUM | `balance.final` can go negative with duplicate cheater reports; no clamp to 0 | PENDING |

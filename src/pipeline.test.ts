@@ -77,6 +77,14 @@ describe("parseBlocklist", () => {
   it("should throw on invalid cheater address", () => {
     expect(() => parseBlocklist(`${ADDR_A} 0xshort`)).toThrow("cheater");
   });
+
+  it("should throw on line with extra tokens", () => {
+    expect(() => parseBlocklist(`${ADDR_A} ${ADDR_B} extra`)).toThrow();
+  });
+
+  it("should throw on line with only one token", () => {
+    expect(() => parseBlocklist(ADDR_A)).toThrow();
+  });
 });
 
 describe("parseJsonl", () => {

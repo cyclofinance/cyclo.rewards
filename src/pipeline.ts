@@ -171,7 +171,11 @@ export function parseBlocklist(data: string): BlocklistReport[] {
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const [reporter, reported] = line.split(" ");
+      const parts = line.split(" ");
+      if (parts.length !== 2) {
+        throw new Error(`Blocklist line must have exactly 2 space-separated addresses, got ${parts.length}: "${line}"`);
+      }
+      const [reporter, reported] = parts;
       validateAddress(reporter, "reporter address");
       validateAddress(reported, "cheater address");
       return {
