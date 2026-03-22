@@ -57,38 +57,7 @@ Set in `.env` (and mirrored in `.github/workflows/git-clean.yaml`):
 - **Penalties/Bounties**: Accounts in `data/blocklist.txt` have rewards redistributed. A bounty portion goes to the reporter, remainder goes back to the reward pool.
 - **LP positions**: V2 and V3 liquidity positions are tracked. V3 positions query on-chain tick data to determine if they're in range.
 - **Determinism**: CI (`git-clean.yaml`) runs the full pipeline and asserts no uncommitted changes, ensuring outputs are reproducible.
-- **Epoch transitions**: Each new epoch requires: (1) move prior epoch outputs to `output/dispersed/`, (2) update `.env` and CI workflow `git-clean.yaml` with new `SEED`, `START_SNAPSHOT`, `END_SNAPSHOT`, (3) re-scrape and re-run the pipeline. The `diffCalculator.ts` script is only needed when a prior epoch had a partial distribution requiring reconciliation (e.g., Dec 2025).
-
-## rFLR Emissions Epochs Schedule
-
-All dates are epoch end dates at 12:00 UTC (source: [Flare rFLR guide](https://flare.network/news/a-guide-to-rflr-rewards)):
-
-| # | Epoch End | Seed Pattern |
-|---|-----------|-------------|
-| 1 | 06 Jul 2024 12:00 | |
-| 2 | 05 Aug 2024 12:00 | |
-| 3 | 04 Sep 2024 12:00 | |
-| 4 | 04 Oct 2024 12:00 | |
-| 5 | 03 Nov 2024 12:00 | |
-| 6 | 03 Dec 2024 12:00 | |
-| 7 | 02 Jan 2025 12:00 | |
-| 8 | 01 Feb 2025 12:00 | |
-| 9 | 03 Mar 2025 12:00 | |
-| 10 | 02 Apr 2025 12:00 | |
-| 11 | 02 May 2025 12:00 | |
-| 12 | 01 Jun 2025 12:00 | |
-| 13 | 01 Jul 2025 12:00 | |
-| 14 | 31 Jul 2025 12:00 | |
-| 15 | 30 Aug 2025 12:00 | |
-| 16 | 29 Sep 2025 12:00 | |
-| 17 | 29 Oct 2025 12:00 | |
-| 18 | 28 Nov 2025 12:00 | `cyclo-rewards-for-nov-2025` |
-| 19 | 28 Dec 2025 12:00 | `cyclo-rewards-for-dec-2025` |
-| 20 | 27 Jan 2026 12:00 | `cyclo-rewards-for-jan-2026` |
-| 21 | 26 Feb 2026 12:00 | `cyclo-rewards-for-feb-2026` |
-| 22 | 28 Mar 2026 12:00 | `cyclo-rewards-for-mar-2026` |
-| 23 | 27 Apr 2026 12:00 | `cyclo-rewards-for-apr-2026` |
-| 24 | 27 May 2026 12:00 | `cyclo-rewards-for-may-2026` |
+- **Epoch transitions**: See `readme.md` for the step-by-step process and the full rFLR emissions epochs schedule. The `diffCalculator.ts` script is only needed when a prior epoch had a partial distribution requiring reconciliation (e.g., Dec 2025).
 
 ## Data Files
 
