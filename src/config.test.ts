@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress, REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
-import { VALID_ADDRESS_REGEX } from './constants';
+import { VALID_ADDRESS_REGEX, EPOCHS, CURRENT_EPOCH } from './constants';
 
 describe('Test generateSnapshotTimestampForEpoch', () => {
   
@@ -119,76 +119,12 @@ describe("RPC_URL", () => {
 });
 
 describe("parseEnv", () => {
-  const originalEnv = { ...process.env };
-
-  afterEach(() => {
-    process.env.SEED = originalEnv.SEED;
-    process.env.START_SNAPSHOT = originalEnv.START_SNAPSHOT;
-    process.env.END_SNAPSHOT = originalEnv.END_SNAPSHOT;
-  });
-
-  it("should return parsed values when all env vars are set", () => {
-    process.env.SEED = "test-seed";
-    process.env.START_SNAPSHOT = "1000";
-    process.env.END_SNAPSHOT = "2000";
+  it("should return seed and block range from CURRENT_EPOCH", () => {
+    const epoch = EPOCHS[CURRENT_EPOCH - 1];
     const result = parseEnv();
-    expect(result).toEqual({ seed: "test-seed", startSnapshot: 1000, endSnapshot: 2000 });
-  });
-
-  it("should error if SEED is not set", () => {
-    delete process.env.SEED;
-    process.env.START_SNAPSHOT = "1000";
-    process.env.END_SNAPSHOT = "2000";
-    expect(() => parseEnv()).toThrow("SEED environment variable must be set");
-  });
-
-  it("should error if START_SNAPSHOT is not set", () => {
-    process.env.SEED = "test-seed";
-    delete process.env.START_SNAPSHOT;
-    process.env.END_SNAPSHOT = "2000";
-    expect(() => parseEnv()).toThrow("START_SNAPSHOT environment variable must be set");
-  });
-
-  it("should error if END_SNAPSHOT is not set", () => {
-    process.env.SEED = "test-seed";
-    process.env.START_SNAPSHOT = "1000";
-    delete process.env.END_SNAPSHOT;
-    expect(() => parseEnv()).toThrow("END_SNAPSHOT environment variable must be set");
-  });
-
-  it("should error if START_SNAPSHOT is not a valid number", () => {
-    process.env.SEED = "test-seed";
-    process.env.START_SNAPSHOT = "abc";
-    process.env.END_SNAPSHOT = "2000";
-    expect(() => parseEnv()).toThrow("START_SNAPSHOT must be a non-negative integer");
-  });
-
-  it("should error if END_SNAPSHOT is not a valid number", () => {
-    process.env.SEED = "test-seed";
-    process.env.START_SNAPSHOT = "1000";
-    process.env.END_SNAPSHOT = "abc";
-    expect(() => parseEnv()).toThrow("END_SNAPSHOT must be a non-negative integer");
-  });
-
-  it("should reject trailing garbage like '123abc'", () => {
-    process.env.SEED = "test-seed";
-    process.env.START_SNAPSHOT = "123abc";
-    process.env.END_SNAPSHOT = "2000";
-    expect(() => parseEnv()).toThrow();
-  });
-
-  it("should reject float strings like '3.14'", () => {
-    process.env.SEED = "test-seed";
-    process.env.START_SNAPSHOT = "3.14";
-    process.env.END_SNAPSHOT = "2000";
-    expect(() => parseEnv()).toThrow();
-  });
-
-  it("should reject hex strings like '0x1A'", () => {
-    process.env.SEED = "test-seed";
-    process.env.START_SNAPSHOT = "0x1A";
-    process.env.END_SNAPSHOT = "2000";
-    expect(() => parseEnv()).toThrow();
+    expect(result.seed).toBe(epoch.seed);
+    expect(result.startSnapshot).toBe(epoch.startBlock);
+    expect(result.endSnapshot).toBe(epoch.endBlock);
   });
 });
 

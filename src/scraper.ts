@@ -6,23 +6,19 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
-import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE } from "./constants";
+import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH } from "./constants";
 import { validateAddress } from "./constants";
-import { config } from "dotenv";
 import assert from "assert";
-
-config();
 
 /** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
 const SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-02-13-78a0/gn";
 const BATCH_SIZE = 1000;
 
-// ensure END_SNAPSHOT env is set for deterministic transfers.dat,
-// as we will fetch transfers up until the end of the snapshot block numbers
-assert(process.env.END_SNAPSHOT, "undefined END_SNAPSHOT env variable")
-const UNTIL_SNAPSHOT = parseInt(process.env.END_SNAPSHOT) + 1; // +1 to make sure every transfer is gathered
-assert(!isNaN(UNTIL_SNAPSHOT), "END_SNAPSHOT must be a valid number");
+const epoch = EPOCHS[CURRENT_EPOCH - 1];
+assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
+// +1 to make sure every transfer at the end snapshot block is gathered
+const UNTIL_SNAPSHOT = epoch.endBlock + 1;
 
 /** Raw transfer event shape from the Goldsky subgraph GraphQL response */
 export interface SubgraphTransfer {

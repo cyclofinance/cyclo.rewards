@@ -1,6 +1,6 @@
 import assert from "assert";
 import { CyToken } from "./types";
-import { validateAddress } from "./constants";
+import { validateAddress, EPOCHS, CURRENT_EPOCH } from "./constants";
 import seedrandom from "seedrandom";
 import { shuffle } from "./shuffle";
 
@@ -119,15 +119,9 @@ export function scaleTo18(value: bigint, decimals: number): bigint {
 }
 
 export function parseEnv(): { seed: string; startSnapshot: number; endSnapshot: number } {
-  assert(process.env.SEED, "SEED environment variable must be set");
-  assert(process.env.START_SNAPSHOT, "START_SNAPSHOT environment variable must be set");
-  assert(process.env.END_SNAPSHOT, "END_SNAPSHOT environment variable must be set");
-
-  const startSnapshot = Number(process.env.START_SNAPSHOT);
-  const endSnapshot = Number(process.env.END_SNAPSHOT);
-
-  assert(Number.isInteger(startSnapshot) && String(startSnapshot) === process.env.START_SNAPSHOT, "START_SNAPSHOT must be a non-negative integer");
-  assert(Number.isInteger(endSnapshot) && String(endSnapshot) === process.env.END_SNAPSHOT, "END_SNAPSHOT must be a non-negative integer");
-
-  return { seed: process.env.SEED, startSnapshot, endSnapshot };
+  const epoch = EPOCHS[CURRENT_EPOCH - 1];
+  assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
+  assert(epoch.seed, `Epoch ${epoch.number} has no seed`);
+  assert(epoch.startBlock !== undefined, `Epoch ${epoch.number} has no startBlock`);
+  return { seed: epoch.seed, startSnapshot: epoch.startBlock, endSnapshot: epoch.endBlock };
 }
