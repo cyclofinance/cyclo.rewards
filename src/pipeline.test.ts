@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocklist, parseJsonl, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv, summarizeTokenBalances } from "./pipeline";
+import { parseBlocklist, parseJsonl, parsePools, readOptionalFile, validateTransfer, validateLiquidityChange, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv, summarizeTokenBalances } from "./pipeline";
 import { CyToken, EligibleBalances, RewardsPerToken } from "./types";
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
@@ -105,6 +105,26 @@ describe("parseJsonl", () => {
   it("throws with line number on malformed JSON", () => {
     const data = '{"a":1}\nbad json\n{"c":3}';
     expect(() => parseJsonl(data)).toThrow("line 2");
+  });
+
+  it("passes each parsed item through the validator", () => {
+    const data = '{"a":1}\n{"a":2}';
+    const validator = (item: unknown) => {
+      const obj = item as { a: number };
+      if (typeof obj.a !== "number") throw new Error("missing a");
+      return obj;
+    };
+    expect(parseJsonl(data, validator)).toEqual([{ a: 1 }, { a: 2 }]);
+  });
+
+  it("throws with line number when validator rejects an item", () => {
+    const data = '{"a":1}\n{"b":2}';
+    const validator = (item: unknown) => {
+      const obj = item as { a?: number };
+      if (obj.a === undefined) throw new Error("missing field a");
+      return obj;
+    };
+    expect(() => parseJsonl(data, validator)).toThrow("line 2");
   });
 });
 
@@ -406,5 +426,339 @@ describe("summarizeTokenBalances", () => {
     expect(result[0].totalAverage).toBe(100n);
     expect(result[1].name).toBe("cyWETH");
     expect(result[1].totalAverage).toBe(200n);
+  });
+});
+
+describe("validateTransfer", () => {
+  const valid = {
+    from: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    to: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    value: "1000",
+    blockNumber: 100,
+    timestamp: 200,
+    tokenAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
+    transactionHash: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+  };
+
+  it("accepts a valid transfer", () => {
+    expect(validateTransfer(valid)).toEqual(valid);
+  });
+
+  it("rejects missing from", () => {
+    expect(() => validateTransfer({ ...valid, from: undefined })).toThrow();
+  });
+
+  it("rejects invalid address in from", () => {
+    expect(() => validateTransfer({ ...valid, from: "bad" })).toThrow();
+  });
+
+  it("rejects non-integer blockNumber", () => {
+    expect(() => validateTransfer({ ...valid, blockNumber: 1.5 })).toThrow();
+  });
+
+  it("rejects non-numeric value string", () => {
+    expect(() => validateTransfer({ ...valid, value: "abc" })).toThrow();
+  });
+
+  it("rejects missing transactionHash", () => {
+    expect(() => validateTransfer({ ...valid, transactionHash: undefined })).toThrow();
+  });
+
+  it("rejects invalid address in to", () => {
+    expect(() => validateTransfer({ ...valid, to: "bad" })).toThrow();
+  });
+
+  it("rejects invalid tokenAddress", () => {
+    expect(() => validateTransfer({ ...valid, tokenAddress: "bad" })).toThrow();
+  });
+
+  it("rejects non-integer timestamp", () => {
+    expect(() => validateTransfer({ ...valid, timestamp: 1.5 })).toThrow();
+  });
+
+  it("rejects missing value", () => {
+    expect(() => validateTransfer({ ...valid, value: undefined })).toThrow();
+  });
+
+  it("rejects missing blockNumber", () => {
+    expect(() => validateTransfer({ ...valid, blockNumber: undefined })).toThrow();
+  });
+
+  it("rejects missing tokenAddress", () => {
+    expect(() => validateTransfer({ ...valid, tokenAddress: undefined })).toThrow();
+  });
+
+  it("rejects missing to", () => {
+    expect(() => validateTransfer({ ...valid, to: undefined })).toThrow();
+  });
+
+  it("rejects empty string value", () => {
+    expect(() => validateTransfer({ ...valid, value: "" })).toThrow();
+  });
+
+  it("rejects negative value", () => {
+    expect(() => validateTransfer({ ...valid, value: "-1" })).toThrow();
+  });
+
+  it("rejects NaN blockNumber", () => {
+    expect(() => validateTransfer({ ...valid, blockNumber: NaN })).toThrow();
+  });
+
+  it("rejects empty string from", () => {
+    expect(() => validateTransfer({ ...valid, from: "" })).toThrow();
+  });
+
+  it("rejects null input", () => {
+    expect(() => validateTransfer(null)).toThrow();
+  });
+
+  it("rejects string input", () => {
+    expect(() => validateTransfer("not an object")).toThrow();
+  });
+
+  it("rejects invalid transactionHash format", () => {
+    expect(() => validateTransfer({ ...valid, transactionHash: "not-a-hash" })).toThrow();
+  });
+
+  it("rejects short transactionHash", () => {
+    expect(() => validateTransfer({ ...valid, transactionHash: "0xabcd" })).toThrow();
+  });
+
+  it("rejects negative blockNumber", () => {
+    expect(() => validateTransfer({ ...valid, blockNumber: -1 })).toThrow();
+  });
+
+  it("rejects negative timestamp", () => {
+    expect(() => validateTransfer({ ...valid, timestamp: -1 })).toThrow();
+  });
+
+  it("accepts zero value", () => {
+    expect(validateTransfer({ ...valid, value: "0" })).toBeTruthy();
+  });
+
+  it("accepts empty object throws on first check", () => {
+    expect(() => validateTransfer({})).toThrow();
+  });
+});
+
+describe("validateLiquidityChange", () => {
+  const validV2 = {
+    __typename: "LiquidityV2Change",
+    tokenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    lpAddress: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    owner: "0xcccccccccccccccccccccccccccccccccccccccc",
+    changeType: "DEPOSIT",
+    liquidityChange: "1000",
+    depositedBalanceChange: "500",
+    blockNumber: 100,
+    timestamp: 200,
+    transactionHash: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+  };
+
+  const validV3 = {
+    ...validV2,
+    __typename: "LiquidityV3Change",
+    tokenId: "123",
+    poolAddress: "0xdddddddddddddddddddddddddddddddddddddddd",
+    fee: 3000,
+    lowerTick: -100,
+    upperTick: 100,
+  };
+
+  it("accepts a valid V2 change", () => {
+    expect(validateLiquidityChange(validV2)).toEqual(validV2);
+  });
+
+  it("accepts a valid V3 change", () => {
+    expect(validateLiquidityChange(validV3)).toEqual(validV3);
+  });
+
+  it("rejects non-string changeType", () => {
+    expect(() => validateLiquidityChange({ ...validV2, changeType: 123 })).toThrow();
+  });
+
+  it("rejects invalid changeType", () => {
+    expect(() => validateLiquidityChange({ ...validV2, changeType: "BAD" })).toThrow();
+  });
+
+  it("rejects invalid owner address", () => {
+    expect(() => validateLiquidityChange({ ...validV2, owner: "bad" })).toThrow();
+  });
+
+  it("rejects V3 with missing poolAddress", () => {
+    expect(() => validateLiquidityChange({ ...validV3, poolAddress: undefined })).toThrow();
+  });
+
+  it("rejects V3 with invalid poolAddress", () => {
+    expect(() => validateLiquidityChange({ ...validV3, poolAddress: "bad" })).toThrow();
+  });
+
+  it("rejects V3 with non-string tokenId", () => {
+    expect(() => validateLiquidityChange({ ...validV3, tokenId: 123 })).toThrow();
+  });
+
+  it("rejects V3 with non-integer fee", () => {
+    expect(() => validateLiquidityChange({ ...validV3, fee: 1.5 })).toThrow();
+  });
+
+  it("rejects unknown __typename", () => {
+    expect(() => validateLiquidityChange({ ...validV2, __typename: "Unknown" })).toThrow();
+  });
+
+  it("rejects missing tokenAddress", () => {
+    expect(() => validateLiquidityChange({ ...validV2, tokenAddress: undefined })).toThrow();
+  });
+
+  it("rejects invalid tokenAddress", () => {
+    expect(() => validateLiquidityChange({ ...validV2, tokenAddress: "bad" })).toThrow();
+  });
+
+  it("rejects missing lpAddress", () => {
+    expect(() => validateLiquidityChange({ ...validV2, lpAddress: undefined })).toThrow();
+  });
+
+  it("rejects missing owner", () => {
+    expect(() => validateLiquidityChange({ ...validV2, owner: undefined })).toThrow();
+  });
+
+  it("rejects invalid lpAddress", () => {
+    expect(() => validateLiquidityChange({ ...validV2, lpAddress: "bad" })).toThrow();
+  });
+
+  it("rejects non-integer blockNumber", () => {
+    expect(() => validateLiquidityChange({ ...validV2, blockNumber: 1.5 })).toThrow();
+  });
+
+  it("rejects non-integer timestamp", () => {
+    expect(() => validateLiquidityChange({ ...validV2, timestamp: 1.5 })).toThrow();
+  });
+
+  it("rejects non-string liquidityChange", () => {
+    expect(() => validateLiquidityChange({ ...validV2, liquidityChange: 123 })).toThrow();
+  });
+
+  it("rejects non-integer-string liquidityChange", () => {
+    expect(() => validateLiquidityChange({ ...validV2, liquidityChange: "abc" })).toThrow();
+  });
+
+  it("rejects non-string depositedBalanceChange", () => {
+    expect(() => validateLiquidityChange({ ...validV2, depositedBalanceChange: 123 })).toThrow();
+  });
+
+  it("rejects non-integer-string depositedBalanceChange", () => {
+    expect(() => validateLiquidityChange({ ...validV2, depositedBalanceChange: "1.5" })).toThrow();
+  });
+
+  it("rejects missing transactionHash", () => {
+    expect(() => validateLiquidityChange({ ...validV2, transactionHash: undefined })).toThrow();
+  });
+
+  it("rejects invalid transactionHash format", () => {
+    expect(() => validateLiquidityChange({ ...validV2, transactionHash: "not-a-hash" })).toThrow();
+  });
+
+  it("rejects V3 with missing tokenId", () => {
+    expect(() => validateLiquidityChange({ ...validV3, tokenId: undefined })).toThrow();
+  });
+
+  it("rejects V3 with non-integer lowerTick", () => {
+    expect(() => validateLiquidityChange({ ...validV3, lowerTick: 1.5 })).toThrow();
+  });
+
+  it("rejects V3 with non-integer upperTick", () => {
+    expect(() => validateLiquidityChange({ ...validV3, upperTick: 1.5 })).toThrow();
+  });
+
+  it("accepts negative ticks in V3", () => {
+    expect(validateLiquidityChange({ ...validV3, lowerTick: -887272, upperTick: -100 })).toBeTruthy();
+  });
+
+  it("accepts negative liquidityChange", () => {
+    expect(validateLiquidityChange({ ...validV2, liquidityChange: "-500" })).toBeTruthy();
+  });
+
+  it("rejects empty changeType", () => {
+    expect(() => validateLiquidityChange({ ...validV2, changeType: "" })).toThrow();
+  });
+
+  it("rejects empty liquidityChange", () => {
+    expect(() => validateLiquidityChange({ ...validV2, liquidityChange: "" })).toThrow();
+  });
+
+  it("rejects missing __typename", () => {
+    const { __typename, ...noTypename } = validV2;
+    expect(() => validateLiquidityChange(noTypename)).toThrow();
+  });
+
+  it("rejects null input", () => {
+    expect(() => validateLiquidityChange(null)).toThrow();
+  });
+
+  it("rejects negative blockNumber", () => {
+    expect(() => validateLiquidityChange({ ...validV2, blockNumber: -1 })).toThrow();
+  });
+
+  it("rejects negative timestamp", () => {
+    expect(() => validateLiquidityChange({ ...validV2, timestamp: -1 })).toThrow();
+  });
+
+  it("rejects V3 with empty tokenId", () => {
+    expect(() => validateLiquidityChange({ ...validV3, tokenId: "" })).toThrow();
+  });
+
+  it("accepts zero depositedBalanceChange", () => {
+    expect(validateLiquidityChange({ ...validV2, depositedBalanceChange: "0" })).toBeTruthy();
+  });
+});
+
+describe("readOptionalFile", () => {
+  it("should return empty string for missing file", async () => {
+    const result = await readOptionalFile("/tmp/definitely-does-not-exist-" + Date.now() + ".dat");
+    expect(result).toBe("");
+  });
+
+  it("should propagate non-ENOENT errors", async () => {
+    // Reading a directory as a file gives EISDIR, not ENOENT
+    await expect(readOptionalFile("/tmp")).rejects.toThrow();
+  });
+
+  it("should return file contents for existing file", async () => {
+    const { writeFileSync, unlinkSync } = await import("fs");
+    const path = "/tmp/readOptionalFile-test-" + Date.now() + ".dat";
+    writeFileSync(path, "hello");
+    try {
+      const result = await readOptionalFile(path);
+      expect(result).toBe("hello");
+    } finally {
+      unlinkSync(path);
+    }
+  });
+});
+
+describe("parsePools", () => {
+  it("should parse valid pool addresses", () => {
+    const data = JSON.stringify([
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    ]);
+    const result = parsePools(data);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBe("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  });
+
+  it("should reject non-array JSON", () => {
+    expect(() => parsePools('{"a": 1}')).toThrow();
+  });
+
+  it("should reject array with non-string elements", () => {
+    expect(() => parsePools('[123, 456]')).toThrow();
+  });
+
+  it("should reject array with invalid addresses", () => {
+    expect(() => parsePools('["not-an-address"]')).toThrow();
+  });
+
+  it("should accept empty array", () => {
+    expect(parsePools("[]")).toEqual([]);
   });
 });

@@ -58,7 +58,7 @@ const abi = [
  * Fetches current tick for each pool via a single multicall at the given block.
  * Pools that don't exist at the block (no code deployed) are silently skipped.
  * @param client - Viem public client
- * @param pools - Array of pool contract addresses
+ * @param pools - Array of pool contract addresses (must be pre-validated via parsePools)
  * @param blockNumber - Block number to query at
  * @returns Map of lowercase pool address to current tick value
  */
@@ -125,8 +125,8 @@ export async function getPoolsTick(
         try {
             return await getPoolsTickMulticall(client, pools, BigInt(blockNumber))
         } catch (error) {
-            await new Promise((resolve) => setTimeout(() => resolve(""), 10_000)) // wait 10 secs and try again
             if (i >= 2) throw error;
+            await new Promise((resolve) => setTimeout(() => resolve(""), 10_000)) // wait 10 secs and try again
         }
     }
 

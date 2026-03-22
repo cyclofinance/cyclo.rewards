@@ -28,14 +28,16 @@ Vitest runs in watch mode. For a single run, use `nix develop -c npx vitest run`
 
 ## Architecture
 
-**Pipeline:** `scraper.ts` → `processor.ts` + `liquidity.ts` → `diffCalculator.ts`
+**Pipeline:** `scraper.ts` → `index.ts` (`processor.ts` + `pipeline.ts` + `liquidity.ts`)
 
 - **`src/scraper.ts`** — Fetches transfer and liquidity events from Goldsky GraphQL subgraph up to END_SNAPSHOT block. Writes JSONL to `data/transfers1.dat` through `data/transfersN.dat` (split to avoid GitHub 100MB limit) and `data/liquidity.dat`.
-- **`src/processor.ts`** — Core logic. Replays all transfers to compute per-account balances at each snapshot block. Handles approved source detection (DEX routers in config), Uniswap V2/V3 LP position tracking via factory contracts, penalties/bounties from `data/blocklist.txt`. Outputs `balances-*.csv` and `rewards-*.csv`.
+- **`src/index.ts`** — Main pipeline entry point. Loads env config via `parseEnv()`, reads scraped data files, runs the `Processor`, and writes balance/reward CSVs to `output/`.
+- **`src/processor.ts`** — Core logic. Replays all transfers to compute per-account balances at each snapshot block. Handles approved source detection (DEX routers in config), Uniswap V2/V3 LP position tracking via factory contracts, penalties/bounties from `data/blocklist.txt`.
+- **`src/pipeline.ts`** — Extracted helpers for data parsing and output formatting: `parseJsonl`, `parseBlocklist`, `formatBalancesCsv`, `formatRewardsCsv`, `summarizeTokenBalances`, `aggregateRewardsPerAddress`, `sortAddressesByReward`, `filterZeroRewards`.
 - **`src/liquidity.ts`** — Queries Uniswap V3 pool tick data via multicall at specific blocks. Uses 3 attempts with fixed 10-second delay between retries.
-- **`src/diffCalculator.ts`** — Compares new rewards CSV against a previous rewards CSV (e.g., `output/rewards-*-old.csv`) to produce diff CSVs for underpaid, covered, and uncovered accounts.
+- **`src/diffCalculator.ts`** — Standalone script (not part of `npm run start`). Compares new rewards CSV against a previous rewards CSV (e.g., `output/rewards-*-old.csv`) to produce diff CSVs for underpaid, covered, and uncovered accounts. Currently configured for Dec 2025 epoch reconciliation.
 - **`src/config.ts`** — Approved DEX routers (`REWARDS_SOURCES`), factory contracts (`FACTORIES`), cyToken definitions (`CYTOKENS`), RPC URL, and `generateSnapshotBlocks()` which uses seedrandom for deterministic block selection.
-- **`src/constants.ts`** — `ONE` (1e18 as BigInt) and `REWARD_POOL` (1M tokens as BigInt).
+- **`src/constants.ts`** — Shared constants: `ONE_18` (1e18 BigInt), `REWARD_POOL` (current epoch pool amount), `DEC25_REWARD_POOL` (Dec 2025 historical), CSV column headers, `VALID_ADDRESS_REGEX`, `validateAddress()`, `BOUNTY_PERCENT`, `RETRY_BASE_DELAY_MS`, data file path constants (`DATA_DIR`, `OUTPUT_DIR`, etc.), and transfer file splitting constants.
 - **`src/types.ts`** — TypeScript interfaces for transfers, balances, liquidity changes, reports.
 - **`scripts/fetch-dec-2025-distributed.sh`** — Decodes on-chain distribution transactions to produce `output/dec-2025-distributed.csv`. Run in CI before the main pipeline.
 

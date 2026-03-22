@@ -68,6 +68,36 @@ describe('Test generateSnapshotTimestampForEpoch', () => {
   it('should error on empty seed', () => {
     expect(() => generateSnapshotBlocks('', start, end)).toThrow();
   });
+
+  it('should reject non-integer start', () => {
+    expect(() => generateSnapshotBlocks('test-seed', 5000.5, 9000)).toThrow();
+  });
+
+  it('should reject non-integer end', () => {
+    expect(() => generateSnapshotBlocks('test-seed', 5000, 9000.5)).toThrow();
+  });
+
+  it('should reject NaN start', () => {
+    expect(() => generateSnapshotBlocks('test-seed', NaN, 9000)).toThrow();
+  });
+
+  it('should reject negative start', () => {
+    expect(() => generateSnapshotBlocks('test-seed', -1, 9000)).toThrow();
+  });
+
+  it('should terminate quickly with minimum range of exactly 30', () => {
+    const start = Date.now();
+    const blocks = generateSnapshotBlocks('test-seed', 100, 129);
+    const elapsed = Date.now() - start;
+    expect(blocks).toHaveLength(30);
+    // Must contain every value in [100, 129]
+    expect(new Set(blocks).size).toBe(30);
+    for (let i = 100; i <= 129; i++) {
+      expect(blocks).toContain(i);
+    }
+    // Should complete in well under 1 second (shuffle is O(n))
+    expect(elapsed).toBeLessThan(1000);
+  });
 });
 
 describe("RPC_URL", () => {
@@ -130,14 +160,35 @@ describe("parseEnv", () => {
     process.env.SEED = "test-seed";
     process.env.START_SNAPSHOT = "abc";
     process.env.END_SNAPSHOT = "2000";
-    expect(() => parseEnv()).toThrow("START_SNAPSHOT must be a valid number");
+    expect(() => parseEnv()).toThrow("START_SNAPSHOT must be a non-negative integer");
   });
 
   it("should error if END_SNAPSHOT is not a valid number", () => {
     process.env.SEED = "test-seed";
     process.env.START_SNAPSHOT = "1000";
     process.env.END_SNAPSHOT = "abc";
-    expect(() => parseEnv()).toThrow("END_SNAPSHOT must be a valid number");
+    expect(() => parseEnv()).toThrow("END_SNAPSHOT must be a non-negative integer");
+  });
+
+  it("should reject trailing garbage like '123abc'", () => {
+    process.env.SEED = "test-seed";
+    process.env.START_SNAPSHOT = "123abc";
+    process.env.END_SNAPSHOT = "2000";
+    expect(() => parseEnv()).toThrow();
+  });
+
+  it("should reject float strings like '3.14'", () => {
+    process.env.SEED = "test-seed";
+    process.env.START_SNAPSHOT = "3.14";
+    process.env.END_SNAPSHOT = "2000";
+    expect(() => parseEnv()).toThrow();
+  });
+
+  it("should reject hex strings like '0x1A'", () => {
+    process.env.SEED = "test-seed";
+    process.env.START_SNAPSHOT = "0x1A";
+    process.env.END_SNAPSHOT = "2000";
+    expect(() => parseEnv()).toThrow();
   });
 });
 

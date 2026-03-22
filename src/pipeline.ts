@@ -1,6 +1,63 @@
+import { readFile } from "fs/promises";
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 import { validateAddress } from "./constants";
-import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport } from "./types";
+import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport, Transfer, LiquidityChange, LiquidityChangeType } from "./types";
+
+const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
+const VALID_TX_HASH_REGEX = /^0x[0-9a-fA-F]{64}$/;
+
+export function validateTransfer(item: unknown): Transfer {
+  const t = item as Record<string, unknown>;
+  if (typeof t.from !== "string") throw new Error(`Transfer missing or invalid 'from'`);
+  if (typeof t.to !== "string") throw new Error(`Transfer missing or invalid 'to'`);
+  if (typeof t.tokenAddress !== "string") throw new Error(`Transfer missing or invalid 'tokenAddress'`);
+  if (typeof t.transactionHash !== "string" || !VALID_TX_HASH_REGEX.test(t.transactionHash)) throw new Error(`Transfer missing or invalid 'transactionHash': "${t.transactionHash}"`);
+  if (typeof t.value !== "string" || !/^\d+$/.test(t.value)) throw new Error(`Transfer missing or invalid 'value': "${t.value}"`);
+  if (!Number.isInteger(t.blockNumber) || (t.blockNumber as number) < 0) throw new Error(`Transfer missing or invalid 'blockNumber': ${t.blockNumber}`);
+  if (!Number.isInteger(t.timestamp) || (t.timestamp as number) < 0) throw new Error(`Transfer missing or invalid 'timestamp': ${t.timestamp}`);
+  validateAddress(t.from, "from");
+  validateAddress(t.to, "to");
+  validateAddress(t.tokenAddress, "tokenAddress");
+  return t as unknown as Transfer;
+}
+
+export function validateLiquidityChange(item: unknown): LiquidityChange {
+  const t = item as Record<string, unknown>;
+  if (typeof t.tokenAddress !== "string") throw new Error(`LiquidityChange missing or invalid 'tokenAddress'`);
+  if (typeof t.lpAddress !== "string") throw new Error(`LiquidityChange missing or invalid 'lpAddress'`);
+  if (typeof t.owner !== "string") throw new Error(`LiquidityChange missing or invalid 'owner'`);
+  if (typeof t.transactionHash !== "string" || !VALID_TX_HASH_REGEX.test(t.transactionHash)) throw new Error(`LiquidityChange missing or invalid 'transactionHash': "${t.transactionHash}"`);
+  if (typeof t.changeType !== "string" || !VALID_CHANGE_TYPES.includes(t.changeType as LiquidityChangeType)) throw new Error(`LiquidityChange invalid 'changeType': "${t.changeType}"`);
+  if (typeof t.liquidityChange !== "string" || !/^-?\d+$/.test(t.liquidityChange)) throw new Error(`LiquidityChange invalid 'liquidityChange': "${t.liquidityChange}"`);
+  if (typeof t.depositedBalanceChange !== "string" || !/^-?\d+$/.test(t.depositedBalanceChange)) throw new Error(`LiquidityChange invalid 'depositedBalanceChange': "${t.depositedBalanceChange}"`);
+  if (!Number.isInteger(t.blockNumber) || (t.blockNumber as number) < 0) throw new Error(`LiquidityChange invalid 'blockNumber': ${t.blockNumber}`);
+  if (!Number.isInteger(t.timestamp) || (t.timestamp as number) < 0) throw new Error(`LiquidityChange invalid 'timestamp': ${t.timestamp}`);
+  validateAddress(t.tokenAddress, "tokenAddress");
+  validateAddress(t.lpAddress, "lpAddress");
+  validateAddress(t.owner, "owner");
+
+  if (t.__typename === "LiquidityV3Change") {
+    if (typeof t.poolAddress !== "string") throw new Error(`LiquidityChangeV3 missing 'poolAddress'`);
+    validateAddress(t.poolAddress, "poolAddress");
+    if (typeof t.tokenId !== "string" || t.tokenId.length === 0) throw new Error(`LiquidityChangeV3 missing or empty 'tokenId'`);
+    if (!Number.isInteger(t.fee)) throw new Error(`LiquidityChangeV3 invalid 'fee': ${t.fee}`);
+    if (!Number.isInteger(t.lowerTick)) throw new Error(`LiquidityChangeV3 invalid 'lowerTick': ${t.lowerTick}`);
+    if (!Number.isInteger(t.upperTick)) throw new Error(`LiquidityChangeV3 invalid 'upperTick': ${t.upperTick}`);
+  } else if (t.__typename !== "LiquidityV2Change") {
+    throw new Error(`LiquidityChange invalid '__typename': "${t.__typename}"`);
+  }
+
+  return t as unknown as LiquidityChange;
+}
+
+export async function readOptionalFile(path: string): Promise<string> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (e: any) {
+    if (e?.code === "ENOENT") return "";
+    throw e;
+  }
+}
 
 export interface TokenSummary {
   name: string;
@@ -94,13 +151,14 @@ export function formatBalancesCsv(
   return [header, ...rows];
 }
 
-export function parseJsonl(data: string): any[] {
+export function parseJsonl<T = any>(data: string, validate?: (item: unknown) => T): T[] {
   const lines = data.split("\n");
-  const results: any[] = [];
+  const results: T[] = [];
   for (let i = 0; i < lines.length; i++) {
     if (!lines[i]) continue;
     try {
-      results.push(JSON.parse(lines[i]));
+      const parsed = JSON.parse(lines[i]);
+      results.push(validate ? validate(parsed) : parsed);
     } catch (e) {
       throw new Error(`Failed to parse JSON at line ${i + 1}: ${(e as Error).message}`);
     }
@@ -121,4 +179,18 @@ export function parseBlocklist(data: string): BlocklistReport[] {
         cheater: reported.toLowerCase(),
       };
     });
+}
+
+export function parsePools(data: string): `0x${string}`[] {
+  const parsed = JSON.parse(data);
+  if (!Array.isArray(parsed)) {
+    throw new Error(`pools data must be a JSON array, got ${typeof parsed}`);
+  }
+  for (let i = 0; i < parsed.length; i++) {
+    if (typeof parsed[i] !== "string") {
+      throw new Error(`pools entry ${i} must be a string, got ${typeof parsed[i]}`);
+    }
+    validateAddress(parsed[i], `pools entry ${i}`);
+  }
+  return parsed;
 }

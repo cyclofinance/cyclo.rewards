@@ -9,7 +9,7 @@ import { flare } from "viem/chains";
 import { Processor } from "./processor";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
-import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, sortAddressesByReward, summarizeTokenBalances } from "./pipeline";
+import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, parsePools, readOptionalFile, sortAddressesByReward, summarizeTokenBalances, validateTransfer, validateLiquidityChange } from "./pipeline";
 import { BLOCKLIST_FILE, DATA_DIR, LIQUIDITY_FILE, OUTPUT_DIR, POOLS_FILE, REWARD_POOL, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE } from "./constants";
 import { LiquidityChange, Transfer } from "./types";
 
@@ -45,21 +45,21 @@ async function main() {
   console.log("Reading transfers file...");
   let transfers: Transfer[] = []
   for (let i = 0; i < TRANSFER_FILE_COUNT; i++) {
-    const transfersData = await readFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`, "utf8").catch(() => "");
-    transfers = [...transfers, ...parseJsonl(transfersData)]
+    const transfersData = await readOptionalFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`);
+    transfers = [...transfers, ...parseJsonl(transfersData, validateTransfer)]
   }
   console.log(`Found ${transfers.length} transfers`);
 
   // Read liquidity file
   console.log("Reading liquidity file...");
   const liquidityData = await readFile(`${DATA_DIR}/${LIQUIDITY_FILE}`, "utf8");
-  const liquidities: LiquidityChange[] = parseJsonl(liquidityData);
+  const liquidities = parseJsonl(liquidityData, validateLiquidityChange);
   console.log(`Found ${liquidities.length} liquidity changes`);
 
   // Read pools file
   console.log("Reading pools file...");
   const poolsData = await readFile(`${DATA_DIR}/${POOLS_FILE}`, "utf8");
-  const pools: `0x${string}`[] = JSON.parse(poolsData);
+  const pools = parsePools(poolsData);
   console.log(`Found ${pools.length} pools`);
 
   // Read blocklist

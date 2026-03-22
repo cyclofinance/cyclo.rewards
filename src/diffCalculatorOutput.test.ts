@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { DISTRIBUTED_COUNT } from './diffCalculator';
+import { DISTRIBUTED_COUNT } from './diff';
 import { DEC25_REWARD_POOL } from './constants';
 
 function parseCsv(filePath: string): Array<{address: string; reward: bigint}> {

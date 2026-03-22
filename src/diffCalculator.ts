@@ -1,136 +1,14 @@
-import { readFileSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { DEC25_REWARD_POOL, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from "./constants";
-
-export const DISTRIBUTED_COUNT = 100 as const;
+import { readCsv, calculateDiff, DISTRIBUTED_COUNT } from "./diff";
 
 /**
- * Reads a CSV file and returns the data as an array and map
- * @param filePath - Path to the CSV file
+ * Dec 2025 epoch reconciliation script.
+ *
+ * Compares the recalculated Dec 2025 rewards (blocks 51504517–52994045) against the
+ * original rewards CSV to identify underpaid accounts and compute remaining distributions.
+ * File paths and block ranges are hardcoded to this specific epoch.
  */
-export function readCsv(filePath: string): Array<{address: string; reward: bigint}> {
-  const data = readFileSync(filePath, "utf8");
-  const lines = data.split("\n").filter(Boolean);
-
-  if (lines.length === 0) {
-    throw new Error(`CSV file is empty: ${filePath}`);
-  }
-
-  if (lines.length === 1) {
-    throw new Error(`CSV file has no data rows (only header): ${filePath}`);
-  }
-
-  // Parse remaining lines
-  const list: Array<{address: string; reward: bigint}> = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map(v => v.trim());
-    if (values.length < 2) {
-      throw new Error(`CSV line ${i + 1} has fewer than 2 columns in ${filePath}: "${lines[i]}"`);
-    }
-    if (values.length > 2) {
-      throw new Error(`CSV line ${i + 1} has more than 2 columns in ${filePath}: "${lines[i]}"`);
-    }
-    const address = values[0];
-    if (!address) {
-      throw new Error(`CSV line ${i + 1} has empty address in ${filePath}: "${lines[i]}"`);
-    }
-    const rewardStr = values[1];
-    if (!rewardStr) {
-      throw new Error(`CSV line ${i + 1} has empty reward in ${filePath}: "${lines[i]}"`);
-    }
-    list.push({address: address.toLowerCase(), reward: BigInt(rewardStr)});
-  }
-
-  return list;
-}
-
-export type RewardEntry = {address: string; reward: bigint};
-export type DiffEntry = {address: string; old: bigint; new: bigint; diff: bigint};
-
-export interface DiffResult {
-  covered: RewardEntry[];
-  uncovered: RewardEntry[];
-  underpaid: DiffEntry[];
-  totalAlreadyPaid: bigint;
-  remainingRewards: bigint;
-  totalNewDistribution: bigint;
-  remainingRewardsDiff: bigint;
-  totalRemainingUncovered: bigint;
-  totalUnderpaid: bigint;
-}
-
-export function calculateDiff(
-  newRewards: RewardEntry[],
-  oldRewards: RewardEntry[],
-  distributedCount: number,
-  rewardPool: bigint,
-): DiffResult {
-  if (distributedCount > oldRewards.length) {
-    throw new Error(`distributedCount (${distributedCount}) exceeds oldRewards length (${oldRewards.length})`);
-  }
-  // clone for removing already distirbuted accounts from list
-  const remainingUndistributed = structuredClone(newRewards);
-  let totalAlreadyPaid = 0n;
-  let totalUnderpaid = 0n;
-  const underpaid: DiffEntry[] = [];
-
-  // gather all undistruibuted and thos who received less than they should have
-  for (let i = 0; i < distributedCount; i++) {
-    const oldItem = oldRewards[i];
-    totalAlreadyPaid += oldRewards[i].reward;
-
-    const index = remainingUndistributed.findIndex((v) => v.address.toLowerCase() === oldItem.address.toLowerCase());
-    if (index > -1) {
-      const newItem = remainingUndistributed[index]
-      const diff = newItem.reward - oldItem.reward
-      if (diff > 0n) {
-        underpaid.push({
-          address: newItem.address,
-          old: oldItem.reward,
-          new: newItem.reward,
-          diff
-        })
-        totalUnderpaid += diff
-      }
-      remainingUndistributed.splice(index, 1);
-    }
-  }
-
-  // calculate those who can be paid with remaining rewards and those who cant
-  const remainingRewards = rewardPool - totalAlreadyPaid;
-  if (remainingRewards < 0n) {
-    throw new Error(`totalAlreadyPaid (${totalAlreadyPaid}) exceeds rewardPool (${rewardPool})`);
-  }
-  let remainingRewardsDiff = remainingRewards;
-  let totalNewDistribution = 0n;
-  let totalRemainingUncovered = 0n;
-  const covered: RewardEntry[] = [];
-  const uncovered: RewardEntry[] = [];
-  for (let i = 0; i < remainingUndistributed.length; i++) {
-    const item = remainingUndistributed[i];
-    const diff = remainingRewardsDiff - item.reward;
-    if (diff < 0n) {
-      totalRemainingUncovered += item.reward
-      uncovered.push(item)
-    } else {
-      covered.push(item)
-      totalNewDistribution += item.reward
-      remainingRewardsDiff -= item.reward
-    }
-  }
-
-  return {
-    covered,
-    uncovered,
-    underpaid,
-    totalAlreadyPaid,
-    remainingRewards,
-    totalNewDistribution,
-    remainingRewardsDiff,
-    totalRemainingUncovered,
-    totalUnderpaid,
-  };
-}
-
 function main() {
     console.log("Running script for Dec2025 rewards case:\n")
     const newRewards = readCsv("./output/rewards-51504517-52994045.csv");
