@@ -57,7 +57,7 @@ export const TRANSFER_CHUNK_SIZE = 270000;
 export const TRANSFER_FILE_COUNT = 10;
 
 /** 1-indexed epoch number for the current rewards run */
-export const CURRENT_EPOCH = 20;
+export const CURRENT_EPOCH = 21;
 
 export interface Epoch {
   number: number;
@@ -97,7 +97,7 @@ export const EPOCHS: Epoch[] = [
   { number: 18, end: "2025-11-28T12:00:00Z", seed: "cyclo-rewards-for-nov-2025", startBlock: 49772029, endBlock: 51355293 },
   { number: 19, end: "2025-12-28T12:00:00Z", seed: "cyclo-rewards-for-dec-2025", startBlock: 51355293, endBlock: 52936176 },
   { number: 20, end: "2026-01-27T12:00:00Z", seed: "cyclo-rewards-for-jan-2026", startBlock: 52936176, endBlock: 54506725 },
-  { number: 21, end: "2026-02-26T12:00:00Z", startBlock: 54506725, endBlock: 56142314 },
+  { number: 21, end: "2026-02-26T12:00:00Z", seed: "e18b5100f9b97f8c88f3a79de3d82fdd", startBlock: 54506725, endBlock: 56142314 },
   { number: 22, end: "2026-03-28T12:00:00Z", startBlock: 56142314 },
   { number: 23, end: "2026-04-27T12:00:00Z" },
   { number: 24, end: "2026-05-27T12:00:00Z" },
