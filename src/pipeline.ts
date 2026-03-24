@@ -18,7 +18,15 @@ export function validateTransfer(item: unknown): Transfer {
   validateAddress(t.from, "from");
   validateAddress(t.to, "to");
   validateAddress(t.tokenAddress, "tokenAddress");
-  return t as unknown as Transfer;
+  return {
+    from: t.from.toLowerCase(),
+    to: t.to.toLowerCase(),
+    tokenAddress: t.tokenAddress.toLowerCase(),
+    transactionHash: t.transactionHash.toLowerCase(),
+    value: t.value,
+    blockNumber: t.blockNumber as number,
+    timestamp: t.timestamp as number,
+  };
 }
 
 export function validateLiquidityChange(item: unknown): LiquidityChange {
@@ -36,6 +44,18 @@ export function validateLiquidityChange(item: unknown): LiquidityChange {
   validateAddress(t.lpAddress, "lpAddress");
   validateAddress(t.owner, "owner");
 
+  const base = {
+    tokenAddress: t.tokenAddress.toLowerCase(),
+    lpAddress: t.lpAddress.toLowerCase(),
+    owner: t.owner.toLowerCase(),
+    transactionHash: t.transactionHash.toLowerCase(),
+    changeType: t.changeType as LiquidityChangeType,
+    liquidityChange: t.liquidityChange,
+    depositedBalanceChange: t.depositedBalanceChange,
+    blockNumber: t.blockNumber as number,
+    timestamp: t.timestamp as number,
+  };
+
   if (t.__typename === "LiquidityV3Change") {
     if (typeof t.poolAddress !== "string") throw new Error(`LiquidityChangeV3 missing 'poolAddress'`);
     validateAddress(t.poolAddress, "poolAddress");
@@ -43,11 +63,20 @@ export function validateLiquidityChange(item: unknown): LiquidityChange {
     if (!Number.isInteger(t.fee)) throw new Error(`LiquidityChangeV3 invalid 'fee': ${t.fee}`);
     if (!Number.isInteger(t.lowerTick)) throw new Error(`LiquidityChangeV3 invalid 'lowerTick': ${t.lowerTick}`);
     if (!Number.isInteger(t.upperTick)) throw new Error(`LiquidityChangeV3 invalid 'upperTick': ${t.upperTick}`);
+    return {
+      __typename: "LiquidityV3Change" as const,
+      ...base,
+      tokenId: t.tokenId,
+      poolAddress: t.poolAddress.toLowerCase(),
+      fee: t.fee as number,
+      lowerTick: t.lowerTick as number,
+      upperTick: t.upperTick as number,
+    };
   } else if (t.__typename !== "LiquidityV2Change") {
     throw new Error(`LiquidityChange invalid '__typename': "${t.__typename}"`);
   }
 
-  return t as unknown as LiquidityChange;
+  return { __typename: "LiquidityV2Change" as const, ...base };
 }
 
 export async function readOptionalFile(path: string): Promise<string> {

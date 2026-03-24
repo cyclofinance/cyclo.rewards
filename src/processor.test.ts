@@ -3,6 +3,7 @@ import { CYTOKENS, REWARDS_SOURCES, FACTORIES } from "./config";
 import { Processor } from "./processor";
 import { getPoolsTick } from "./liquidity";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
+import { validateTransfer } from "./pipeline";
 import { describe, it, expect, beforeEach, vi, afterEach, Mock } from "vitest";
 
 // Mock the liquidity module
@@ -158,6 +159,31 @@ describe("Processor", () => {
         balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
           ?.average
       ).toBe(0n);
+    });
+
+    it("should normalize mixed-case addresses to lowercase via validateTransfer", async () => {
+      const mixedCaseTo = "0x3000000000000000000000000000000000000aBc";
+
+      const transfer = validateTransfer({
+        from: APPROVED_SOURCE,
+        to: mixedCaseTo,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        transactionHash: "0x" + "a".repeat(64),
+      });
+
+      // validateTransfer should have lowercased the address
+      expect(transfer.to).toBe(mixedCaseTo.toLowerCase());
+      expect(transfer.to).not.toBe(mixedCaseTo);
+
+      await processor.processTransfer(transfer);
+      const balances = await processor.getEligibleBalances();
+
+      // Balance entry should exist at the lowercase key
+      const tokenBalances = balances.get(CYTOKENS[0].address.toLowerCase());
+      expect(tokenBalances?.has(mixedCaseTo.toLowerCase())).toBe(true);
     });
 
     it("should skip transfers for ineligible tokens", async () => {
