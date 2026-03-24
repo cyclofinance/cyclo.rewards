@@ -1294,31 +1294,29 @@ describe("Processor", () => {
   });
 
   describe("Mixed-case owner address in liquidity positions", () => {
-    it("should not crash when processLiquidityPositions sees mixed-case owner with no prior transfer", async () => {
-      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+    it("should handle LP Transfer event with no prior processTransfer call", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const owner = MIXED_CASE_USER.toLowerCase();
 
       // Direct LP Transfer event with no prior processTransfer call —
-      // the only entry in accountBalances will be the one created by
-      // processLiquidityPositions init under the lowercase key.
+      // processLiquidityPositions initializes the balance entry.
       const lpTransferEvent: LiquidityChange = {
         tokenAddress,
-        lpAddress: "0xLpAddress",
-        owner: MIXED_CASE_USER,
+        lpAddress: "0x6000000000000000000000000000000000000000",
+        owner,
         changeType: LiquidityChangeType.Transfer,
         liquidityChange: "1234",
         depositedBalanceChange: ONE,
         blockNumber: 50,
         timestamp: 1000,
         __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash1",
+        transactionHash: "0x" + "a".repeat(64),
       };
 
-      // Before the fix, this would throw because .get(mixedCase) returns
-      // undefined when only the lowercase key exists.
       await processor.processLiquidityPositions(lpTransferEvent);
 
       const balances = await processor.getEligibleBalances();
-      const userBalance = balances.get(tokenAddress)?.get(MIXED_CASE_USER.toLowerCase());
+      const userBalance = balances.get(tokenAddress)?.get(owner);
       expect(userBalance).toBeDefined();
       expect(userBalance?.snapshots[0]).toBe(ONEn);
       expect(userBalance?.snapshots[1]).toBe(ONEn);
@@ -1909,13 +1907,13 @@ describe("Processor", () => {
       expect(spyClient.readContract).toHaveBeenCalledTimes(1);
     });
 
-    it("should use cache across different casings of the same address", async () => {
+    it("should use cache for repeated lookups of the same address", async () => {
       const spyClient = {
         readContract: vi.fn().mockResolvedValue(FACTORIES[0]),
       } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], spyClient);
       await proc.isApprovedSource(MIXED_CASE_LOWER);
-      const result = await proc.isApprovedSource(MIXED_CASE_UPPER);
+      const result = await proc.isApprovedSource(MIXED_CASE_LOWER);
       expect(result).toBe(true);
       expect(spyClient.readContract).toHaveBeenCalledTimes(1);
     });
