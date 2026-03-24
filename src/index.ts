@@ -132,7 +132,7 @@ async function main() {
   console.log("Writing balances...");
   const rewardsPerToken = await processor.calculateRewards(REWARD_POOL);
   for (const token of CYTOKENS) {
-    const tokenRewards = rewardsPerToken.get(token.address.toLowerCase());
+    const tokenRewards = rewardsPerToken.get(token.address);
     if (tokenRewards) {
       const totalForToken = Array.from(tokenRewards.values()).reduce((a, b) => a + b, 0n);
       console.log(`Total rewards for ${token.name}: ${totalForToken}`);

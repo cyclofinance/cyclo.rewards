@@ -141,10 +141,10 @@ describe('getPoolsTickMulticall', () => {
       });
     });
 
-    it('should convert pool addresses to lowercase', async () => {
-      const upperCasePools = [
+    it('should preserve pool address case in output keys', async () => {
+      const pools = [
         '0x1234567890123456789012345678901234567890',
-        '0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD'
+        '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
       ] as `0x${string}`[];
 
       const mockResults = [
@@ -160,7 +160,7 @@ describe('getPoolsTickMulticall', () => {
 
       (mockClient.multicall as any).mockResolvedValue(mockResults);
 
-      const result = await getPoolsTickMulticall(mockClient, upperCasePools, blockNumber);
+      const result = await getPoolsTickMulticall(mockClient, pools, blockNumber);
 
       expect(result).toEqual({
         '0x1234567890123456789012345678901234567890': 100,

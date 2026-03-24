@@ -39,8 +39,8 @@ describe("Processor", () => {
     processor = new Processor(SNAPSHOTS, [], mockClient);
     processor.isApprovedSource = async (source: string) => {
       return (
-        source.toLowerCase() === APPROVED_SOURCE.toLowerCase() ||
-        source.toLowerCase() === FACTORY_SOURCE.toLowerCase()
+        source === APPROVED_SOURCE ||
+        source === FACTORY_SOURCE
       );
     };
   });
@@ -62,7 +62,7 @@ describe("Processor", () => {
         value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
       };
 
@@ -70,18 +70,18 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
       ).toBeDefined();
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.snapshots[0]
       ).toBe(0n);
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.snapshots[1]
       ).toBe(0n);
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.average
       ).toBe(0n);
     });
@@ -93,7 +93,7 @@ describe("Processor", () => {
         value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash1",
       };
 
@@ -103,11 +103,11 @@ describe("Processor", () => {
         value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash2",
       };
       const liquidityChangeEvent: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -125,18 +125,18 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
       ).toBeDefined();
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.snapshots[0]
       ).toBe(ONEn);
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.snapshots[1]
       ).toBe(ONEn);
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.average
       ).toBe(ONEn);
     });
@@ -148,7 +148,7 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
       };
 
@@ -156,7 +156,7 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.average
       ).toBe(0n);
     });
@@ -170,7 +170,7 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
       });
 
@@ -182,7 +182,7 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       // Balance entry should exist at the lowercase key
-      const tokenBalances = balances.get(CYTOKENS[0].address.toLowerCase());
+      const tokenBalances = balances.get(CYTOKENS[0].address);
       expect(tokenBalances?.has(mixedCaseTo.toLowerCase())).toBe(true);
     });
 
@@ -217,11 +217,11 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 50, // Before snapshot 1
         timestamp: 1000, // Before snapshot 1
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
       };
       const liquidityChangeEvent: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -238,11 +238,11 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       const index = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_1)?.snapshots[0];
       expect(index).toBe(ONEn);
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.snapshots[1]
       ).toBe(ONEn);
     });
@@ -254,11 +254,11 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 150, // Between snapshots
         timestamp: 1000, // Between snapshots
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
       };
       const liquidityChangeEvent: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -276,13 +276,13 @@ describe("Processor", () => {
 
       expect(
         balances
-          .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
+          .get(CYTOKENS[0].address)
+          ?.get(NORMAL_USER_1)?.snapshots[0]
       ).toBe(0n);
       expect(
         balances
-          .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[1]
+          .get(CYTOKENS[0].address)
+          ?.get(NORMAL_USER_1)?.snapshots[1]
       ).toBe(ONEn);
     });
 
@@ -293,7 +293,7 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 250, // After snapshot 2
         timestamp: 1000, // After snapshot 2
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
       };
 
@@ -302,14 +302,14 @@ describe("Processor", () => {
 
       expect(
         balances
-          .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
+          .get(CYTOKENS[0].address)
+          ?.get(NORMAL_USER_1)?.snapshots[0]
       ).toBe(0n);
 
       expect(
         balances
-          .get(CYTOKENS[0].address.toLowerCase())
-          ?.get(NORMAL_USER_1.toLowerCase())?.snapshots[1]
+          .get(CYTOKENS[0].address)
+          ?.get(NORMAL_USER_1)?.snapshots[1]
       ).toBe(0n);
     });
 
@@ -320,11 +320,11 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 100, // Exactly at snapshot 1
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
       };
       const liquidityChangeEvent: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -342,11 +342,11 @@ describe("Processor", () => {
 
       // Transfer at block 100 (== snapshot[0]) should be included in snapshot[0] due to <= comparison
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())
+        balances.get(CYTOKENS[0].address)
           ?.get(NORMAL_USER_1)?.snapshots[0]
       ).toBe(ONEn);
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())
+        balances.get(CYTOKENS[0].address)
           ?.get(NORMAL_USER_1)?.snapshots[1]
       ).toBe(ONEn);
     });
@@ -358,7 +358,7 @@ describe("Processor", () => {
         { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
       ], mockClient);
       processor.isApprovedSource = async (source: string) =>
-        source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
+        source === APPROVED_SOURCE;
 
       const transfer: Transfer = {
         from: NORMAL_USER_2,
@@ -366,11 +366,11 @@ describe("Processor", () => {
         value: ONE,
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
       };
       const liquidityChangeEvent: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_2,
         changeType: LiquidityChangeType.Deposit,
@@ -387,16 +387,16 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       const index = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2)?.average;
       expect(index).not.toBe(0n);
       expect(index).toBe(ONEn);
       const penalty = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2)?.penalty;
       expect(penalty).toBe(ONEn);
       const final = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2)?.final;
       expect(final).toBe(0n);
     });
@@ -415,7 +415,7 @@ describe("Processor", () => {
       const processor = new Processor(SNAPSHOTS, reports, mockClient);
 
       processor.isApprovedSource = async (source: string) =>
-        source.toLowerCase() === APPROVED_SOURCE.toLowerCase();
+        source === APPROVED_SOURCE;
 
       // Give NORMAL_USER_2 some balance to be penalized
       const transfer1: Transfer = {
@@ -424,11 +424,11 @@ describe("Processor", () => {
         value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash1",
       };
       const liquidityChangeEvent1: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_2,
         changeType: LiquidityChangeType.Deposit,
@@ -447,11 +447,11 @@ describe("Processor", () => {
         value: ONE, // 1 token
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash2",
       };
       const liquidityChangeEvent2: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -471,22 +471,22 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       const reporterBounty = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_1)?.bounty;
       const cheaterPenalty = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2)?.penalty;
 
       expect(reporterBounty).toBe(ONEn / 10n); // 10% bounty
       expect(cheaterPenalty).toBe(ONEn); // Full penalty
 
       const final = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2)?.final;
       expect(final).toBe(0n);
 
       const reporterFinal = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_1)?.final;
       expect(reporterFinal).toBe(ONEn + ONEn / 10n); // Original balance + bounty
     });
@@ -501,11 +501,11 @@ describe("Processor", () => {
         value: "2000000000000000000", // 2 tokens
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash1",
       };
       const liquidityChangeEvent1: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -523,11 +523,11 @@ describe("Processor", () => {
         value: "3000000000000000000", // 3 tokens
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash2",
       };
       const liquidityChangeEvent2: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_2,
         changeType: LiquidityChangeType.Deposit,
@@ -546,7 +546,7 @@ describe("Processor", () => {
         value: "3000000000000000000", // 3 tokens
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[1].address.toLowerCase(),
+        tokenAddress: CYTOKENS[1].address,
         transactionHash: "0xtxhash3",
       };
 
@@ -560,10 +560,10 @@ describe("Processor", () => {
       const result = await processor.calculateRewards(rewardPool);
 
       const user1Reward = result
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_1);
       const user2Reward = result
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2);
 
       expect(user1Reward).toBe(400000000000000000n); // 0.4 tokens
@@ -582,7 +582,7 @@ describe("Processor", () => {
           value: "50000000000000000000", // 50 tokens
           blockNumber: 50,
           timestamp: 1000,
-          tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          tokenAddress: CYTOKENS[0].address,
           transactionHash: "0xtxhash1",
         },
         {
@@ -591,7 +591,7 @@ describe("Processor", () => {
           value: "10000000000000000000", // 10 tokens initial
           blockNumber: 50,
           timestamp: 1000,
-          tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          tokenAddress: CYTOKENS[1].address,
           transactionHash: "0xtxhash2",
         },
         {
@@ -600,13 +600,13 @@ describe("Processor", () => {
           value: "40000000000000000000", // Withdraw 40 tokens (making -30 balance)
           blockNumber: 50,
           timestamp: 2000,
-          tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          tokenAddress: CYTOKENS[1].address,
           transactionHash: "0xtxhash3",
         },
       ];
       const deposits1: LiquidityChange[] = [
         {
-          tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          tokenAddress: CYTOKENS[0].address,
           lpAddress: "0xLpAddress",
           owner: NORMAL_USER_1,
           changeType: LiquidityChangeType.Deposit,
@@ -618,7 +618,7 @@ describe("Processor", () => {
           transactionHash: "0xtxhash1",
         },
         {
-          tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          tokenAddress: CYTOKENS[1].address,
           lpAddress: "0xLpAddress",
           owner: NORMAL_USER_1,
           changeType: LiquidityChangeType.Deposit,
@@ -639,7 +639,7 @@ describe("Processor", () => {
           value: "5000000000000000000", // 5 tokens initial
           blockNumber: 50,
           timestamp: 1000,
-          tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          tokenAddress: CYTOKENS[0].address,
           transactionHash: "0xtxhash4",
         },
         {
@@ -648,7 +648,7 @@ describe("Processor", () => {
           value: "15000000000000000000", // Withdraw 15 tokens (making -10 balance)
           blockNumber: 50,
           timestamp: 2000,
-          tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          tokenAddress: CYTOKENS[0].address,
           transactionHash: "0xtxhash5",
         },
         {
@@ -657,13 +657,13 @@ describe("Processor", () => {
           value: "88000000000000000000", // 88 tokens
           blockNumber: 50,
           timestamp: 1000,
-          tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          tokenAddress: CYTOKENS[1].address,
           transactionHash: "0xtxhash6",
         },
       ];
       const deposits2: LiquidityChange[] = [
         {
-          tokenAddress: CYTOKENS[0].address.toLowerCase(),
+          tokenAddress: CYTOKENS[0].address,
           lpAddress: "0xLpAddress",
           owner: NORMAL_USER_2,
           changeType: LiquidityChangeType.Deposit,
@@ -675,7 +675,7 @@ describe("Processor", () => {
           transactionHash: "0xtxhash4",
         },
         {
-          tokenAddress: CYTOKENS[1].address.toLowerCase(),
+          tokenAddress: CYTOKENS[1].address,
           lpAddress: "0xLpAddress",
           owner: NORMAL_USER_2,
           changeType: LiquidityChangeType.Deposit,
@@ -700,10 +700,10 @@ describe("Processor", () => {
       const result = await processor.calculateRewards(rewardPool);
 
       const user1Reward = result
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_1);
       const user2Reward = result
-        .get(CYTOKENS[1].address.toLowerCase())
+        .get(CYTOKENS[1].address)
         ?.get(NORMAL_USER_2);
 
       // Both users should be included in results
@@ -714,39 +714,39 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
       console.log("balances", balances);
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
       ).toBeDefined();
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_2)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)
       ).toBeDefined();
 
       // Verify User 1 has 50 tokens in cyA and 0 in cyB (negative balance treated as 0)
       const user1CyABalance = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_1)?.average;
       const user1CyBBalance = balances
-        .get(CYTOKENS[1].address.toLowerCase())
+        .get(CYTOKENS[1].address)
         ?.get(NORMAL_USER_1)?.average;
       expect(user1CyABalance).toBe(50000000000000000000n);
       expect(user1CyBBalance).toBe(0n); // -30 treated as 0
 
       // Verify User 2 has 0 tokens in cyA (negative balance treated as 0) and 88 in cyB
       const user2CyABalance = balances
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2)?.average;
       const user2CyBBalance = balances
-        .get(CYTOKENS[1].address.toLowerCase())
+        .get(CYTOKENS[1].address)
         ?.get(NORMAL_USER_2)?.average;
       expect(user2CyABalance).toBe(0n); // -10 treated as 0
       expect(user2CyBBalance).toBe(88000000000000000000n);
 
       // Verify total balances
       expect(
-        balances.get(CYTOKENS[0].address.toLowerCase())?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
           ?.average
       ).toBe(50000000000000000000n);
       expect(
-        balances.get(CYTOKENS[1].address.toLowerCase())?.get(NORMAL_USER_2)
+        balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)
           ?.average
       ).toBe(88000000000000000000n);
 
@@ -760,10 +760,10 @@ describe("Processor", () => {
 
       //
       const expectedUser1Reward = rewardsPools.get(
-        CYTOKENS[0].address.toLowerCase()
+        CYTOKENS[0].address
       )!;
       const expectedUser2Reward = rewardsPools.get(
-        CYTOKENS[1].address.toLowerCase()
+        CYTOKENS[1].address
       )!;
 
       // Check that rewards match expected values
@@ -786,11 +786,11 @@ describe("Processor", () => {
         value: "2000000000000000000", // 2 tokens
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash1",
       };
       const liquidityChangeEvent1: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
@@ -808,11 +808,11 @@ describe("Processor", () => {
         value: "3000000000000000000", // 3 tokens
         blockNumber: 50,
         timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash2",
       };
       const liquidityChangeEvent2: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address.toLowerCase(),
+        tokenAddress: CYTOKENS[0].address,
         lpAddress: "0xLpAddress",
         owner: NORMAL_USER_2,
         changeType: LiquidityChangeType.Deposit,
@@ -833,10 +833,10 @@ describe("Processor", () => {
       const result = await processor.calculateRewards(rewardPool);
 
       const user1Reward = result
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_1);
       const user2Reward = result
-        .get(CYTOKENS[0].address.toLowerCase())
+        .get(CYTOKENS[0].address)
         ?.get(NORMAL_USER_2);
 
       expect(user1Reward).toBe(400000000000000000n); // 0.4 tokens
@@ -849,7 +849,7 @@ describe("Processor", () => {
 
   describe("organizeLiquidityPositions duplicate handling", () => {
     it("should keep first event when same owner+token+txHash is organized twice", async () => {
-      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const tokenAddress = CYTOKENS[0].address;
       const txHash = "0xduptx";
 
       const event1: LiquidityChange = {
@@ -888,7 +888,7 @@ describe("Processor", () => {
 
   describe("Process Liquidity Position", () => {
     it("should correctly factor in liquidity changes", async () => {
-      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const tokenAddress = CYTOKENS[0].address;
 
       // deposit event before snapshot 1
       const initTransfer1: Transfer = {
@@ -1116,7 +1116,7 @@ describe("Processor", () => {
     });
 
     it("should update currentNetBalance for LiquidityChangeType.Transfer", async () => {
-      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const tokenAddress = CYTOKENS[0].address;
 
       // Transfer type directly adjusts currentNetBalance (unlike Deposit/Withdraw
       // which are handled by processTransfer)
@@ -1137,15 +1137,15 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
       ).toBe(ONEn);
       expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1.toLowerCase())?.snapshots[1]
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
       ).toBe(ONEn);
     });
 
     it("should not update currentNetBalance for LiquidityChangeType.Withdraw", async () => {
-      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const tokenAddress = CYTOKENS[0].address;
 
       // First deposit via Transfer to give user a balance
       const lpTransferEvent: LiquidityChange = {
@@ -1181,7 +1181,7 @@ describe("Processor", () => {
 
       // Balance should still be ONEn because Withdraw doesn't change currentNetBalance
       expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1.toLowerCase())?.snapshots[0]
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
       ).toBe(ONEn);
     });
 
@@ -1210,7 +1210,7 @@ describe("Processor", () => {
     });
 
     it("should include liquidity event exactly at snapshot block boundary", async () => {
-      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const tokenAddress = CYTOKENS[0].address;
 
       const transfer: Transfer = {
         from: NORMAL_USER_1,
@@ -1250,7 +1250,7 @@ describe("Processor", () => {
     });
 
     it("should track V3 liquidity positions in lp3TrackList", async () => {
-      const tokenAddress = CYTOKENS[0].address.toLowerCase();
+      const tokenAddress = CYTOKENS[0].address;
       const transfer: Transfer = {
         from: NORMAL_USER_1,
         to: "0xpool",
@@ -1363,22 +1363,22 @@ describe("Processor", () => {
         // Access private property for testing
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n], // Initial balances
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         // Setup LP position that's out of range (tick 100, position range 150-250)
         const lpTrackList = (processor as any).lp3TrackList;
-        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
         
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(lpId, {
             value: 200n,
-            pool: poolAddress.toLowerCase(),
+            pool: poolAddress,
             lowerTick: 150, // Out of range (tick is 100)
             upperTick: 250,
           });
@@ -1393,7 +1393,7 @@ describe("Processor", () => {
         expect(getPoolsTick).toHaveBeenCalledWith(mockClient, pools, 3000);
 
         // Verify balance was deducted for out-of-range position
-        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([300n, 300n, 300n]); // 500n - 200n
       });
 
@@ -1409,22 +1409,22 @@ describe("Processor", () => {
         
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n],
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         // Setup LP position that's in range (tick 200, position range 150-250)
         const lpTrackList = (processor as any).lp3TrackList;
-        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
         
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(lpId, {
             value: 200n,
-            pool: poolAddress.toLowerCase(),
+            pool: poolAddress,
             lowerTick: 150, // In range (tick is 200)
             upperTick: 250,
           });
@@ -1433,7 +1433,7 @@ describe("Processor", () => {
         await processor.processLpRange();
 
         // Verify balance was NOT deducted for in-range position
-        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]); // Unchanged
       });
 
@@ -1449,19 +1449,19 @@ describe("Processor", () => {
         
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n],
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         const lpTrackList = (processor as any).lp3TrackList;
         
         // Two LP positions: one in range, one out of range
-        const lpId1 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-0x1111111111111111111111111111111111111111-123`;
-        const lpId2 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-0x2222222222222222222222222222222222222222-456`;
+        const lpId1 = `${tokenAddress}-${ownerAddress}-0x1111111111111111111111111111111111111111-123`;
+        const lpId2 = `${tokenAddress}-${ownerAddress}-0x2222222222222222222222222222222222222222-456`;
         
         for (const snapshot of snapshots) {
           // Out of range position (tick 100, range 150-250)
@@ -1484,7 +1484,7 @@ describe("Processor", () => {
         await processor.processLpRange();
 
         // Only the out-of-range position should be deducted
-        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([300n, 300n, 300n]); // 500n - 200n
       });
 
@@ -1506,14 +1506,14 @@ describe("Processor", () => {
         for (const token of [token1, token2]) {
           const balanceMap = new Map();
           for (const owner of [owner1, owner2]) {
-            balanceMap.set(owner.toLowerCase(), {
+            balanceMap.set(owner, {
               transfersInFromApproved: 1000n,
               transfersOut: 0n,
               netBalanceAtSnapshots: [500n, 500n, 500n],
               currentNetBalance: 1000n,
             });
           }
-          accountBalancesPerToken.set(token.toLowerCase(), balanceMap);
+          accountBalancesPerToken.set(token, balanceMap);
         }
 
         const lpTrackList = (processor as any).lp3TrackList;
@@ -1521,11 +1521,11 @@ describe("Processor", () => {
         // Add out-of-range positions for all combinations
         for (const token of [token1, token2]) {
           for (const owner of [owner1, owner2]) {
-            const lpId = `${token.toLowerCase()}-${owner.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+            const lpId = `${token}-${owner}-${poolAddress}-123`;
             for (const snapshot of snapshots) {
               lpTrackList[snapshot].set(lpId, {
                 value: 100n,
-                pool: poolAddress.toLowerCase(),
+                pool: poolAddress,
                 lowerTick: 150, // Out of range (tick is 100)
                 upperTick: 250,
               });
@@ -1537,9 +1537,9 @@ describe("Processor", () => {
 
         // All balances should be deducted
         for (const token of [token1, token2]) {
-          const balanceMap = accountBalancesPerToken.get(token.toLowerCase());
+          const balanceMap = accountBalancesPerToken.get(token);
           for (const owner of [owner1, owner2]) {
-            const balance = balanceMap.get(owner.toLowerCase());
+            const balance = balanceMap.get(owner);
             expect(balance.netBalanceAtSnapshots).toEqual([400n, 400n, 400n]); // 500n - 100n
           }
         }
@@ -1559,21 +1559,21 @@ describe("Processor", () => {
         
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n],
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         const lpTrackList = (processor as any).lp3TrackList;
-        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
         
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(lpId, {
             value: 200n,
-            pool: poolAddress.toLowerCase(),
+            pool: poolAddress,
             lowerTick: 150,
             upperTick: 250,
           });
@@ -1582,7 +1582,7 @@ describe("Processor", () => {
         await processor.processLpRange();
 
         // Balance should remain unchanged due to undefined tick
-        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
       });
 
@@ -1598,23 +1598,23 @@ describe("Processor", () => {
         
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n],
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         const lpTrackList = (processor as any).lp3TrackList;
-        const lpId1 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
-        const lpId2 = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-456`;
+        const lpId1 = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
+        const lpId2 = `${tokenAddress}-${ownerAddress}-${poolAddress}-456`;
         
         for (const snapshot of snapshots) {
           // Zero value position
           lpTrackList[snapshot].set(lpId1, {
             value: 0n,
-            pool: poolAddress.toLowerCase(),
+            pool: poolAddress,
             lowerTick: 150, // Out of range
             upperTick: 250,
           });
@@ -1622,7 +1622,7 @@ describe("Processor", () => {
           // Negative value position
           lpTrackList[snapshot].set(lpId2, {
             value: -100n,
-            pool: poolAddress.toLowerCase(),
+            pool: poolAddress,
             lowerTick: 150, // Out of range
             upperTick: 250,
           });
@@ -1631,7 +1631,7 @@ describe("Processor", () => {
         await processor.processLpRange();
 
         // No deductions should happen due to zero/negative values
-        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
       });
 
@@ -1646,18 +1646,18 @@ describe("Processor", () => {
         
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n],
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         const lpTrackList = (processor as any).lp3TrackList;
         
         // LP position for different owner
-        const wrongLpId = `${tokenAddress.toLowerCase()}-0xdifferentowner-0x1111111111111111111111111111111111111111-123`;
+        const wrongLpId = `${tokenAddress}-0xdifferentowner-0x1111111111111111111111111111111111111111-123`;
         
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(wrongLpId, {
@@ -1671,7 +1671,7 @@ describe("Processor", () => {
         await processor.processLpRange();
 
         // No deductions should happen due to mismatched owner
-        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
       });
 
@@ -1684,13 +1684,13 @@ describe("Processor", () => {
         
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n],
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         // Should throw the error from getPoolsTick
         await expect(processor.processLpRange()).rejects.toThrow('Network error');
@@ -1709,23 +1709,23 @@ describe("Processor", () => {
         
         const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
         const balanceMap = new Map();
-        balanceMap.set(ownerAddress.toLowerCase(), {
+        balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
           transfersOut: 0n,
           netBalanceAtSnapshots: [500n, 500n, 500n],
           currentNetBalance: 1000n,
         });
-        accountBalancesPerToken.set(tokenAddress.toLowerCase(), balanceMap);
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         const lpTrackList = (processor as any).lp3TrackList;
-        const lpId = `${tokenAddress.toLowerCase()}-${ownerAddress.toLowerCase()}-${poolAddress.toLowerCase()}-123`;
+        const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
         
         for (const snapshot of snapshots) {
           // Position range 150-250
           // Tick 100 (out of range), Tick 200 (in range), Tick 300 (out of range)
           lpTrackList[snapshot].set(lpId, {
             value: 100n,
-            pool: poolAddress.toLowerCase(),
+            pool: poolAddress,
             lowerTick: 150,
             upperTick: 250,
           });
@@ -1734,7 +1734,7 @@ describe("Processor", () => {
         await processor.processLpRange();
 
         // Only snapshots 0 and 2 should have deductions (ticks 100 and 300 are out of range)
-        const updatedBalance = balanceMap.get(ownerAddress.toLowerCase());
+        const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([400n, 500n, 400n]); // Deduct 100n for snapshots 0 and 2
       });
     });

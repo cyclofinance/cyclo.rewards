@@ -100,7 +100,7 @@ export interface TokenSummary {
 export function summarizeTokenBalances(balances: EligibleBalances, cytokens: CyToken[]): TokenSummary[] {
   const summaries: TokenSummary[] = [];
   for (const token of cytokens) {
-    const tokenBalances = balances.get(token.address.toLowerCase());
+    const tokenBalances = balances.get(token.address);
     if (!tokenBalances) continue;
 
     const totalAverage = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.average, 0n);
@@ -166,12 +166,12 @@ export function formatBalancesCsv(
   const header = `address,${tokenColumns},total_rewards`;
   const rows = addresses.map((address) => {
     const tokenValues = cytokens.map((token) => {
-      const tokenBalances = balances.get(token.address.toLowerCase());
+      const tokenBalances = balances.get(token.address);
       const snapshotsDefault = new Array(snapshots.length).fill("0").join(",");
       if (!tokenBalances) return `${snapshotsDefault},0,0,0,0,0`;
       const tokenBalance = tokenBalances.get(address);
       if (!tokenBalance) return `${snapshotsDefault},0,0,0,0,0`;
-      return `${tokenBalance.snapshots.join(",")},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address.toLowerCase())?.get(address) ?? 0n}`;
+      return `${tokenBalance.snapshots.join(",")},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address)?.get(address) ?? 0n}`;
     }).join(",");
 
     return `${address},${tokenValues},${totalRewardsPerAddress.get(address) || 0n}`;

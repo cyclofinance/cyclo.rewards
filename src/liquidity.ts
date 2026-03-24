@@ -82,13 +82,13 @@ export async function getPoolsTickMulticall(
     });
     for (let i = 0; i < results.length; i++) {
         const res = results[i];
-        const pool = pools[i].toLowerCase();
+        const pool = pools[i];
         if (res.status === "success") {
             ticks[pool] = res.result[1];
         }
     }
 
-    const missingPools = pools.filter(p => !(p.toLowerCase() in ticks));
+    const missingPools = pools.filter(p => !(p in ticks));
     if (missingPools.length > 0) {
         const realFailures: string[] = [];
         for (const pool of missingPools) {
