@@ -6,7 +6,7 @@ import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport, Transfer, 
 const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
 const VALID_TX_HASH_REGEX = /^0x[0-9a-fA-F]{64}$/;
 
-export function validateTransfer(item: unknown): Transfer {
+export function normalizeTransfer(item: unknown): Transfer {
   const t = item as Record<string, unknown>;
   if (typeof t.from !== "string") throw new Error(`Transfer missing or invalid 'from'`);
   if (typeof t.to !== "string") throw new Error(`Transfer missing or invalid 'to'`);
@@ -29,7 +29,7 @@ export function validateTransfer(item: unknown): Transfer {
   };
 }
 
-export function validateLiquidityChange(item: unknown): LiquidityChange {
+export function normalizeLiquidityChange(item: unknown): LiquidityChange {
   const t = item as Record<string, unknown>;
   if (typeof t.tokenAddress !== "string") throw new Error(`LiquidityChange missing or invalid 'tokenAddress'`);
   if (typeof t.lpAddress !== "string") throw new Error(`LiquidityChange missing or invalid 'lpAddress'`);

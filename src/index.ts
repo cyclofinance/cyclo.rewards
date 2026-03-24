@@ -9,7 +9,7 @@ import { flare } from "viem/chains";
 import { Processor } from "./processor";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
-import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, parsePools, readOptionalFile, sortAddressesByReward, summarizeTokenBalances, validateTransfer, validateLiquidityChange } from "./pipeline";
+import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, parsePools, readOptionalFile, sortAddressesByReward, summarizeTokenBalances, normalizeTransfer, normalizeLiquidityChange } from "./pipeline";
 import { BLOCKLIST_FILE, DATA_DIR, LIQUIDITY_FILE, OUTPUT_DIR, POOLS_FILE, REWARD_POOL, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE } from "./constants";
 import { LiquidityChange, Transfer } from "./types";
 
@@ -46,14 +46,14 @@ async function main() {
   let transfers: Transfer[] = []
   for (let i = 0; i < TRANSFER_FILE_COUNT; i++) {
     const transfersData = await readOptionalFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`);
-    transfers = [...transfers, ...parseJsonl(transfersData, validateTransfer)]
+    transfers = [...transfers, ...parseJsonl(transfersData, normalizeTransfer)]
   }
   console.log(`Found ${transfers.length} transfers`);
 
   // Read liquidity file
   console.log("Reading liquidity file...");
   const liquidityData = await readFile(`${DATA_DIR}/${LIQUIDITY_FILE}`, "utf8");
-  const liquidities = parseJsonl(liquidityData, validateLiquidityChange);
+  const liquidities = parseJsonl(liquidityData, normalizeLiquidityChange);
   console.log(`Found ${liquidities.length} liquidity changes`);
 
   // Read pools file

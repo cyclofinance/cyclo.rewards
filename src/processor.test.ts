@@ -3,7 +3,7 @@ import { CYTOKENS, REWARDS_SOURCES, FACTORIES } from "./config";
 import { Processor } from "./processor";
 import { getPoolsTick } from "./liquidity";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
-import { validateTransfer } from "./pipeline";
+import { normalizeTransfer } from "./pipeline";
 import { describe, it, expect, beforeEach, vi, afterEach, Mock } from "vitest";
 
 // Mock the liquidity module
@@ -161,10 +161,10 @@ describe("Processor", () => {
       ).toBe(0n);
     });
 
-    it("should normalize mixed-case addresses to lowercase via validateTransfer", async () => {
+    it("should normalize mixed-case addresses to lowercase via normalizeTransfer", async () => {
       const mixedCaseTo = "0x3000000000000000000000000000000000000aBc";
 
-      const transfer = validateTransfer({
+      const transfer = normalizeTransfer({
         from: APPROVED_SOURCE,
         to: mixedCaseTo,
         value: ONE,
@@ -174,7 +174,7 @@ describe("Processor", () => {
         transactionHash: "0x" + "a".repeat(64),
       });
 
-      // validateTransfer should have lowercased the address
+      // normalizeTransfer should have lowercased the address
       expect(transfer.to).toBe(mixedCaseTo.toLowerCase());
       expect(transfer.to).not.toBe(mixedCaseTo);
 

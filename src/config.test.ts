@@ -220,6 +220,12 @@ describe("REWARDS_SOURCES", () => {
     const lower = REWARDS_SOURCES.map(a => a.toLowerCase());
     expect(new Set(lower).size).toBe(REWARDS_SOURCES.length);
   });
+
+  it("should all be lowercase", () => {
+    for (const addr of REWARDS_SOURCES) {
+      expect(addr).toBe(addr.toLowerCase());
+    }
+  });
 });
 
 describe("FACTORIES", () => {
@@ -232,6 +238,12 @@ describe("FACTORIES", () => {
   it("should have no duplicates (case-insensitive)", () => {
     const lower = FACTORIES.map(a => a.toLowerCase());
     expect(new Set(lower).size).toBe(FACTORIES.length);
+  });
+
+  it("should all be lowercase", () => {
+    for (const addr of FACTORIES) {
+      expect(addr).toBe(addr.toLowerCase());
+    }
   });
 });
 
@@ -251,6 +263,14 @@ describe("CYTOKENS", () => {
     expect(new Set(underlying).size).toBe(CYTOKENS.length);
     const receipts = CYTOKENS.map(t => t.receiptAddress.toLowerCase());
     expect(new Set(receipts).size).toBe(CYTOKENS.length);
+  });
+
+  it("should have all addresses lowercase", () => {
+    for (const token of CYTOKENS) {
+      expect(token.address).toBe(token.address.toLowerCase());
+      expect(token.underlyingAddress).toBe(token.underlyingAddress.toLowerCase());
+      expect(token.receiptAddress).toBe(token.receiptAddress.toLowerCase());
+    }
   });
 
   it("should have non-negative decimals", () => {
