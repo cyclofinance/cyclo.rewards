@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { REWARD_POOL, VALID_ADDRESS_REGEX, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from './constants';
+import { REWARD_POOL, VALID_ADDRESS_REGEX, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, EPOCHS, CURRENT_EPOCH } from './constants';
 import { REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
 
-const REWARDS_FILE = './output/rewards-54506725-56142314.csv';
-const BALANCES_FILE = './output/balances-54506725-56142314.csv';
+const epoch = EPOCHS[CURRENT_EPOCH - 1];
+const REWARDS_FILE = `./output/rewards-${epoch.startBlock}-${epoch.endBlock}.csv`;
+const BALANCES_FILE = `./output/balances-${epoch.startBlock}-${epoch.endBlock}.csv`;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 function parseCsv(filePath: string): { header: string; entries: Array<{address: string; reward: bigint}> } {
@@ -27,7 +28,7 @@ function parseBalancesCsv(filePath: string): { header: string; columns: string[]
   return { header, columns, addresses };
 }
 
-describe('Jan rewards output', () => {
+describe('current epoch rewards output', () => {
   const { header, entries } = parseCsv(REWARDS_FILE);
   const rewardAddresses = new Set(entries.map(r => r.address));
 
@@ -115,7 +116,7 @@ describe('Jan rewards output', () => {
   });
 });
 
-describe('Jan balances output', () => {
+describe('current epoch balances output', () => {
   const { columns, addresses } = parseBalancesCsv(BALANCES_FILE);
   const { entries: rewardEntries } = parseCsv(REWARDS_FILE);
   const rewardAddresses = new Set(rewardEntries.map(r => r.address));
