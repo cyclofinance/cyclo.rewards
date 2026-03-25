@@ -52,10 +52,10 @@ Set in `.env` (and mirrored in `.github/workflows/git-clean.yaml`):
 
 ## Key Concepts
 
-- **Approved sources**: Transfers are only reward-eligible if they come from approved DEX routers/orderbook (`REWARDS_SOURCES` in config). Direct wallet-to-wallet transfers are not eligible.
+- **Eligible balances (2026+)**: Only LP-deposited cy* tokens earn rewards. Users must buy cy* from approved DEX routers/orderbook (`REWARDS_SOURCES` in config) and then LP them into a pool. Simply holding cy* in a wallet does not earn rewards.
 - **Snapshots**: 30 blocks are deterministically chosen between START_SNAPSHOT and END_SNAPSHOT using seedrandom. Balances are sampled at each snapshot and averaged for reward calculation.
 - **Penalties/Bounties**: Accounts in `data/blocklist.txt` have rewards redistributed. A bounty portion goes to the reporter, remainder goes back to the reward pool.
-- **LP positions**: V2 and V3 liquidity positions are tracked. V3 positions query on-chain tick data to determine if they're in range.
+- **LP positions**: V2 and V3 liquidity positions are tracked. V3 positions query on-chain tick data to determine if they're in range. Only in-range V3 positions count toward rewards at each snapshot.
 - **Determinism**: CI (`git-clean.yaml`) runs the full pipeline and asserts no uncommitted changes, ensuring outputs are reproducible.
 - **Epoch transitions**: See `readme.md` for the step-by-step process and the full rFLR emissions epochs schedule. The `diffCalculator.ts` script is only needed when a prior epoch had a partial distribution requiring reconciliation (e.g., Dec 2025).
 
