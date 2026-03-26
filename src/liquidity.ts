@@ -58,7 +58,7 @@ const abi = [
  * Fetches current tick for each pool via a single multicall at the given block.
  * Pools that don't exist at the block (no code deployed) are silently skipped.
  * @param client - Viem public client
- * @param pools - Array of pool contract addresses
+ * @param pools - Array of pool contract addresses (must be pre-validated via parsePools)
  * @param blockNumber - Block number to query at
  * @returns Map of lowercase pool address to current tick value
  */
@@ -82,13 +82,13 @@ export async function getPoolsTickMulticall(
     });
     for (let i = 0; i < results.length; i++) {
         const res = results[i];
-        const pool = pools[i].toLowerCase();
+        const pool = pools[i];
         if (res.status === "success") {
             ticks[pool] = res.result[1];
         }
     }
 
-    const missingPools = pools.filter(p => !(p.toLowerCase() in ticks));
+    const missingPools = pools.filter(p => !(p in ticks));
     if (missingPools.length > 0) {
         const realFailures: string[] = [];
         for (const pool of missingPools) {
@@ -120,13 +120,14 @@ export async function getPoolsTick(
     if (!Number.isInteger(blockNumber) || blockNumber < 0) {
         throw new Error(`Invalid blockNumber: ${blockNumber}`);
     }
-    // retry 3 times
-    for (let i = 0; i < 3; i++) {
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 10_000;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
         try {
             return await getPoolsTickMulticall(client, pools, BigInt(blockNumber))
         } catch (error) {
-            await new Promise((resolve) => setTimeout(() => resolve(""), 10_000)) // wait 10 secs and try again
-            if (i >= 2) throw error;
+            if (i >= MAX_ATTEMPTS - 1) throw error;
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         }
     }
 

@@ -26,6 +26,16 @@ import {
 import { ONE_18, BOUNTY_PERCENT, RETRY_BASE_DELAY_MS } from "./constants";
 import { getPoolsTick } from "./liquidity";
 
+/** Clamp a bigint to a minimum of 0 */
+function clamp0(val: bigint): bigint {
+  return val < 0n ? 0n : val;
+}
+
+/** Build a V3 LP position ID from token, owner, pool, and tokenId */
+function lpV3PositionId(token: string, owner: string, pool: string, tokenId: string): string {
+  return `${token}-${owner}-${pool}-${tokenId}`;
+}
+
 /**
  * Processes on-chain transfer and liquidity events to calculate reward-eligible balances
  * and distribute the reward pool across accounts proportionally.
@@ -62,7 +72,7 @@ export class Processor {
     // Initialize token balances maps
     for (const token of CYTOKENS) {
       const balanceMap = new Map<string, AccountBalance>();
-      this.accountBalancesPerToken.set(token.address.toLowerCase(), balanceMap);
+      this.accountBalancesPerToken.set(token.address, balanceMap);
     }
 
     // start empty list
@@ -80,13 +90,13 @@ export class Processor {
    */
   async isApprovedSource(source: string, retries = 8): Promise<boolean> {
     // Check cache first
-    if (this.approvedSourceCache.has(source.toLowerCase())) {
-      return this.approvedSourceCache.get(source.toLowerCase())!;
+    if (this.approvedSourceCache.has(source)) {
+      return this.approvedSourceCache.get(source)!;
     }
 
     // Check direct sources
     if (REWARDS_SOURCES.some((addr) => isSameAddress(addr, source))) {
-      this.approvedSourceCache.set(source.toLowerCase(), true);
+      this.approvedSourceCache.set(source, true);
       return true;
     }
 
@@ -110,7 +120,7 @@ export class Processor {
         const isApproved = FACTORIES.some((addr) =>
           isSameAddress(addr, factory)
         );
-        this.approvedSourceCache.set(source.toLowerCase(), isApproved);
+        this.approvedSourceCache.set(source, isApproved);
         return isApproved;
       } catch (e: any) {
         // Check if this is a "no data returned" error (contract doesn't have factory function)
@@ -120,7 +130,7 @@ export class Processor {
             e.shortMessage.includes("reverted") ||
             e.shortMessage.includes("invalid parameters"))
         ) {
-          this.approvedSourceCache.set(source.toLowerCase(), false);
+          this.approvedSourceCache.set(source, false);
           return false;
         }
 
@@ -145,7 +155,9 @@ export class Processor {
    * Clamps negative balances to zero.
    */
   private updateSnapshots(balance: AccountBalance, blockNumber: number): void {
-    const val = balance.currentNetBalance < 0n ? 0n : balance.currentNetBalance;
+    const cap = clamp0(balance.boughtCap);
+    const lp = clamp0(balance.lpBalance);
+    const val = cap < lp ? cap : lp;
     for (let i = 0; i < this.snapshots.length; i++) {
       if (blockNumber <= this.snapshots[i]) {
         balance.netBalanceAtSnapshots[i] = val;
@@ -161,7 +173,7 @@ export class Processor {
    */
   async processTransfer(transfer: Transfer) {
     // skip if the token is not in the eligible list
-    if (!CYTOKENS.some((v) => v.address.toLowerCase() === transfer.tokenAddress.toLowerCase())) {
+    if (!CYTOKENS.some((v) => v.address === transfer.tokenAddress)) {
       return;
     }
 
@@ -169,7 +181,7 @@ export class Processor {
     const value = BigInt(transfer.value);
 
     const accountBalances = this.accountBalancesPerToken.get(
-      transfer.tokenAddress.toLowerCase()
+      transfer.tokenAddress
     );
 
     if (!accountBalances) {
@@ -182,7 +194,8 @@ export class Processor {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        currentNetBalance: 0n,
+        boughtCap: 0n,
+        lpBalance: 0n,
       });
     }
     if (!accountBalances.has(transfer.from)) {
@@ -190,47 +203,33 @@ export class Processor {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        currentNetBalance: 0n,
+        boughtCap: 0n,
+        lpBalance: 0n,
       });
     }
 
-    // Update balances
-    const toBalance = accountBalances.get(transfer.to)!;
+    // LP deposits and withdrawals are neutral to the bought cap —
+    // they just move tokens between wallet and pool.
+    const isLpDeposit = this.transferIsDeposit(transfer);
+    const isLpWithdraw = this.transferIsWithdraw(transfer);
+    if (isLpDeposit || isLpWithdraw) {
+      return;
+    }
+
+    // Bought cap: approved buys increase it, all non-LP transfers out decrease it.
     if (isApproved) {
-
-      // handle if transfer is withdraw
-      const lpWithdraw = this.transferIsWithdraw(transfer)
-      if (lpWithdraw) {
-        toBalance.transfersInFromApproved += BigInt(lpWithdraw.depositedBalanceChange);
-      }
-
+      const toBalance = accountBalances.get(transfer.to)!;
       toBalance.transfersInFromApproved += value;
-      toBalance.currentNetBalance =
+      toBalance.boughtCap =
         toBalance.transfersInFromApproved - toBalance.transfersOut;
       this.updateSnapshots(toBalance, transfer.blockNumber);
     }
 
-    // Always track transfers out
     const fromBalance = accountBalances.get(transfer.from)!;
-    const lpDeposit = this.transferIsDeposit(transfer)
-    // handle deposit vs non deposit transfers
-    if (lpDeposit) {
-      fromBalance.transfersInFromApproved += value
-    } else {
-      if (isApproved) {
-        toBalance.transfersInFromApproved -= value;
-        toBalance.currentNetBalance =
-          toBalance.transfersInFromApproved - toBalance.transfersOut;
-        this.updateSnapshots(toBalance, transfer.blockNumber);
-      }
-      fromBalance.transfersOut += value;
-    }
-    fromBalance.currentNetBalance =
+    fromBalance.transfersOut += value;
+    fromBalance.boughtCap =
       fromBalance.transfersInFromApproved - fromBalance.transfersOut;
     this.updateSnapshots(fromBalance, transfer.blockNumber);
-
-    accountBalances.set(transfer.to, toBalance);
-    accountBalances.set(transfer.from, fromBalance);
   }
 
   /**
@@ -239,9 +238,9 @@ export class Processor {
    * @returns The matching deposit liquidity event, or undefined
    */
   transferIsDeposit(transfer: Transfer): LiquidityChange | undefined {
-    const token = transfer.tokenAddress.toLowerCase()
-    const txhash = transfer.transactionHash.toLowerCase()
-    const owner = transfer.from.toLowerCase()
+    const token = transfer.tokenAddress
+    const txhash = transfer.transactionHash
+    const owner = transfer.from
 
     const ownerEvents = this.liquidityEvents.get(owner)
     if (!ownerEvents) return
@@ -262,9 +261,9 @@ export class Processor {
    * @returns The matching withdrawal liquidity event, or undefined
    */
   transferIsWithdraw(transfer: Transfer): LiquidityChange | undefined {
-    const token = transfer.tokenAddress.toLowerCase()
-    const txhash = transfer.transactionHash.toLowerCase()
-    const owner = transfer.to.toLowerCase()
+    const token = transfer.tokenAddress
+    const txhash = transfer.transactionHash
+    const owner = transfer.to
 
     const ownerEvents = this.liquidityEvents.get(owner)
     if (!ownerEvents) return
@@ -287,11 +286,11 @@ export class Processor {
     // Get all unique addresses, include reporters as they may have no balance from transfers
     const allAddresses = new Set<string>();
     for (const report of this.reports) {
-      allAddresses.add(report.reporter.toLowerCase());
+      allAddresses.add(report.reporter);
     }
     for (const token of CYTOKENS) {
       const accountBalances = this.accountBalancesPerToken.get(
-        token.address.toLowerCase()
+        token.address
       );
       if (!accountBalances) continue;
       for (const [address] of accountBalances) {
@@ -318,11 +317,11 @@ export class Processor {
       for (const address of allAddresses) {
         // Calculate balances for each token
         const accountBalances = this.accountBalancesPerToken.get(
-          token.address.toLowerCase()
+          token.address
         );
         if (!accountBalances) continue;
 
-        const balance = accountBalances.get(address.toLowerCase());
+        const balance = accountBalances.get(address);
         const snapshots = balance?.netBalanceAtSnapshots ?? new Array<bigint>(this.snapshots.length).fill(0n);
         const average = snapshots.reduce((acc, val) => acc + val, 0n) / BigInt(snapshots.length);
 
@@ -336,17 +335,17 @@ export class Processor {
         });
       }
 
-      tokenBalances.set(token.address.toLowerCase(), userBalances);
+      tokenBalances.set(token.address, userBalances);
     }
 
     // Second pass - calculate penalties and bounties
     for (const token of CYTOKENS) {
       for (const report of this.reports) {
-        const userBalances = tokenBalances.get(token.address.toLowerCase());
+        const userBalances = tokenBalances.get(token.address);
         if (!userBalances) continue;
 
-        const cheater = report.cheater.toLowerCase();
-        const reporter = report.reporter.toLowerCase();
+        const cheater = report.cheater;
+        const reporter = report.reporter;
 
         const cheaterBalance = userBalances.get(cheater);
         const reporterBalance = userBalances.get(reporter);
@@ -363,7 +362,7 @@ export class Processor {
 
     // Third pass - calculate final balances
     for (const token of CYTOKENS) {
-      const userBalances = tokenBalances.get(token.address.toLowerCase());
+      const userBalances = tokenBalances.get(token.address);
       if (!userBalances) continue;
 
       for (const address of allAddresses) {
@@ -389,13 +388,13 @@ export class Processor {
     // Calculate total of all final balances per token (after penalties)
     const totalBalances = new Map<string, bigint>();
     for (const token of CYTOKENS) {
-      const tokenBalances = balances.get(token.address.toLowerCase());
+      const tokenBalances = balances.get(token.address);
       if (!tokenBalances) continue;
       const totalBalance = Array.from(tokenBalances.values()).reduce(
         (acc, balance) => acc + balance.final18,
         0n
       );
-      totalBalances.set(token.address.toLowerCase(), totalBalance);
+      totalBalances.set(token.address, totalBalance);
     }
     return totalBalances;
   }
@@ -409,7 +408,7 @@ export class Processor {
     const tokensWithBalance: CyToken[] = [];
     const totalBalances = this.calculateTotalEligibleBalances(balances);
     for (const token of CYTOKENS) {
-      if (totalBalances.get(token.address.toLowerCase())! > 0n) {
+      if (totalBalances.get(token.address)! > 0n) {
         tokensWithBalance.push(token);
       }
     }
@@ -442,9 +441,9 @@ export class Processor {
     for (const token of tokensWithBalance) {
       const tokenInverseFraction =
         (sumOfAllBalances * ONE_18) /
-        totalBalances.get(token.address.toLowerCase())!;
+        totalBalances.get(token.address)!;
       tokenInverseFractions.set(
-        token.address.toLowerCase(),
+        token.address,
         tokenInverseFraction
       );
     }
@@ -458,11 +457,11 @@ export class Processor {
     const totalRewardsPerToken = new Map<string, bigint>();
     for (const token of tokensWithBalance) {
       const tokenInverseFraction = tokenInverseFractions.get(
-        token.address.toLowerCase()
+        token.address
       )!;
       const tokenReward =
         (tokenInverseFraction * rewardPool) / sumOfInverseFractions;
-      totalRewardsPerToken.set(token.address.toLowerCase(), tokenReward);
+      totalRewardsPerToken.set(token.address, tokenReward);
     }
 
     return totalRewardsPerToken;
@@ -488,18 +487,18 @@ export class Processor {
     // Calculate each address's share of the rewards
     const rewards = new Map<string, Map<string, bigint>>();
     for (const token of tokensWithBalance) {
-      const tokenBalances = balances.get(token.address.toLowerCase());
+      const tokenBalances = balances.get(token.address);
       if (!tokenBalances) continue;
 
       const tokenRewards = new Map<string, bigint>();
       for (const [address, balance] of tokenBalances) {
         const reward =
           (balance.final18 *
-            totalRewardsPerToken.get(token.address.toLowerCase())!) /
-          totalBalances.get(token.address.toLowerCase())!;
+            totalRewardsPerToken.get(token.address)!) /
+          totalBalances.get(token.address)!;
         tokenRewards.set(address, reward);
       }
-      rewards.set(token.address.toLowerCase(), tokenRewards);
+      rewards.set(token.address, tokenRewards);
     }
 
     return rewards;
@@ -512,29 +511,26 @@ export class Processor {
    */
   organizeLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
-    if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
+    if (!CYTOKENS.some((v) => v.address === liquidityChangeEvent.tokenAddress)) {
       return;
     }
-    const owner = liquidityChangeEvent.owner.toLowerCase();
-    const txhash = liquidityChangeEvent.transactionHash.toLowerCase();
-    const token = liquidityChangeEvent.tokenAddress.toLowerCase();
 
-    const ownerEvents = this.liquidityEvents.get(owner);
+    const ownerEvents = this.liquidityEvents.get(liquidityChangeEvent.owner);
     if (!ownerEvents) {
-      this.liquidityEvents.set(owner, new Map([[token, new Map([[txhash, liquidityChangeEvent]])]]))
+      this.liquidityEvents.set(liquidityChangeEvent.owner, new Map([[liquidityChangeEvent.tokenAddress, new Map([[liquidityChangeEvent.transactionHash, liquidityChangeEvent]])]]))
       return
     }
 
-    const ownerTokenEvents = ownerEvents.get(token)
+    const ownerTokenEvents = ownerEvents.get(liquidityChangeEvent.tokenAddress)
     if (!ownerTokenEvents) {
-      ownerEvents.set(token, new Map([[txhash, liquidityChangeEvent]]))
+      ownerEvents.set(liquidityChangeEvent.tokenAddress, new Map([[liquidityChangeEvent.transactionHash, liquidityChangeEvent]]))
       return
     }
 
-    if (ownerTokenEvents.has(txhash)) {
-      throw new Error(`Duplicate liquidity event for owner=${owner} token=${token} txHash=${txhash}`);
+    if (ownerTokenEvents.has(liquidityChangeEvent.transactionHash)) {
+      throw new Error(`Duplicate liquidity event for owner=${liquidityChangeEvent.owner} token=${liquidityChangeEvent.tokenAddress} txHash=${liquidityChangeEvent.transactionHash}`);
     }
-    ownerTokenEvents.set(txhash, liquidityChangeEvent)
+    ownerTokenEvents.set(liquidityChangeEvent.transactionHash, liquidityChangeEvent)
   }
 
   /**
@@ -544,7 +540,7 @@ export class Processor {
    */
   processLiquidityPositions(liquidityChangeEvent: LiquidityChange) {
     // skip if the token is not in the eligible list
-    if (!CYTOKENS.some((v) => v.address.toLowerCase() === liquidityChangeEvent.tokenAddress.toLowerCase())) {
+    if (!CYTOKENS.some((v) => v.address === liquidityChangeEvent.tokenAddress)) {
       return;
     }
 
@@ -553,7 +549,7 @@ export class Processor {
     const depositedBalanceChange = BigInt(liquidityChangeEvent.depositedBalanceChange);
 
     const accountBalances = this.accountBalancesPerToken.get(
-      liquidityChangeEvent.tokenAddress.toLowerCase()
+      liquidityChangeEvent.tokenAddress
     );
 
     if (!accountBalances) {
@@ -561,43 +557,39 @@ export class Processor {
     }
 
     // Initialize balances if needed
-    const owner = liquidityChangeEvent.owner.toLowerCase();
-    if (!accountBalances.has(owner)) {
-      accountBalances.set(owner, {
+    if (!accountBalances.has(liquidityChangeEvent.owner)) {
+      accountBalances.set(liquidityChangeEvent.owner, {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        currentNetBalance: 0n,
+        boughtCap: 0n,
+        lpBalance: 0n,
       });
     }
 
-    const ownerBalance = accountBalances.get(owner)!;
-    // include the liquidity direct transfer to the net balance
-    // as deposit and withdraws are handled in transfer processing function
-    if (liquidityChangeEvent.changeType === LiquidityChangeType.Transfer) {
-      ownerBalance.currentNetBalance += depositedBalanceChange;
-    }
+    const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
+    // Update LP balance from liquidity events
+    ownerBalance.lpBalance += depositedBalanceChange;
 
-    // Update snapshot balances
-    const value = ownerBalance.currentNetBalance < 0n ? 0n : ownerBalance.currentNetBalance;
+    // Update snapshot balances: eligible = min(boughtCap, lpBalance), clamped to 0
+    const cap = clamp0(ownerBalance.boughtCap);
+    const lp = clamp0(ownerBalance.lpBalance);
+    const value = cap < lp ? cap : lp;
     for (let i = 0; i < this.snapshots.length; i++) {
       if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
         ownerBalance.netBalanceAtSnapshots[i] = value;
 
         // update lp v3 tracklist
         if (liquidityChangeEvent.__typename === "LiquidityV3Change") {
-          const id =`${
-            liquidityChangeEvent.tokenAddress.toLowerCase()
-          }-${
-            liquidityChangeEvent.owner.toLowerCase()
-          }-${
-            liquidityChangeEvent.poolAddress.toLowerCase()
-          }-${
-            liquidityChangeEvent.tokenId
-          }`;
+          const id = lpV3PositionId(
+            liquidityChangeEvent.tokenAddress,
+            liquidityChangeEvent.owner,
+            liquidityChangeEvent.poolAddress,
+            liquidityChangeEvent.tokenId,
+          );
           const prev = this.lp3TrackList[this.snapshots[i]].get(id) ?? {
             value: 0n,
-            pool: liquidityChangeEvent.poolAddress.toLowerCase(),
+            pool: liquidityChangeEvent.poolAddress,
             lowerTick: liquidityChangeEvent.lowerTick,
             upperTick: liquidityChangeEvent.upperTick,
           };
@@ -607,7 +599,7 @@ export class Processor {
       }
     }
 
-    accountBalances.set(owner, ownerBalance);
+    accountBalances.set(liquidityChangeEvent.owner, ownerBalance);
   }
 
   /**
@@ -634,14 +626,13 @@ export class Processor {
         for (const [owner, balance] of account) {
           // iter tracked lp v3 position
           for (const [key, lp] of lpTrackList) {
-            const pool = lp.pool.toLowerCase();
-            const tick = poolsTicks[pool];
+            const tick = poolsTicks[lp.pool];
             if (tick === undefined) continue;
 
-            const idStart = `${token.toLowerCase()}-${owner.toLowerCase()}-${pool}`;
+            const idStart = `${token}-${owner}-${lp.pool}-`;
             if (!key.startsWith(idStart)) continue;
             if (lp.value <= 0n) continue;
-            if (lp.lowerTick <= tick && tick <= lp.upperTick) continue; // skip if in range
+            if (lp.lowerTick <= tick && tick < lp.upperTick) continue; // skip if in range (upper bound exclusive per Uniswap V3)
 
             // deduct out of range lp position for snapshot
             balance.netBalanceAtSnapshots[i] -= lp.value;

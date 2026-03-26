@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ONE_18, REWARD_POOL, VALID_ADDRESS_REGEX } from "./constants";
+import { ONE_18, REWARD_POOL, VALID_ADDRESS_REGEX, EPOCHS, CURRENT_EPOCH, validateAddress } from "./constants";
 
 describe("constants", () => {
   it("ONE_18 is exactly 1e18", () => {
@@ -32,5 +32,65 @@ describe("VALID_ADDRESS_REGEX", () => {
 
   it("rejects empty string", () => {
     expect(VALID_ADDRESS_REGEX.test("")).toBe(false);
+  });
+});
+
+describe("validateAddress", () => {
+  const VALID = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+  it("accepts valid lowercase address", () => {
+    expect(() => validateAddress(VALID, "test")).not.toThrow();
+  });
+
+  it("accepts valid mixed-case address", () => {
+    expect(() => validateAddress("0xAaBbCcDdEeFf00112233445566778899AaBbCcDd", "test")).not.toThrow();
+  });
+
+  it("rejects empty string", () => {
+    expect(() => validateAddress("", "test")).toThrow("test");
+  });
+
+  it("rejects missing 0x prefix", () => {
+    expect(() => validateAddress("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "test")).toThrow();
+  });
+
+  it("rejects too short", () => {
+    expect(() => validateAddress("0xaaa", "test")).toThrow();
+  });
+
+  it("rejects too long", () => {
+    expect(() => validateAddress(VALID + "aa", "test")).toThrow();
+  });
+
+  it("rejects non-hex characters", () => {
+    expect(() => validateAddress("0xgggggggggggggggggggggggggggggggggggggggg", "test")).toThrow();
+  });
+
+  it("includes field name in error message", () => {
+    expect(() => validateAddress("bad", "myField")).toThrow("myField");
+  });
+});
+
+describe("CURRENT_EPOCH", () => {
+  const epoch = EPOCHS[CURRENT_EPOCH - 1];
+
+  it("points to a valid epoch", () => {
+    expect(epoch).toBeDefined();
+    expect(epoch.number).toBe(CURRENT_EPOCH);
+  });
+
+  it("has a seed", () => {
+    expect(typeof epoch.seed).toBe("string");
+    expect(epoch.seed!.length).toBeGreaterThan(0);
+  });
+
+  it("has a startBlock", () => {
+    expect(epoch.startBlock).toBeDefined();
+    expect(Number.isInteger(epoch.startBlock)).toBe(true);
+    expect(epoch.startBlock).toBeGreaterThan(0);
+  });
+
+  it("has an endBlock greater than startBlock", () => {
+    expect(epoch.endBlock).toBeGreaterThan(epoch.startBlock!);
   });
 });

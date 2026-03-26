@@ -16,7 +16,19 @@ export interface CyToken {
   decimals: number;
 }
 
-/** On-chain ERC-20 transfer event parsed from the subgraph */
+/** Raw ERC-20 transfer event as deserialized from JSONL — addresses not yet normalized */
+export interface RawTransfer {
+  from: string;
+  to: string;
+  /** Transfer amount as a decimal string (not yet parsed to BigInt) */
+  value: string;
+  blockNumber: number;
+  timestamp: number;
+  tokenAddress: string;
+  transactionHash: string;
+}
+
+/** Normalized transfer event — all addresses lowercased */
 export interface Transfer {
   from: string;
   to: string;
@@ -30,14 +42,16 @@ export interface Transfer {
 
 /** Per-account running balance for a single token, updated during transfer processing */
 export interface AccountBalance {
-  /** Cumulative value received from approved sources (DEX routers, LP deposits) */
+  /** Cumulative value received from approved sources (DEX routers) */
   transfersInFromApproved: bigint;
-  /** Cumulative value sent out */
+  /** Cumulative value sent out (non-LP transfers) */
   transfersOut: bigint;
+  /** Bought cap: transfersInFromApproved - transfersOut. LP movements don't affect this. */
+  boughtCap: bigint;
+  /** Running LP position size from depositedBalanceChange events */
+  lpBalance: bigint;
   /** Balance snapshot at each of the 30 deterministic snapshot blocks */
   netBalanceAtSnapshots: bigint[];
-  /** Running net balance (transfersInFromApproved - transfersOut) */
-  currentNetBalance: bigint;
 }
 
 /**
@@ -72,7 +86,38 @@ export enum LiquidityChangeType {
   Withdraw = 'WITHDRAW'
 }
 
-/** Common fields for all liquidity change events (V2 and V3) */
+/** Raw common fields for liquidity change events — addresses not yet normalized */
+export interface RawLiquidityChangeBase {
+  tokenAddress: string;
+  lpAddress: string;
+  owner: string;
+  changeType: LiquidityChangeType;
+  liquidityChange: string;
+  depositedBalanceChange: string;
+  blockNumber: number;
+  timestamp: number;
+  transactionHash: string;
+}
+
+/** Raw Uniswap V2 liquidity change event */
+export type RawLiquidityChangeV2 = RawLiquidityChangeBase & {
+  __typename: "LiquidityV2Change";
+}
+
+/** Raw Uniswap V3 liquidity change event */
+export type RawLiquidityChangeV3 = RawLiquidityChangeBase & {
+  __typename: "LiquidityV3Change";
+  tokenId: string;
+  poolAddress: string;
+  fee: number;
+  lowerTick: number;
+  upperTick: number;
+}
+
+/** Raw discriminated union of V2 and V3 liquidity change events */
+export type RawLiquidityChange = RawLiquidityChangeV2 | RawLiquidityChangeV3;
+
+/** Normalized common fields — all addresses lowercased */
 export interface LiquidityChangeBase {
   tokenAddress: string;
   lpAddress: string;

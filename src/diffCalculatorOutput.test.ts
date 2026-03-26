@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { DISTRIBUTED_COUNT } from './diffCalculator';
+import { DISTRIBUTED_COUNT } from './diff';
 import { DEC25_REWARD_POOL } from './constants';
 
 function parseCsv(filePath: string): Array<{address: string; reward: bigint}> {
@@ -22,11 +22,11 @@ function parseDiffCsv(filePath: string): Array<{address: string; old: bigint; ne
 }
 
 describe('diffCalculator output', () => {
-  const newRewards = parseCsv('./output/rewards-51504517-52994045.csv');
-  const oldRewards = parseCsv('./output/rewards-51504517-52994045-old.csv');
-  const covered = parseCsv('./output/rewards-51504517-52994045-remainingCovered.csv');
-  const uncovered = parseCsv('./output/rewards-51504517-52994045-remainingUncovered.csv');
-  const diff = parseDiffCsv('./output/rewards-51504517-52994045-diff.csv');
+  const newRewards = parseCsv('./output/dispersed/rewards-51504517-52994045.csv');
+  const oldRewards = parseCsv('./output/dispersed/rewards-51504517-52994045-old.csv');
+  const covered = parseCsv('./output/dispersed/rewards-51504517-52994045-remainingCovered.csv');
+  const uncovered = parseCsv('./output/dispersed/rewards-51504517-52994045-remainingUncovered.csv');
+  const diff = parseDiffCsv('./output/dispersed/rewards-51504517-52994045-diff.csv');
 
   const distributedAddresses = new Set(
     oldRewards.slice(0, DISTRIBUTED_COUNT).map(r => r.address)
@@ -176,9 +176,9 @@ describe('diffCalculator output', () => {
 });
 
 describe('on-chain distribution verification', () => {
-  const onchain = parseCsv('./output/dec-2025-distributed.csv');
-  const oldRewards = parseCsv('./output/rewards-51504517-52994045-old.csv');
-  const covered = parseCsv('./output/rewards-51504517-52994045-remainingCovered.csv');
+  const onchain = parseCsv('./output/dispersed/dec-2025-distributed.csv');
+  const oldRewards = parseCsv('./output/dispersed/rewards-51504517-52994045-old.csv');
+  const covered = parseCsv('./output/dispersed/rewards-51504517-52994045-remainingCovered.csv');
 
   it('on-chain distributed exactly DISTRIBUTED_COUNT addresses', () => {
     expect(onchain.length).toBe(DISTRIBUTED_COUNT);

@@ -20,8 +20,8 @@ vi.mock('fs', async () => {
   };
 });
 
-import { readCsv, calculateDiff, RewardEntry, DISTRIBUTED_COUNT } from './diffCalculator';
-import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, DIFF_CSV_COLUMN_HEADER_OLD, DIFF_CSV_COLUMN_HEADER_NEW, DIFF_CSV_COLUMN_HEADER_DIFF } from './constants';
+import { readCsv, calculateDiff, RewardEntry, DISTRIBUTED_COUNT } from './diff';
+import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from './constants';
 
 const header = REWARDS_CSV_COLUMN_HEADER_ADDRESS + ',' + REWARDS_CSV_COLUMN_HEADER_REWARD;
 
@@ -88,20 +88,20 @@ describe('readCsv', () => {
 
   it('should lowercase addresses', () => {
     mockReadFileSync.mockReturnValue(
-      header + '\n0xAaBbCcDdEeFf,1000\n'
+      header + '\n0xAaBbCcDdEeFf00112233445566778899AaBbCcDd,1000\n'
     );
     const result = readCsv('valid.csv');
-    expect(result[0].address).toBe('0xaabbccddeeff');
+    expect(result[0].address).toBe('0xaabbccddeeff00112233445566778899aabbccdd');
   });
 
   it('should parse valid CSV', () => {
     mockReadFileSync.mockReturnValue(
-      header + '\n0xABC123,1000\n0xDEF456,2000\n'
+      header + '\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\n0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,2000\n'
     );
     const result = readCsv('valid.csv');
     expect(result).toEqual([
-      { address: '0xabc123', reward: 1000n },
-      { address: '0xdef456', reward: 2000n },
+      { address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', reward: 1000n },
+      { address: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', reward: 2000n },
     ]);
   });
 
@@ -119,17 +119,16 @@ describe('readCsv', () => {
     expect(() => readCsv('bad.csv')).toThrow();
   });
 
-  it('should accept negative reward values', () => {
+  it('should reject negative reward values', () => {
     mockReadFileSync.mockReturnValue(
-      header + '\n0xabc123,-1000\n'
+      header + '\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,-1000\n'
     );
-    const result = readCsv('bad.csv');
-    expect(result[0].reward).toBe(-1000n);
+    expect(() => readCsv('bad.csv')).toThrow();
   });
 
   it('should accept zero reward values', () => {
     mockReadFileSync.mockReturnValue(
-      header + '\n0xabc123,0\n'
+      header + '\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,0\n'
     );
     const result = readCsv('bad.csv');
     expect(result[0].reward).toBe(0n);
@@ -137,13 +136,47 @@ describe('readCsv', () => {
 
   it('should return duplicate addresses as separate entries', () => {
     mockReadFileSync.mockReturnValue(
-      header + '\n0xabc123,1000\n0xabc123,2000\n'
+      header + '\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2000\n'
     );
     const result = readCsv('dup.csv');
     expect(result).toEqual([
-      { address: '0xabc123', reward: 1000n },
-      { address: '0xabc123', reward: 2000n },
+      { address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', reward: 1000n },
+      { address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', reward: 2000n },
     ]);
+  });
+
+  it('should reject invalid address format', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\nnot-an-address,1000\n'
+    );
+    expect(() => readCsv('bad.csv')).toThrow();
+  });
+
+  it('should handle LF line endings', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\n'
+    );
+    const result = readCsv('lf.csv');
+    expect(result).toEqual([
+      { address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', reward: 1000n },
+    ]);
+  });
+
+  it('should handle CRLF line endings', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\r\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\r\n'
+    );
+    const result = readCsv('crlf.csv');
+    expect(result).toEqual([
+      { address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', reward: 1000n },
+    ]);
+  });
+
+  it('should reject CSV with wrong header', () => {
+    mockReadFileSync.mockReturnValue(
+      'wrong header\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\n'
+    );
+    expect(() => readCsv('bad.csv')).toThrow();
   });
 });
 
@@ -382,60 +415,45 @@ describe('calculateDiff', () => {
       'totalAlreadyPaid (200) exceeds rewardPool (100)'
     );
   });
-});
 
-describe('main() CSV output', () => {
-  // main() runs on import with mockReadFileSync returning 200 identical rows
-  // for both old and new rewards. First DISTRIBUTED_COUNT are
-  // "already distributed" and the remaining (200 - DISTRIBUTED_COUNT) are new.
-  // Since old and new are identical, no accounts are underpaid (all diffs <= 0).
-
-  const rewardsHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + REWARDS_CSV_COLUMN_HEADER_REWARD;
-  const diffHeader = REWARDS_CSV_COLUMN_HEADER_ADDRESS + "," + DIFF_CSV_COLUMN_HEADER_OLD + "," + DIFF_CSV_COLUMN_HEADER_NEW + "," + DIFF_CSV_COLUMN_HEADER_DIFF;
-
-  it('should write three CSV files', () => {
-    expect(mockWriteFileSync).toHaveBeenCalledTimes(3);
+  it('should error on duplicate addresses in newRewards', () => {
+    const newRewards = [
+      entry('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 10n),
+      entry('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 20n),
+    ];
+    const oldRewards = [
+      entry('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 5n),
+    ];
+    expect(() => calculateDiff(newRewards, oldRewards, 1, 100n)).toThrow('duplicate');
   });
 
-  it('should write remainingCovered CSV with correct header and format', () => {
-    const [path, content] = mockWriteFileSync.mock.calls[0];
-    expect(path).toBe('output/rewards-51504517-52994045-remainingCovered.csv');
-    const lines = content.split('\n');
-    expect(lines[0]).toBe(rewardsHeader);
-    // With identical old/new and huge reward pool, all remaining should be covered
-    expect(lines.length).toBe(200 - DISTRIBUTED_COUNT + 1); // header + remaining data rows
-    // Verify format of a data line
-    expect(lines[1]).toMatch(/^0x[0-9a-f]+,\d+$/);
+  it('should error on negative distributedCount', () => {
+    const newRewards = [entry('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 10n)];
+    const oldRewards = [entry('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 5n)];
+    expect(() => calculateDiff(newRewards, oldRewards, -1, 100n)).toThrow();
   });
 
-  it('should write remainingUncovered CSV with header only', () => {
-    const [path, content] = mockWriteFileSync.mock.calls[1];
-    expect(path).toBe('output/rewards-51504517-52994045-remainingUncovered.csv');
-    const lines = content.split('\n');
-    expect(lines[0]).toBe(rewardsHeader);
-    // No uncovered accounts since reward pool is massive
-    expect(lines.length).toBe(1);
+  it('should error on non-integer distributedCount', () => {
+    const newRewards = [entry('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 10n)];
+    const oldRewards = [entry('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 5n)];
+    expect(() => calculateDiff(newRewards, oldRewards, 1.5, 100n)).toThrow();
   });
 
-  it('should write diff CSV with header only when old and new are identical', () => {
-    const [path, content] = mockWriteFileSync.mock.calls[2];
-    expect(path).toBe('output/rewards-51504517-52994045-diff.csv');
-    const lines = content.split('\n');
-    expect(lines[0]).toBe(diffHeader);
-    // No underpaid accounts since old and new rewards are identical
-    expect(lines.length).toBe(1);
+  it('should error on NaN distributedCount', () => {
+    const newRewards = [entry('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 10n)];
+    const oldRewards = [entry('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 5n)];
+    expect(() => calculateDiff(newRewards, oldRewards, NaN, 100n)).toThrow();
   });
 
-  it('should only include non-distributed addresses in covered CSV', () => {
-    const [, content] = mockWriteFileSync.mock.calls[0];
-    const dataLines = content.split('\n').slice(1);
-    const addresses = dataLines.map((l: string) => l.split(',')[0]);
-
-    // The mock generates addresses 0x00...00 through 0x00...c7 (0-199)
-    // First DISTRIBUTED_COUNT are "distributed", the rest are new
-    for (let i = 0; i < DISTRIBUTED_COUNT; i++) {
-      const distributed = `0x${i.toString(16).padStart(40, '0')}`;
-      expect(addresses).not.toContain(distributed);
-    }
+  it('should error on duplicate addresses in oldRewards', () => {
+    const newRewards = [
+      entry('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 10n),
+    ];
+    const oldRewards = [
+      entry('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 5n),
+      entry('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 10n),
+    ];
+    expect(() => calculateDiff(newRewards, oldRewards, 2, 100n)).toThrow('duplicate');
   });
 });
+

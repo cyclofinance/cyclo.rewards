@@ -1,7 +1,8 @@
 import assert from "assert";
 import { CyToken } from "./types";
-import { validateAddress } from "./constants";
+import { validateAddress, EPOCHS, CURRENT_EPOCH } from "./constants";
 import seedrandom from "seedrandom";
+import { shuffle } from "./shuffle";
 
 /** Approved DEX router and orderbook addresses whose transfers are reward-eligible */
 export const REWARDS_SOURCES = [
@@ -78,28 +79,22 @@ export function generateSnapshotBlocks(
   end: number,
 ): number[] {
   assert.ok(seed.length > 0, "Seed must not be empty");
+  assert.ok(Number.isInteger(start) && start >= 0, `start must be a non-negative integer, got ${start}`);
+  assert.ok(Number.isInteger(end) && end >= 0, `end must be a non-negative integer, got ${end}`);
   const rng = seedrandom(seed);
   const range = end - start + 1;
 
   assert.ok(range >= 30, `Snapshot range must be at least 30, got ${range}`);
 
-  const snapshotSet = new Set<number>([start, end]);
+  // Build candidate array and sample 30 via Fisher-Yates shuffle
+  const candidates = Array.from({ length: range }, (_, i) => start + i);
+  const shuffled = shuffle(candidates, rng);
+  const snapshots = shuffled.slice(0, 30).sort((a, b) => a - b);
 
-  // start + end + 28 = 30 snapshots, sampled without replacement
-  while (snapshotSet.size < 30) {
-    snapshotSet.add(Math.floor(rng() * range) + start);
-  }
-
-  const snapshots = Array.from(snapshotSet);
-
-  // making sure we have correct length
   assert.ok(
     snapshots.length === 30,
     `failed to generate expected number of snapshots, expected: 30, got: ${snapshots.length}`
   );
-
-  // sort asc
-  snapshots.sort((a, b) => a - b);
 
   return snapshots;
 }
@@ -124,15 +119,9 @@ export function scaleTo18(value: bigint, decimals: number): bigint {
 }
 
 export function parseEnv(): { seed: string; startSnapshot: number; endSnapshot: number } {
-  assert(process.env.SEED, "SEED environment variable must be set");
-  assert(process.env.START_SNAPSHOT, "START_SNAPSHOT environment variable must be set");
-  assert(process.env.END_SNAPSHOT, "END_SNAPSHOT environment variable must be set");
-
-  const startSnapshot = parseInt(process.env.START_SNAPSHOT);
-  const endSnapshot = parseInt(process.env.END_SNAPSHOT);
-
-  assert(!isNaN(startSnapshot), "START_SNAPSHOT must be a valid number");
-  assert(!isNaN(endSnapshot), "END_SNAPSHOT must be a valid number");
-
-  return { seed: process.env.SEED, startSnapshot, endSnapshot };
+  const epoch = EPOCHS[CURRENT_EPOCH - 1];
+  assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
+  assert(epoch.seed, `Epoch ${epoch.number} has no seed`);
+  assert(epoch.startBlock !== undefined, `Epoch ${epoch.number} has no startBlock`);
+  return { seed: epoch.seed, startSnapshot: epoch.startBlock, endSnapshot: epoch.endBlock };
 }

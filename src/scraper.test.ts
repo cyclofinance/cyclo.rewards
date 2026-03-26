@@ -1,8 +1,6 @@
-// Must be set before importing scraper.ts (module-level assert)
-process.env.END_SNAPSHOT = "99999999";
-
 import { describe, it, expect, vi } from "vitest";
 import {
+  parseIntStrict,
   mapSubgraphTransfer,
   mapSubgraphLiquidityChange,
   SubgraphTransfer,
@@ -304,15 +302,33 @@ describe("mapSubgraphLiquidityChange", () => {
   });
 });
 
-describe("END_SNAPSHOT validation", () => {
-  it("should error if END_SNAPSHOT is not a valid number", async () => {
-    const original = process.env.END_SNAPSHOT;
-    process.env.END_SNAPSHOT = "abc";
-    try {
-      vi.resetModules();
-      await expect(import('./scraper')).rejects.toThrow("END_SNAPSHOT must be a valid number");
-    } finally {
-      process.env.END_SNAPSHOT = original;
-    }
+describe("parseIntStrict", () => {
+  it("should parse valid integers", () => {
+    expect(parseIntStrict("123", "test")).toBe(123);
+    expect(parseIntStrict("0", "test")).toBe(0);
+    expect(parseIntStrict("-5", "test")).toBe(-5);
+  });
+
+  it("should reject trailing garbage", () => {
+    expect(() => parseIntStrict("123abc", "test")).toThrow();
+  });
+
+  it("should reject floats", () => {
+    expect(() => parseIntStrict("3.14", "test")).toThrow();
+  });
+
+  it("should reject hex", () => {
+    expect(() => parseIntStrict("0x1A", "test")).toThrow();
+  });
+
+  it("should reject empty string", () => {
+    expect(() => parseIntStrict("", "test")).toThrow();
+  });
+
+  it("should accept numeric inputs (subgraph returns numbers for some fields)", () => {
+    expect(parseIntStrict(100 as unknown as string, "test")).toBe(100);
+    expect(parseIntStrict(0 as unknown as string, "test")).toBe(0);
+    expect(parseIntStrict(-42 as unknown as string, "test")).toBe(-42);
   });
 });
+

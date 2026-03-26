@@ -1,6 +1,92 @@
+import { readFile } from "fs/promises";
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 import { validateAddress } from "./constants";
-import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport } from "./types";
+import { CyToken, EligibleBalances, RewardsPerToken, BlocklistReport, Transfer, LiquidityChange, LiquidityChangeType } from "./types";
+
+const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
+const VALID_TX_HASH_REGEX = /^0x[0-9a-fA-F]{64}$/;
+
+export function normalizeTransfer(item: unknown): Transfer {
+  const t = item as Record<string, unknown>;
+  if (typeof t.from !== "string") throw new Error(`Transfer missing or invalid 'from'`);
+  if (typeof t.to !== "string") throw new Error(`Transfer missing or invalid 'to'`);
+  if (typeof t.tokenAddress !== "string") throw new Error(`Transfer missing or invalid 'tokenAddress'`);
+  if (typeof t.transactionHash !== "string" || !VALID_TX_HASH_REGEX.test(t.transactionHash)) throw new Error(`Transfer missing or invalid 'transactionHash': "${t.transactionHash}"`);
+  if (typeof t.value !== "string" || !/^\d+$/.test(t.value)) throw new Error(`Transfer missing or invalid 'value': "${t.value}"`);
+  if (!Number.isInteger(t.blockNumber) || (t.blockNumber as number) < 0) throw new Error(`Transfer missing or invalid 'blockNumber': ${t.blockNumber}`);
+  if (!Number.isInteger(t.timestamp) || (t.timestamp as number) < 0) throw new Error(`Transfer missing or invalid 'timestamp': ${t.timestamp}`);
+  validateAddress(t.from, "from");
+  validateAddress(t.to, "to");
+  validateAddress(t.tokenAddress, "tokenAddress");
+  return {
+    from: t.from.toLowerCase(),
+    to: t.to.toLowerCase(),
+    tokenAddress: t.tokenAddress.toLowerCase(),
+    transactionHash: t.transactionHash.toLowerCase(),
+    value: t.value,
+    blockNumber: t.blockNumber as number,
+    timestamp: t.timestamp as number,
+  };
+}
+
+export function normalizeLiquidityChange(item: unknown): LiquidityChange {
+  const t = item as Record<string, unknown>;
+  if (typeof t.tokenAddress !== "string") throw new Error(`LiquidityChange missing or invalid 'tokenAddress'`);
+  if (typeof t.lpAddress !== "string") throw new Error(`LiquidityChange missing or invalid 'lpAddress'`);
+  if (typeof t.owner !== "string") throw new Error(`LiquidityChange missing or invalid 'owner'`);
+  if (typeof t.transactionHash !== "string" || !VALID_TX_HASH_REGEX.test(t.transactionHash)) throw new Error(`LiquidityChange missing or invalid 'transactionHash': "${t.transactionHash}"`);
+  if (typeof t.changeType !== "string" || !VALID_CHANGE_TYPES.includes(t.changeType as LiquidityChangeType)) throw new Error(`LiquidityChange invalid 'changeType': "${t.changeType}"`);
+  if (typeof t.liquidityChange !== "string" || !/^-?\d+$/.test(t.liquidityChange)) throw new Error(`LiquidityChange invalid 'liquidityChange': "${t.liquidityChange}"`);
+  if (typeof t.depositedBalanceChange !== "string" || !/^-?\d+$/.test(t.depositedBalanceChange)) throw new Error(`LiquidityChange invalid 'depositedBalanceChange': "${t.depositedBalanceChange}"`);
+  if (!Number.isInteger(t.blockNumber) || (t.blockNumber as number) < 0) throw new Error(`LiquidityChange invalid 'blockNumber': ${t.blockNumber}`);
+  if (!Number.isInteger(t.timestamp) || (t.timestamp as number) < 0) throw new Error(`LiquidityChange invalid 'timestamp': ${t.timestamp}`);
+  validateAddress(t.tokenAddress, "tokenAddress");
+  validateAddress(t.lpAddress, "lpAddress");
+  validateAddress(t.owner, "owner");
+
+  const base = {
+    tokenAddress: t.tokenAddress.toLowerCase(),
+    lpAddress: t.lpAddress.toLowerCase(),
+    owner: t.owner.toLowerCase(),
+    transactionHash: t.transactionHash.toLowerCase(),
+    changeType: t.changeType as LiquidityChangeType,
+    liquidityChange: t.liquidityChange,
+    depositedBalanceChange: t.depositedBalanceChange,
+    blockNumber: t.blockNumber as number,
+    timestamp: t.timestamp as number,
+  };
+
+  if (t.__typename === "LiquidityV3Change") {
+    if (typeof t.poolAddress !== "string") throw new Error(`LiquidityChangeV3 missing 'poolAddress'`);
+    validateAddress(t.poolAddress, "poolAddress");
+    if (typeof t.tokenId !== "string" || t.tokenId.length === 0) throw new Error(`LiquidityChangeV3 missing or empty 'tokenId'`);
+    if (!Number.isInteger(t.fee)) throw new Error(`LiquidityChangeV3 invalid 'fee': ${t.fee}`);
+    if (!Number.isInteger(t.lowerTick)) throw new Error(`LiquidityChangeV3 invalid 'lowerTick': ${t.lowerTick}`);
+    if (!Number.isInteger(t.upperTick)) throw new Error(`LiquidityChangeV3 invalid 'upperTick': ${t.upperTick}`);
+    return {
+      __typename: "LiquidityV3Change" as const,
+      ...base,
+      tokenId: t.tokenId,
+      poolAddress: t.poolAddress.toLowerCase(),
+      fee: t.fee as number,
+      lowerTick: t.lowerTick as number,
+      upperTick: t.upperTick as number,
+    };
+  } else if (t.__typename !== "LiquidityV2Change") {
+    throw new Error(`LiquidityChange invalid '__typename': "${t.__typename}"`);
+  }
+
+  return { __typename: "LiquidityV2Change" as const, ...base };
+}
+
+export async function readOptionalFile(path: string): Promise<string> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (e: any) {
+    if (e?.code === "ENOENT") return "";
+    throw e;
+  }
+}
 
 export interface TokenSummary {
   name: string;
@@ -14,7 +100,7 @@ export interface TokenSummary {
 export function summarizeTokenBalances(balances: EligibleBalances, cytokens: CyToken[]): TokenSummary[] {
   const summaries: TokenSummary[] = [];
   for (const token of cytokens) {
-    const tokenBalances = balances.get(token.address.toLowerCase());
+    const tokenBalances = balances.get(token.address);
     if (!tokenBalances) continue;
 
     const totalAverage = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.average, 0n);
@@ -64,6 +150,16 @@ export function formatRewardsCsv(addresses: string[], rewards: Map<string, bigin
   return [header, ...rows];
 }
 
+/**
+ * Formats the full balances CSV with per-token snapshot values, averages, penalties, bounties, finals, rewards, and total.
+ * @param addresses - Sorted list of addresses to include
+ * @param cytokens - Token definitions for column generation
+ * @param snapshots - Snapshot block numbers (for column headers)
+ * @param balances - Per-token per-account eligible balances
+ * @param rewardsPerToken - Per-token per-account reward amounts
+ * @param totalRewardsPerAddress - Aggregated total rewards per address
+ * @returns Array of CSV lines (header + data rows)
+ */
 export function formatBalancesCsv(
   addresses: string[],
   cytokens: CyToken[],
@@ -80,12 +176,12 @@ export function formatBalancesCsv(
   const header = `address,${tokenColumns},total_rewards`;
   const rows = addresses.map((address) => {
     const tokenValues = cytokens.map((token) => {
-      const tokenBalances = balances.get(token.address.toLowerCase());
+      const tokenBalances = balances.get(token.address);
       const snapshotsDefault = new Array(snapshots.length).fill("0").join(",");
       if (!tokenBalances) return `${snapshotsDefault},0,0,0,0,0`;
       const tokenBalance = tokenBalances.get(address);
       if (!tokenBalance) return `${snapshotsDefault},0,0,0,0,0`;
-      return `${tokenBalance.snapshots.join(",")},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address.toLowerCase())?.get(address) ?? 0n}`;
+      return `${tokenBalance.snapshots.join(",")},${tokenBalance.average},${tokenBalance.penalty},${tokenBalance.bounty},${tokenBalance.final},${rewardsPerToken.get(token.address)?.get(address) ?? 0n}`;
     }).join(",");
 
     return `${address},${tokenValues},${totalRewardsPerAddress.get(address) || 0n}`;
@@ -94,13 +190,14 @@ export function formatBalancesCsv(
   return [header, ...rows];
 }
 
-export function parseJsonl(data: string): any[] {
+export function parseJsonl<T = any>(data: string, validate?: (item: unknown) => T): T[] {
   const lines = data.split("\n");
-  const results: any[] = [];
+  const results: T[] = [];
   for (let i = 0; i < lines.length; i++) {
     if (!lines[i]) continue;
     try {
-      results.push(JSON.parse(lines[i]));
+      const parsed = JSON.parse(lines[i]);
+      results.push(validate ? validate(parsed) : parsed);
     } catch (e) {
       throw new Error(`Failed to parse JSON at line ${i + 1}: ${(e as Error).message}`);
     }
@@ -108,17 +205,49 @@ export function parseJsonl(data: string): any[] {
   return results;
 }
 
+export function verifyRewardPoolTolerance(totalRewards: bigint, rewardPool: bigint): void {
+  const diff = totalRewards - rewardPool;
+  const absDiff = diff < 0n ? -diff : diff;
+  if (absDiff > rewardPool / 1000n) {
+    throw new Error(`Reward pool difference too large: ${diff}`);
+  }
+}
+
 export function parseBlocklist(data: string): BlocklistReport[] {
+  const cheaters = new Set<string>();
   return data
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const [reporter, reported] = line.split(" ");
+      const parts = line.split(" ");
+      if (parts.length !== 2) {
+        throw new Error(`Blocklist line must have exactly 2 space-separated addresses, got ${parts.length}: "${line}"`);
+      }
+      const [reporter, reported] = parts;
       validateAddress(reporter, "reporter address");
       validateAddress(reported, "cheater address");
+      const cheater = reported.toLowerCase();
+      if (cheaters.has(cheater)) {
+        throw new Error(`Blocklist contains duplicate cheater address: ${cheater}`);
+      }
+      cheaters.add(cheater);
       return {
         reporter: reporter.toLowerCase(),
-        cheater: reported.toLowerCase(),
+        cheater,
       };
     });
+}
+
+export function parsePools(data: string): `0x${string}`[] {
+  const parsed = JSON.parse(data);
+  if (!Array.isArray(parsed)) {
+    throw new Error(`pools data must be a JSON array, got ${typeof parsed}`);
+  }
+  for (let i = 0; i < parsed.length; i++) {
+    if (typeof parsed[i] !== "string") {
+      throw new Error(`pools entry ${i} must be a string, got ${typeof parsed[i]}`);
+    }
+    validateAddress(parsed[i], `pools entry ${i}`);
+  }
+  return parsed;
 }

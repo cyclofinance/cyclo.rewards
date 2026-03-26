@@ -141,10 +141,10 @@ describe('getPoolsTickMulticall', () => {
       });
     });
 
-    it('should convert pool addresses to lowercase', async () => {
-      const upperCasePools = [
+    it('should preserve pool address case in output keys', async () => {
+      const pools = [
         '0x1234567890123456789012345678901234567890',
-        '0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD'
+        '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
       ] as `0x${string}`[];
 
       const mockResults = [
@@ -160,7 +160,7 @@ describe('getPoolsTickMulticall', () => {
 
       (mockClient.multicall as any).mockResolvedValue(mockResults);
 
-      const result = await getPoolsTickMulticall(mockClient, upperCasePools, blockNumber);
+      const result = await getPoolsTickMulticall(mockClient, pools, blockNumber);
 
       expect(result).toEqual({
         '0x1234567890123456789012345678901234567890': 100,
@@ -318,6 +318,31 @@ describe('getPoolsTickMulticall', () => {
       expect(result).toEqual({
         '0x1234567890123456789012345678901234567890': 100
       });
+    });
+
+    it('should propagate getCode errors', async () => {
+      const twoPools = [
+        '0x1234567890123456789012345678901234567890',
+        '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
+      ] as `0x${string}`[];
+
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'failure' as const,
+          error: new Error('Pool call failed')
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+      (mockClient.getCode as any).mockRejectedValue(new Error('RPC down'));
+
+      await expect(
+        getPoolsTickMulticall(mockClient, twoPools, blockNumber)
+      ).rejects.toThrow('RPC down');
     });
 
     it('should propagate multicall errors', async () => {
