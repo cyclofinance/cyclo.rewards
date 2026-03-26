@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocklist, parseJsonl, parsePools, readOptionalFile, normalizeTransfer, normalizeLiquidityChange, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv, summarizeTokenBalances } from "./pipeline";
+import { parseBlocklist, parseJsonl, parsePools, readOptionalFile, normalizeTransfer, normalizeLiquidityChange, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv, summarizeTokenBalances, verifyRewardPoolTolerance } from "./pipeline";
 import { CyToken, EligibleBalances, RewardsPerToken, Transfer, LiquidityChange } from "./types";
 import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
 
@@ -789,6 +789,33 @@ describe("readOptionalFile", () => {
     } finally {
       unlinkSync(path);
     }
+  });
+});
+
+describe("verifyRewardPoolTolerance", () => {
+  const pool = 1000000000000000000000000n; // 1M tokens
+
+  it("should not throw when total equals pool", () => {
+    expect(() => verifyRewardPoolTolerance(pool, pool)).not.toThrow();
+  });
+
+  it("should not throw when difference is within 0.1%", () => {
+    expect(() => verifyRewardPoolTolerance(pool - 100n, pool)).not.toThrow();
+  });
+
+  it("should throw when total is too low", () => {
+    const tooLow = pool - pool / 500n; // 0.2% under
+    expect(() => verifyRewardPoolTolerance(tooLow, pool)).toThrow();
+  });
+
+  it("should throw when total is too high", () => {
+    const tooHigh = pool + pool / 500n; // 0.2% over
+    expect(() => verifyRewardPoolTolerance(tooHigh, pool)).toThrow();
+  });
+
+  it("should not throw at exactly the 0.1% boundary", () => {
+    const atBoundary = pool - pool / 1000n;
+    expect(() => verifyRewardPoolTolerance(atBoundary, pool)).not.toThrow();
   });
 });
 

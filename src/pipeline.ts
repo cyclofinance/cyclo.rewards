@@ -195,6 +195,14 @@ export function parseJsonl<T = any>(data: string, validate?: (item: unknown) => 
   return results;
 }
 
+export function verifyRewardPoolTolerance(totalRewards: bigint, rewardPool: bigint): void {
+  const diff = totalRewards - rewardPool;
+  const absDiff = diff < 0n ? -diff : diff;
+  if (absDiff > rewardPool / 1000n) {
+    throw new Error(`Reward pool difference too large: ${diff}`);
+  }
+}
+
 export function parseBlocklist(data: string): BlocklistReport[] {
   const cheaters = new Set<string>();
   return data

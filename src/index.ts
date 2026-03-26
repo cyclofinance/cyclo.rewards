@@ -9,7 +9,7 @@ import { flare } from "viem/chains";
 import { Processor } from "./processor";
 import { config } from "dotenv";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
-import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, parsePools, readOptionalFile, sortAddressesByReward, summarizeTokenBalances, normalizeTransfer, normalizeLiquidityChange } from "./pipeline";
+import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, parsePools, readOptionalFile, sortAddressesByReward, summarizeTokenBalances, normalizeTransfer, normalizeLiquidityChange, verifyRewardPoolTolerance } from "./pipeline";
 import { BLOCKLIST_FILE, DATA_DIR, LIQUIDITY_FILE, OUTPUT_DIR, POOLS_FILE, REWARD_POOL, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE } from "./constants";
 import { LiquidityChange, Transfer } from "./types";
 
@@ -164,13 +164,10 @@ async function main() {
     (sum, reward) => sum + reward,
     0n
   );
-  const diff = totalRewards - REWARD_POOL;
   console.log(`\nTotal rewards: ${totalRewards}`);
   console.log(`Reward pool: ${REWARD_POOL}`);
-  console.log(`Difference: ${diff}`);
-  if (diff < 0n ? -diff > REWARD_POOL / 1000n : diff > REWARD_POOL / 1000n) {
-    throw new Error(`Reward pool difference too large: ${diff}`);
-  }
+  console.log(`Difference: ${totalRewards - REWARD_POOL}`);
+  verifyRewardPoolTolerance(totalRewards, REWARD_POOL);
 
   console.log("Done!");
 }

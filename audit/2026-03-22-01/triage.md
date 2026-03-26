@@ -56,8 +56,8 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A03-P2-4 | LOW | No large BigInt value test for `readCsv` | PENDING |
 | A03-P2-5 | LOW | `main()` in diffCalculator not independently testable | PENDING |
 | A03-P2-6 | LOW | No explicit whitespace-in-address test for `readCsv` | PENDING |
-| A04-P2-1 | MEDIUM | No unit test for reward pool tolerance check (index.ts lines 163-173) | PENDING |
-| A04-P2-2 | MEDIUM | No unit test for balance verification throw (index.ts lines 125-127) | PENDING |
+| A04-P2-1 | MEDIUM | No unit test for reward pool tolerance check (index.ts lines 163-173) | FIXED — extracted verifyRewardPoolTolerance to pipeline.ts; 5 tests added |
+| A04-P2-2 | MEDIUM | No unit test for balance verification throw (index.ts lines 125-127) | DISMISSED — summarizeTokenBalances.verified already tested in pipeline.test.ts |
 | A04-P2-3 | LOW | No test for silent transfer file read errors | PENDING |
 | A04-P2-4 | LOW | No test for pools JSON.parse without validation | PENDING |
 | A05-P2-1 | MEDIUM | `client.getCode()` throwing during failure classification untested | PENDING |
