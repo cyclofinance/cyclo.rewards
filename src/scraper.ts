@@ -67,9 +67,9 @@ export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquid
 const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
 
 /** Parse a string to integer and throw if the result is NaN */
-function parseIntStrict(value: string, field: string): number {
-  const n = parseInt(value);
-  if (isNaN(n)) throw new Error(`Invalid ${field}: "${value}" is not a number`);
+export function parseIntStrict(value: string, field: string): number {
+  const n = Number(value);
+  if (!Number.isInteger(n) || String(n) !== value) throw new Error(`Invalid ${field}: "${value}" is not a valid integer`);
   return n;
 }
 

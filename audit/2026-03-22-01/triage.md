@@ -76,7 +76,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A07-P2-4 | MEDIUM | `processLpRange` negative-balance clamping untested | FIXED — covered by V3 end-to-end out-of-range test |
 | A07-P2-5 | LOW | `getUniqueAddresses`, `calculateTotalEligibleBalances`, `getTokensWithBalance` only tested indirectly | PENDING |
 | A07-P2-6 | LOW | `organizeLiquidityPositions` ineligible-token skip untested | PENDING |
-| A08-P2-1 | MEDIUM | `parseIntStrict` accepts trailing garbage — no test covers this | PENDING |
+| A08-P2-1 | MEDIUM | `parseIntStrict` accepts trailing garbage — no test covers this | FIXED — use Number() + Number.isInteger() + round-trip; 5 tests added |
 | A08-P2-2 | MEDIUM | `scrapeTransfers` entirely untested (pagination, chunking, crash recovery) | PENDING |
 | A08-P2-3 | MEDIUM | `scrapeLiquidityChanges` entirely untested | PENDING |
 | A08-P2-4 | LOW | Module-level END_SNAPSHOT assertion untested | PENDING |
@@ -161,7 +161,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A04-P4-3 | LOW | UPPER_CASE local variables (SEED, START_SNAPSHOT, etc.) | PENDING |
 | A04-P4-4 | LOW | Missing semicolons in index.ts | PENDING |
 | A04-P4-5 | LOW | Balance verification interleaves 7 console.log with safety-critical throw | PENDING |
-| A05-P4-1 | MEDIUM | Fixed 10s retry ignores `RETRY_BASE_DELAY_MS` from constants; magic numbers | PENDING |
+| A05-P4-1 | MEDIUM | Fixed 10s retry ignores `RETRY_BASE_DELAY_MS` from constants; magic numbers | FIXED — extracted MAX_ATTEMPTS and RETRY_DELAY_MS constants |
 | A05-P4-2 | LOW | Inline comment "retry 3 times" contradicts JSDoc "3 attempts" | PENDING |
 | A05-P4-3 | LOW | `blockNumber` type inconsistency between exported functions | PENDING |
 | A05-P4-4 | LOW | `resolve("")` passes unused empty string | PENDING |

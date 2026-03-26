@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  parseIntStrict,
   mapSubgraphTransfer,
   mapSubgraphLiquidityChange,
   SubgraphTransfer,
@@ -298,6 +299,30 @@ describe("mapSubgraphLiquidityChange", () => {
   it("should throw on non-numeric V3 tokenId", () => {
     const liq = { ...VALID_V3_LIQUIDITY, tokenId: "abc" };
     expect(() => mapSubgraphLiquidityChange(liq)).toThrow("tokenId");
+  });
+});
+
+describe("parseIntStrict", () => {
+  it("should parse valid integers", () => {
+    expect(parseIntStrict("123", "test")).toBe(123);
+    expect(parseIntStrict("0", "test")).toBe(0);
+    expect(parseIntStrict("-5", "test")).toBe(-5);
+  });
+
+  it("should reject trailing garbage", () => {
+    expect(() => parseIntStrict("123abc", "test")).toThrow();
+  });
+
+  it("should reject floats", () => {
+    expect(() => parseIntStrict("3.14", "test")).toThrow();
+  });
+
+  it("should reject hex", () => {
+    expect(() => parseIntStrict("0x1A", "test")).toThrow();
+  });
+
+  it("should reject empty string", () => {
+    expect(() => parseIntStrict("", "test")).toThrow();
   });
 });
 

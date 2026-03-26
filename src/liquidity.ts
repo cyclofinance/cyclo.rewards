@@ -120,13 +120,14 @@ export async function getPoolsTick(
     if (!Number.isInteger(blockNumber) || blockNumber < 0) {
         throw new Error(`Invalid blockNumber: ${blockNumber}`);
     }
-    // retry 3 times
-    for (let i = 0; i < 3; i++) {
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 10_000;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
         try {
             return await getPoolsTickMulticall(client, pools, BigInt(blockNumber))
         } catch (error) {
-            if (i >= 2) throw error;
-            await new Promise((resolve) => setTimeout(() => resolve(""), 10_000)) // wait 10 secs and try again
+            if (i >= MAX_ATTEMPTS - 1) throw error;
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         }
     }
 
