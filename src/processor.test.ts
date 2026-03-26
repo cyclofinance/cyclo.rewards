@@ -709,6 +709,181 @@ describe("Processor", () => {
     });
   });
 
+  describe("Bought cap recovery", () => {
+    it("should recover from negative bought cap with a subsequent buy", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      // Buy 10, LP 10
+      await buyAndDeposit(processor, NORMAL_USER_1, "10000000000000000000", tokenAddress, 40);
+      // Sell 20 → cap = 10 - 20 = -10
+      await processor.processTransfer({
+        from: NORMAL_USER_1, to: NORMAL_USER_2, value: "20000000000000000000",
+        blockNumber: 45, timestamp: 950, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
+      // Buy 30 → cap = -10 + 30 = 20
+      await processor.processTransfer({
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "30000000000000000000",
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
+
+      const balances = await processor.getEligibleBalances();
+      // boughtCap = 20, lpBalance = 10 → eligible = min(20, 10) = 10
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(10000000000000000000n);
+    });
+  });
+
+  describe("Negative lpBalance", () => {
+    it("should clamp negative lpBalance to zero", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      // Buy 10 to set cap
+      await processor.processTransfer({
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "10000000000000000000",
+        blockNumber: 40, timestamp: 900, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
+      // Withdraw without prior deposit → lpBalance = -5
+      const withdrawEvent: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: "-5000000000000000000",
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: nextTxHash(),
+      };
+      await processor.processLiquidityPositions(withdrawEvent);
+
+      const balances = await processor.getEligibleBalances();
+      // boughtCap = 10, lpBalance = -5 (clamped to 0) → eligible = 0
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(0n);
+    });
+  });
+
+  describe("LP withdrawal neutrality (explicit)", () => {
+    it("should not increase boughtCap when receiving tokens from LP withdrawal", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      // Buy 10, LP 10
+      await buyAndDeposit(processor, NORMAL_USER_1, "10000000000000000000", tokenAddress, 40);
+      // Sell 5 → cap = 10 - 5 = 5
+      await processor.processTransfer({
+        from: NORMAL_USER_1, to: NORMAL_USER_2, value: "5000000000000000000",
+        blockNumber: 45, timestamp: 950, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
+      // Withdraw 3 from LP (pool is FACTORY_SOURCE, which is approved)
+      const withdrawTx = nextTxHash();
+      const withdrawTransfer: Transfer = {
+        from: FACTORY_SOURCE, to: NORMAL_USER_1, value: "3000000000000000000",
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: withdrawTx,
+      };
+      const withdrawEvent: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: "-3000000000000000000",
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: withdrawTx,
+      };
+      await processor.organizeLiquidityPositions(withdrawEvent);
+      await processor.processTransfer(withdrawTransfer);
+      await processor.processLiquidityPositions(withdrawEvent);
+
+      const balances = await processor.getEligibleBalances();
+      // boughtCap should still be 5 (withdrawal is neutral, not +3)
+      // lpBalance = 10 - 3 = 7
+      // eligible = min(5, 7) = 5
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(5000000000000000000n);
+    });
+  });
+
+  describe("End-to-end V3 out-of-range with eligibility model", () => {
+    it("should deduct out-of-range V3 position from eligible balance", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const depositTx = nextTxHash();
+
+      // Buy and deposit into V3 LP
+      await processor.processTransfer({
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 40, timestamp: 900, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
+      const depositTransfer: Transfer = {
+        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: depositTx,
+      };
+      const v3Event: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV3Change",
+        transactionHash: depositTx,
+        tokenId: "42", poolAddress: POOL_ADDRESS,
+        fee: 3000, lowerTick: -100, upperTick: 100,
+      };
+
+      await processor.organizeLiquidityPositions(v3Event);
+      await processor.processTransfer(depositTransfer);
+      await processor.processLiquidityPositions(v3Event);
+
+      // Mock pool tick at 200 — outside the [-100, 100] range
+      (getPoolsTick as Mock).mockResolvedValue({
+        [POOL_ADDRESS]: 200,
+      });
+
+      await processor.processLpRange();
+
+      const balances = await processor.getEligibleBalances();
+      // Out of range → position deducted → eligible = 0
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(0n);
+    });
+
+    it("should keep in-range V3 position in eligible balance", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const depositTx = nextTxHash();
+
+      await processor.processTransfer({
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 40, timestamp: 900, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
+      const depositTransfer: Transfer = {
+        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: depositTx,
+      };
+      const v3Event: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV3Change",
+        transactionHash: depositTx,
+        tokenId: "42", poolAddress: POOL_ADDRESS,
+        fee: 3000, lowerTick: -100, upperTick: 100,
+      };
+
+      await processor.organizeLiquidityPositions(v3Event);
+      await processor.processTransfer(depositTransfer);
+      await processor.processLiquidityPositions(v3Event);
+
+      // Mock pool tick at 0 — inside the [-100, 100] range
+      (getPoolsTick as Mock).mockResolvedValue({
+        [POOL_ADDRESS]: 0,
+      });
+
+      await processor.processLpRange();
+
+      const balances = await processor.getEligibleBalances();
+      // In range → position kept → eligible = min(1, 1) = 1
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(ONEn);
+    });
+  });
+
   describe("organizeLiquidityPositions duplicate handling", () => {
     it("should keep first event when same owner+token+txHash is organized twice", async () => {
       const tokenAddress = CYTOKENS[0].address;
