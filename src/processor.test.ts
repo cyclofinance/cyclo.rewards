@@ -693,70 +693,18 @@ describe("Processor", () => {
 
   describe("Reward Calculation with Multiple Tokens", () => {
     it("should calculate rewards proportionally for multiple tokens", async () => {
-      // Setup two accounts with different balances
-      const transfer1: Transfer = {
-        from: NORMAL_USER_1,
-        to: "0xpool",
-        value: "2000000000000000000", // 2 tokens
-        blockNumber: 50,
-        timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash1",
-      };
-      const liquidityChangeEvent1: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_1,
-        changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234",
-        depositedBalanceChange: "2000000000000000000", // 2 token deposit
-        blockNumber: 50,
-        timestamp: 1000,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash1",
-      };
+      // User 1: 2 cyA. User 2: 3 cyA. Reward split: 2:3 = 0.4:0.6
+      await buyAndDeposit(processor, NORMAL_USER_1, "2000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(processor, NORMAL_USER_2, "3000000000000000000", CYTOKENS[0].address, 50);
 
-      const transfer2: Transfer = {
-        from: NORMAL_USER_2,
-        to: "0xpool",
-        value: "3000000000000000000", // 3 tokens
-        blockNumber: 50,
-        timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash2",
-      };
-      const liquidityChangeEvent2: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_2,
-        changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234",
-        depositedBalanceChange: "3000000000000000000", // 3 token deposit
-        blockNumber: 50,
-        timestamp: 1000,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash2",
-      };
-
-      await processor.organizeLiquidityPositions(liquidityChangeEvent1);
-      await processor.organizeLiquidityPositions(liquidityChangeEvent2);
-      await processor.processTransfer(transfer1);
-      await processor.processTransfer(transfer2);
-
-      const rewardPool = ONEn; // 1 token reward pool
+      const rewardPool = ONEn;
       const result = await processor.calculateRewards(rewardPool);
 
-      const user1Reward = result
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_1);
-      const user2Reward = result
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_2);
+      const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
+      const user2Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_2);
 
-      expect(user1Reward).toBe(400000000000000000n); // 0.4 tokens
-      expect(user2Reward).toBe(600000000000000000n); // 0.6 tokens
-
-      // Total should equal reward pool
+      expect(user1Reward).toBe(400000000000000000n);
+      expect(user2Reward).toBe(600000000000000000n);
       expect(user1Reward! + user2Reward!).toBe(rewardPool);
     });
   });
@@ -804,32 +752,16 @@ describe("Processor", () => {
     it("should correctly factor in liquidity changes", async () => {
       const tokenAddress = CYTOKENS[0].address;
 
-      // deposit event before snapshot 1
-      const initTransfer1: Transfer = {
-        from: NORMAL_USER_1,
-        to: "0xpool",
-        value: "5000000000000000000", // 5 tokens
-        blockNumber: 50,
-        timestamp: 1000,
-        tokenAddress,
-        transactionHash: "0xdeposittx",
-      };
-      const initLiquidityChangeEventDeposit: LiquidityChange = {
-        tokenAddress,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_1,
-        changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234",
-        depositedBalanceChange: "5000000000000000000", // 5 token deposit
-        blockNumber: 50,
-        timestamp: 1000,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xdeposittx",
-      };
-      await processor.organizeLiquidityPositions(initLiquidityChangeEventDeposit);
-      await processor.processTransfer(initTransfer1);
+      // Buy 8 tokens (enough cap for both deposits) then deposit 5
+      await buyAndDeposit(processor, NORMAL_USER_1, "5000000000000000000", tokenAddress, 50);
+      // Buy extra 3 for the second deposit's cap
+      await processor.processTransfer({
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "3000000000000000000",
+        blockNumber: 49, timestamp: 899, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
 
-      // verify the deposit transfer is calculated correctly
+      // verify the initial deposit
       let balances = await processor.getEligibleBalances();
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)).toEqual({
         snapshots: [5000000000000000000n, 5000000000000000000n],
