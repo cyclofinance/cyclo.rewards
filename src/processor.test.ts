@@ -30,12 +30,56 @@ describe("Processor", () => {
   /** Mixed-case address for case-sensitivity tests */
   const MIXED_CASE_USER = "0x3000000000000000000000000000000000000Abc";
 
+  const LP_ADDRESS = "0x6000000000000000000000000000000000000000";
+  /** Arbitrary LP token liquidity units — not used in reward calculations, only depositedBalanceChange matters */
+  const ARBITRARY_LIQUIDITY = "1234";
+  let txCounter = 0;
+  function nextTxHash(): string {
+    return "0x" + (++txCounter).toString(16).padStart(64, "0");
+  }
+
+  /** Sets up a buy from approved source + LP deposit for a user.
+   *  Calls organizeLiquidityPositions, processTransfer (buy + deposit), and processLiquidityPositions. */
+  async function buyAndDeposit(
+    proc: Processor,
+    user: string,
+    value: string,
+    tokenAddress: string,
+    blockNumber: number,
+  ): Promise<LiquidityChange> {
+    const buyTx = nextTxHash();
+    const depositTx = nextTxHash();
+    const buy: Transfer = {
+      from: APPROVED_SOURCE, to: user, value,
+      blockNumber: blockNumber - 1, timestamp: 900,
+      tokenAddress, transactionHash: buyTx,
+    };
+    const deposit: Transfer = {
+      from: user, to: LP_ADDRESS, value,
+      blockNumber, timestamp: 1000,
+      tokenAddress, transactionHash: depositTx,
+    };
+    const liq: LiquidityChange = {
+      tokenAddress, lpAddress: LP_ADDRESS, owner: user,
+      changeType: LiquidityChangeType.Deposit,
+      liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: value,
+      blockNumber, timestamp: 1000,
+      __typename: "LiquidityV2Change", transactionHash: depositTx,
+    };
+    await proc.organizeLiquidityPositions(liq);
+    await proc.processTransfer(buy);
+    await proc.processTransfer(deposit);
+    await proc.processLiquidityPositions(liq);
+    return liq;
+  }
+
   // Create a mock client
   const mockClient = {
     readContract: async () => "0x0000000000000000000000000000000000000000",
   } as unknown as PublicClient;
 
   beforeEach(() => {
+    txCounter = 0;
     processor = new Processor(SNAPSHOTS, [], mockClient);
     processor.isApprovedSource = async (source: string) => {
       return (
@@ -607,207 +651,43 @@ describe("Processor", () => {
       expect(user1Reward! + user2Reward!).toBe(rewardPool);
     });
 
-    it("should treat negative balances as zero when calculating eligible amounts", async () => {
-      // User 1: cyA: 50, cyB: -30 (should count as 50 total)
-      const transfers1 = [
-        {
-          from: NORMAL_USER_1,
-          to: "0xpool",
-          value: "50000000000000000000", // 50 tokens
-          blockNumber: 50,
-          timestamp: 1000,
-          tokenAddress: CYTOKENS[0].address,
-          transactionHash: "0xtxhash1",
-        },
-        {
-          from: NORMAL_USER_1,
-          to: "0xpool",
-          value: "10000000000000000000", // 10 tokens initial
-          blockNumber: 50,
-          timestamp: 1000,
-          tokenAddress: CYTOKENS[1].address,
-          transactionHash: "0xtxhash2",
-        },
-        {
-          from: NORMAL_USER_1,
-          to: APPROVED_SOURCE,
-          value: "40000000000000000000", // Withdraw 40 tokens (making -30 balance)
-          blockNumber: 50,
-          timestamp: 2000,
-          tokenAddress: CYTOKENS[1].address,
-          transactionHash: "0xtxhash3",
-        },
-      ];
-      const deposits1: LiquidityChange[] = [
-        {
-          tokenAddress: CYTOKENS[0].address,
-          lpAddress: "0xLpAddress",
-          owner: NORMAL_USER_1,
-          changeType: LiquidityChangeType.Deposit,
-          liquidityChange: "1234",
-          depositedBalanceChange: "50000000000000000000", // 50 token deposit
-          blockNumber: 50,
-          timestamp: 1000,
-          __typename: "LiquidityV2Change",
-          transactionHash: "0xtxhash1",
-        },
-        {
-          tokenAddress: CYTOKENS[1].address,
-          lpAddress: "0xLpAddress",
-          owner: NORMAL_USER_1,
-          changeType: LiquidityChangeType.Deposit,
-          liquidityChange: "1234",
-          depositedBalanceChange: "10000000000000000000", // 10 token deposit
-          blockNumber: 50,
-          timestamp: 1000,
-          __typename: "LiquidityV2Change",
-          transactionHash: "0xtxhash2",
-        }
-      ]
+    it("should treat negative bought cap as zero when calculating eligible amounts", async () => {
+      // User 1: cyA: bought 50, LP 50 → eligible 50. cyB: bought 10, LP 10, sold 40 → cap -30 → eligible 0
+      // User 2: cyA: bought 5, LP 5, sold 20 → cap -15 → eligible 0. cyB: bought 88, LP 88 → eligible 88
+      await buyAndDeposit(processor, NORMAL_USER_1, "50000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(processor, NORMAL_USER_1, "10000000000000000000", CYTOKENS[1].address, 50);
+      await processor.processTransfer({
+        from: NORMAL_USER_1, to: NORMAL_USER_2, value: "40000000000000000000",
+        blockNumber: 50, timestamp: 1000, tokenAddress: CYTOKENS[1].address,
+        transactionHash: nextTxHash(),
+      });
 
-      // User 2: cyA: -10, cyB: 88 (should count as 88 total)
-      const transfers2 = [
-        {
-          from: NORMAL_USER_2,
-          to: "0xpool",
-          value: "5000000000000000000", // 5 tokens initial
-          blockNumber: 50,
-          timestamp: 1000,
-          tokenAddress: CYTOKENS[0].address,
-          transactionHash: "0xtxhash4",
-        },
-        {
-          from: NORMAL_USER_2,
-          to: APPROVED_SOURCE,
-          value: "15000000000000000000", // Withdraw 15 tokens (making -10 balance)
-          blockNumber: 50,
-          timestamp: 2000,
-          tokenAddress: CYTOKENS[0].address,
-          transactionHash: "0xtxhash5",
-        },
-        {
-          from: NORMAL_USER_2,
-          to: "0xpool",
-          value: "88000000000000000000", // 88 tokens
-          blockNumber: 50,
-          timestamp: 1000,
-          tokenAddress: CYTOKENS[1].address,
-          transactionHash: "0xtxhash6",
-        },
-      ];
-      const deposits2: LiquidityChange[] = [
-        {
-          tokenAddress: CYTOKENS[0].address,
-          lpAddress: "0xLpAddress",
-          owner: NORMAL_USER_2,
-          changeType: LiquidityChangeType.Deposit,
-          liquidityChange: "1234",
-          depositedBalanceChange: "5000000000000000000", // 5 token deposit
-          blockNumber: 50,
-          timestamp: 1000,
-          __typename: "LiquidityV2Change",
-          transactionHash: "0xtxhash4",
-        },
-        {
-          tokenAddress: CYTOKENS[1].address,
-          lpAddress: "0xLpAddress",
-          owner: NORMAL_USER_2,
-          changeType: LiquidityChangeType.Deposit,
-          liquidityChange: "1234",
-          depositedBalanceChange: "88000000000000000000", // 88 token deposit
-          blockNumber: 50,
-          timestamp: 1000,
-          __typename: "LiquidityV2Change",
-          transactionHash: "0xtxhash6",
-        }
-      ]
+      await buyAndDeposit(processor, NORMAL_USER_2, "5000000000000000000", CYTOKENS[0].address, 50);
+      await processor.processTransfer({
+        from: NORMAL_USER_2, to: NORMAL_USER_1, value: "20000000000000000000",
+        blockNumber: 50, timestamp: 1000, tokenAddress: CYTOKENS[0].address,
+        transactionHash: nextTxHash(),
+      });
+      await buyAndDeposit(processor, NORMAL_USER_2, "88000000000000000000", CYTOKENS[1].address, 50);
 
-      for (const lpEvent of [...deposits1, ... deposits2]) {
-        await processor.organizeLiquidityPositions(lpEvent)
-      }
-      // Process all transfers
-      for (const transfer of [...transfers1, ...transfers2]) {
-        await processor.processTransfer(transfer);
-      }
-
-      const rewardPool = 1_000_000n * ONEn; // 1m token reward pool
+      const rewardPool = 1_000_000n * ONEn;
       const result = await processor.calculateRewards(rewardPool);
+      expect(result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)).not.toBeUndefined();
+      expect(result.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)).not.toBeUndefined();
 
-      const user1Reward = result
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_1);
-      const user2Reward = result
-        .get(CYTOKENS[1].address)
-        ?.get(NORMAL_USER_2);
-
-      // Both users should be included in results
-      expect(user1Reward).not.toBeUndefined();
-      expect(user2Reward).not.toBeUndefined();
-
-      // Check eligible balances
       const balances = await processor.getEligibleBalances();
-      console.log("balances", balances);
-      expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-      ).toBeDefined();
-      expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)
-      ).toBeDefined();
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average).toBe(50000000000000000000n);
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.average).toBe(0n);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.average).toBe(0n);
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.average).toBe(88000000000000000000n);
 
-      // Verify User 1 has 50 tokens in cyA and 0 in cyB (negative balance treated as 0)
-      const user1CyABalance = balances
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_1)?.average;
-      const user1CyBBalance = balances
-        .get(CYTOKENS[1].address)
-        ?.get(NORMAL_USER_1)?.average;
-      expect(user1CyABalance).toBe(50000000000000000000n);
-      expect(user1CyBBalance).toBe(0n); // -30 treated as 0
+      const rewardsPools = processor.calculateRewardsPoolsPerToken(balances, rewardPool);
+      const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
+      const user2Reward = result.get(CYTOKENS[1].address)?.get(NORMAL_USER_2);
+      expect(user1Reward).toBe(rewardsPools.get(CYTOKENS[0].address)!);
+      expect(user2Reward).toBe(rewardsPools.get(CYTOKENS[1].address)!);
+      expect(user1Reward! + user2Reward!).toBeGreaterThanOrEqual(rewardPool - 10n);
 
-      // Verify User 2 has 0 tokens in cyA (negative balance treated as 0) and 88 in cyB
-      const user2CyABalance = balances
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_2)?.average;
-      const user2CyBBalance = balances
-        .get(CYTOKENS[1].address)
-        ?.get(NORMAL_USER_2)?.average;
-      expect(user2CyABalance).toBe(0n); // -10 treated as 0
-      expect(user2CyBBalance).toBe(88000000000000000000n);
-
-      // Verify total balances
-      expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.average
-      ).toBe(50000000000000000000n);
-      expect(
-        balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)
-          ?.average
-      ).toBe(88000000000000000000n);
-
-      // Calculate the rewards pool for each token
-      const rewardsPools = processor.calculateRewardsPoolsPerToken(
-        balances,
-        rewardPool
-      );
-
-      console.log("rewardsPools", rewardsPools);
-
-      //
-      const expectedUser1Reward = rewardsPools.get(
-        CYTOKENS[0].address
-      )!;
-      const expectedUser2Reward = rewardsPools.get(
-        CYTOKENS[1].address
-      )!;
-
-      // Check that rewards match expected values
-      expect(user1Reward).toBe(expectedUser1Reward);
-      expect(user2Reward).toBe(expectedUser2Reward);
-
-      // Total should equal reward pool
-      expect(user1Reward! + user2Reward!).toBeGreaterThanOrEqual(
-        rewardPool - 10n
-      );
     });
   });
 
