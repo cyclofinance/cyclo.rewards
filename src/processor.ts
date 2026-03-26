@@ -26,6 +26,11 @@ import {
 import { ONE_18, BOUNTY_PERCENT, RETRY_BASE_DELAY_MS } from "./constants";
 import { getPoolsTick } from "./liquidity";
 
+/** Clamp a bigint to a minimum of 0 */
+function clamp0(val: bigint): bigint {
+  return val < 0n ? 0n : val;
+}
+
 /**
  * Processes on-chain transfer and liquidity events to calculate reward-eligible balances
  * and distribute the reward pool across accounts proportionally.
@@ -145,7 +150,9 @@ export class Processor {
    * Clamps negative balances to zero.
    */
   private updateSnapshots(balance: AccountBalance, blockNumber: number): void {
-    const val = balance.currentNetBalance < 0n ? 0n : balance.currentNetBalance;
+    const cap = clamp0(balance.boughtCap);
+    const lp = clamp0(balance.lpBalance);
+    const val = cap < lp ? cap : lp;
     for (let i = 0; i < this.snapshots.length; i++) {
       if (blockNumber <= this.snapshots[i]) {
         balance.netBalanceAtSnapshots[i] = val;
@@ -182,7 +189,8 @@ export class Processor {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        currentNetBalance: 0n,
+        boughtCap: 0n,
+        lpBalance: 0n,
       });
     }
     if (!accountBalances.has(transfer.from)) {
@@ -190,47 +198,33 @@ export class Processor {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        currentNetBalance: 0n,
+        boughtCap: 0n,
+        lpBalance: 0n,
       });
     }
 
-    // Update balances
-    const toBalance = accountBalances.get(transfer.to)!;
+    // LP deposits and withdrawals are neutral to the bought cap —
+    // they just move tokens between wallet and pool.
+    const isLpDeposit = this.transferIsDeposit(transfer);
+    const isLpWithdraw = this.transferIsWithdraw(transfer);
+    if (isLpDeposit || isLpWithdraw) {
+      return;
+    }
+
+    // Bought cap: approved buys increase it, all non-LP transfers out decrease it.
     if (isApproved) {
-
-      // handle if transfer is withdraw
-      const lpWithdraw = this.transferIsWithdraw(transfer)
-      if (lpWithdraw) {
-        toBalance.transfersInFromApproved += BigInt(lpWithdraw.depositedBalanceChange);
-      }
-
+      const toBalance = accountBalances.get(transfer.to)!;
       toBalance.transfersInFromApproved += value;
-      toBalance.currentNetBalance =
+      toBalance.boughtCap =
         toBalance.transfersInFromApproved - toBalance.transfersOut;
       this.updateSnapshots(toBalance, transfer.blockNumber);
     }
 
-    // Always track transfers out
     const fromBalance = accountBalances.get(transfer.from)!;
-    const lpDeposit = this.transferIsDeposit(transfer)
-    // handle deposit vs non deposit transfers
-    if (lpDeposit) {
-      fromBalance.transfersInFromApproved += value
-    } else {
-      if (isApproved) {
-        toBalance.transfersInFromApproved -= value;
-        toBalance.currentNetBalance =
-          toBalance.transfersInFromApproved - toBalance.transfersOut;
-        this.updateSnapshots(toBalance, transfer.blockNumber);
-      }
-      fromBalance.transfersOut += value;
-    }
-    fromBalance.currentNetBalance =
+    fromBalance.transfersOut += value;
+    fromBalance.boughtCap =
       fromBalance.transfersInFromApproved - fromBalance.transfersOut;
     this.updateSnapshots(fromBalance, transfer.blockNumber);
-
-    accountBalances.set(transfer.to, toBalance);
-    accountBalances.set(transfer.from, fromBalance);
   }
 
   /**
@@ -563,19 +557,19 @@ export class Processor {
         transfersInFromApproved: 0n,
         transfersOut: 0n,
         netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        currentNetBalance: 0n,
+        boughtCap: 0n,
+        lpBalance: 0n,
       });
     }
 
     const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
-    // include the liquidity direct transfer to the net balance
-    // as deposit and withdraws are handled in transfer processing function
-    if (liquidityChangeEvent.changeType === LiquidityChangeType.Transfer) {
-      ownerBalance.currentNetBalance += depositedBalanceChange;
-    }
+    // Update LP balance from liquidity events
+    ownerBalance.lpBalance += depositedBalanceChange;
 
-    // Update snapshot balances
-    const value = ownerBalance.currentNetBalance < 0n ? 0n : ownerBalance.currentNetBalance;
+    // Update snapshot balances: eligible = min(boughtCap, lpBalance), clamped to 0
+    const cap = clamp0(ownerBalance.boughtCap);
+    const lp = clamp0(ownerBalance.lpBalance);
+    const value = cap < lp ? cap : lp;
     for (let i = 0; i < this.snapshots.length; i++) {
       if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
         ownerBalance.netBalanceAtSnapshots[i] = value;

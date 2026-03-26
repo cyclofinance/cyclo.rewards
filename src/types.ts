@@ -42,14 +42,16 @@ export interface Transfer {
 
 /** Per-account running balance for a single token, updated during transfer processing */
 export interface AccountBalance {
-  /** Cumulative value received from approved sources (DEX routers, LP deposits) */
+  /** Cumulative value received from approved sources (DEX routers) */
   transfersInFromApproved: bigint;
-  /** Cumulative value sent out */
+  /** Cumulative value sent out (non-LP transfers) */
   transfersOut: bigint;
+  /** Bought cap: transfersInFromApproved - transfersOut. LP movements don't affect this. */
+  boughtCap: bigint;
+  /** Running LP position size from depositedBalanceChange events */
+  lpBalance: bigint;
   /** Balance snapshot at each of the 30 deterministic snapshot blocks */
   netBalanceAtSnapshots: bigint[];
-  /** Running net balance (transfersInFromApproved - transfersOut) */
-  currentNetBalance: bigint;
 }
 
 /**
