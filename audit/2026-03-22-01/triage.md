@@ -30,7 +30,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A06-2 | LOW | `parseBlocklist` silently ignores extra space-separated tokens per line | FIXED — validate exactly 2 parts per line; 2 tests added |
 | A06-3 | LOW | Non-null assertions in `sortAddressesByReward` | DISMISSED — keys come from `rewards.keys()`, always exist |
 | A07-1 | MEDIUM | `processTransfer` uses un-normalized addresses as Map keys; case mismatch with other methods | FIXED — Raw/Normalized type pairs; normalizeTransfer/normalizeLiquidityChange lowercase at boundary; ~40 redundant .toLowerCase() calls removed from processor, pipeline, liquidity, index, and tests |
-| A07-2 | MEDIUM | `balance.final` can go negative with duplicate cheater reports; no clamp to 0 | PENDING |
+| A07-2 | MEDIUM | `balance.final` can go negative with duplicate cheater reports; no clamp to 0 | FIXED — parseBlocklist now rejects duplicate cheater addresses; test added |
 | A07-3 | LOW | `getUniqueAddresses` does not normalize addresses (downstream of A07-1) | PENDING |
 | A07-4 | LOW | Penalty redistribution mechanism is implicit; CLAUDE.md description imprecise | PENDING |
 | A08-1 | MEDIUM | Skip-based pagination ceiling risk (Goldsky may relax limit, but code is fragile) | PENDING |
@@ -51,8 +51,8 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A02-P2-2 | LOW | `DEC25_REWARD_POOL` value never directly asserted | PENDING |
 | A02-P2-3 | LOW | `BOUNTY_PERCENT` not tested | PENDING |
 | A03-P2-1 | MEDIUM | No CRLF line ending test for `readCsv` | PENDING |
-| A03-P2-2 | MEDIUM | No duplicate address test for `calculateDiff` inputs | PENDING |
-| A03-P2-3 | MEDIUM | No negative reward test for `calculateDiff` | PENDING |
+| A03-P2-2 | MEDIUM | No duplicate address test for `calculateDiff` inputs | FIXED — duplicate of A03-1 |
+| A03-P2-3 | MEDIUM | No negative reward test for `calculateDiff` | FIXED — duplicate of A03-6 |
 | A03-P2-4 | LOW | No large BigInt value test for `readCsv` | PENDING |
 | A03-P2-5 | LOW | `main()` in diffCalculator not independently testable | PENDING |
 | A03-P2-6 | LOW | No explicit whitespace-in-address test for `readCsv` | PENDING |
@@ -97,7 +97,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A03-P3-2 | LOW | `readCsv` missing `@returns` tag | PENDING |
 | A03-P3-3 | LOW | `readCsv` missing `@throws` documentation | PENDING |
 | A03-P3-4 | MEDIUM | `calculateDiff` has no JSDoc | PENDING |
-| A03-P3-5 | MEDIUM | `DISTRIBUTED_COUNT = 100` magic constant unexplained | PENDING |
+| A03-P3-5 | MEDIUM | `DISTRIBUTED_COUNT = 100` magic constant unexplained | FIXED — duplicate of A03-5 |
 | A03-P3-6 | LOW | `main()` in diffCalculator undocumented | PENDING |
 | A03-P3-7 | LOW | Typo: "distirbuted" (line 70) | PENDING |
 | A03-P3-8 | LOW | Typo: "undistruibuted" / "thos" (line 76) | PENDING |
@@ -128,7 +128,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A08-P3-3 | LOW | `SubgraphLiquidityChangeBase` lacks per-field JSDoc | PENDING |
 | A08-P3-4 | LOW | `SUBGRAPH_URL` JSDoc missing epoch-update note | PENDING |
 | A09-P3-1 | LOW | `CyToken.name` and `CyToken.address` lack JSDoc | PENDING |
-| A09-P3-2 | MEDIUM | `AccountBalance.currentNetBalance` JSDoc invariant is violated by LP transfer events | PENDING |
+| A09-P3-2 | MEDIUM | `AccountBalance.currentNetBalance` JSDoc invariant is violated by LP transfer events | FIXED — currentNetBalance replaced with boughtCap + lpBalance; boughtCap invariant (= transfersInFromApproved - transfersOut) verified to hold |
 | A09-P3-3 | LOW | `LiquidityChangeType` enum values lack per-value JSDoc | PENDING |
 | A09-P3-4 | LOW | `LiquidityChangeBase.lpAddress` ambiguous without JSDoc | PENDING |
 | A09-P3-5 | LOW | `LiquidityChangeV3.poolAddress` lacks JSDoc | PENDING |
@@ -176,7 +176,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A07-P4-5 | LOW | `calculateTotalEligibleBalances` called 4 times with same input | PENDING |
 | A07-P4-7 | LOW | Inline ABI literal inconsistent with module-level pattern in liquidity.ts | PENDING |
 | A07-P4-10 | MEDIUM | V3 position IDs built by string interpolation in two locations with no shared helper | PENDING |
-| A07-P4-11 | MEDIUM | `processTransfer` is a 72-line god method with confusing credit-then-undo pattern | PENDING |
+| A07-P4-11 | MEDIUM | `processTransfer` is a 72-line god method with confusing credit-then-undo pattern | FIXED — replaced with 18-line bought cap model; LP movements return early |
 | A08-P4-1 | MEDIUM | `VALID_CHANGE_TYPES` duplicates `LiquidityChangeType` enum — two sources of truth | PENDING |
 | A08-P4-2 | LOW | Duplicate import statements from `./constants` | PENDING |
 | A08-P4-3 | LOW | `UNTIL_SNAPSHOT` adds `+1` despite inclusive `blockNumber_lte` | PENDING |
@@ -192,7 +192,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | ID | Severity | Finding | Status |
 |----|----------|---------|--------|
 | A01-P5-1 | LOW | Test describe block named `generateSnapshotTimestampForEpoch` but tests `generateSnapshotBlocks` | PENDING |
-| A05-P5-1 | MEDIUM | V3 in-range check uses `<=` upper bound; Uniswap V3 requires `<` (processor.ts:644) | PENDING |
+| A05-P5-1 | MEDIUM | V3 in-range check uses `<=` upper bound; Uniswap V3 requires `<` (processor.ts:644) | FIXED — changed to `<` with TDD test |
 | A05-P5-2 | LOW | Magic index `result[1]` for tick extraction | PENDING |
 | A05-P5-3 | LOW | Wasted 10s sleep on final retry | PENDING |
 | A06-P5-1 | LOW | `sortAddressesByReward` non-deterministic for equal rewards (no tiebreaker) | PENDING |

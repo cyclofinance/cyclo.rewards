@@ -85,6 +85,11 @@ describe("parseBlocklist", () => {
   it("should throw on line with only one token", () => {
     expect(() => parseBlocklist(ADDR_A)).toThrow();
   });
+
+  it("should throw on duplicate cheater address", () => {
+    const data = `${ADDR_A} ${ADDR_B}\n${ADDR_C} ${ADDR_B}`;
+    expect(() => parseBlocklist(data)).toThrow("duplicate");
+  });
 });
 
 describe("parseJsonl", () => {

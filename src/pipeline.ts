@@ -196,6 +196,7 @@ export function parseJsonl<T = any>(data: string, validate?: (item: unknown) => 
 }
 
 export function parseBlocklist(data: string): BlocklistReport[] {
+  const cheaters = new Set<string>();
   return data
     .split("\n")
     .filter(Boolean)
@@ -207,9 +208,14 @@ export function parseBlocklist(data: string): BlocklistReport[] {
       const [reporter, reported] = parts;
       validateAddress(reporter, "reporter address");
       validateAddress(reported, "cheater address");
+      const cheater = reported.toLowerCase();
+      if (cheaters.has(cheater)) {
+        throw new Error(`Blocklist contains duplicate cheater address: ${cheater}`);
+      }
+      cheaters.add(cheater);
       return {
         reporter: reporter.toLowerCase(),
-        cheater: reported.toLowerCase(),
+        cheater,
       };
     });
 }
