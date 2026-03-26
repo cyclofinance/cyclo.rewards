@@ -752,11 +752,11 @@ describe("Processor", () => {
     it("should correctly factor in liquidity changes", async () => {
       const tokenAddress = CYTOKENS[0].address;
 
-      // Buy 8 tokens (enough cap for both deposits) then deposit 5
+      // Buy 9 tokens total (enough cap for all deposits: 5 + 3 + 1) then deposit 5
       await buyAndDeposit(processor, NORMAL_USER_1, "5000000000000000000", tokenAddress, 50);
-      // Buy extra 3 for the second deposit's cap
+      // Buy extra 4 for the subsequent deposits' cap
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "3000000000000000000",
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "4000000000000000000",
         blockNumber: 49, timestamp: 899, tokenAddress,
         transactionHash: nextTxHash(),
       });
@@ -961,74 +961,62 @@ describe("Processor", () => {
       });
     });
 
-    it("should update currentNetBalance for LiquidityChangeType.Transfer", async () => {
+    it("should update lpBalance for LiquidityChangeType.Transfer but cap at boughtCap", async () => {
       const tokenAddress = CYTOKENS[0].address;
 
-      // Transfer type directly adjusts currentNetBalance (unlike Deposit/Withdraw
-      // which are handled by processTransfer)
+      // Transfer type adjusts lpBalance, but without a buy the boughtCap is 0
       const lpTransferEvent: LiquidityChange = {
         tokenAddress,
-        lpAddress: "0xLpAddress",
+        lpAddress: LP_ADDRESS,
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Transfer,
-        liquidityChange: "1234",
-        depositedBalanceChange: ONE, // positive = incoming transfer
-        blockNumber: 50,
-        timestamp: 1000,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash",
-      };
-
-      await processor.processLiquidityPositions(lpTransferEvent);
-      const balances = await processor.getEligibleBalances();
-
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
-      ).toBe(ONEn);
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
-      ).toBe(ONEn);
-    });
-
-    it("should not update currentNetBalance for LiquidityChangeType.Withdraw", async () => {
-      const tokenAddress = CYTOKENS[0].address;
-
-      // First deposit via Transfer to give user a balance
-      const lpTransferEvent: LiquidityChange = {
-        tokenAddress,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_1,
-        changeType: LiquidityChangeType.Transfer,
-        liquidityChange: "1234",
+        liquidityChange: ARBITRARY_LIQUIDITY,
         depositedBalanceChange: ONE,
         blockNumber: 50,
         timestamp: 1000,
         __typename: "LiquidityV2Change",
-        transactionHash: "0xtx1",
-      };
-
-      // Withdraw does NOT adjust currentNetBalance — that's handled by processTransfer
-      const withdrawEvent: LiquidityChange = {
-        tokenAddress,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_1,
-        changeType: LiquidityChangeType.Withdraw,
-        liquidityChange: "1234",
-        depositedBalanceChange: `-${ONE}`, // negative for withdraw
-        blockNumber: 55,
-        timestamp: 1005,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xtx2",
+        transactionHash: "0x" + "a".repeat(64),
       };
 
       await processor.processLiquidityPositions(lpTransferEvent);
+      const balances = await processor.getEligibleBalances();
+
+      // lpBalance = 1, but boughtCap = 0 → eligible = min(0, 1) = 0
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
+      ).toBe(0n);
+      expect(
+        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
+      ).toBe(0n);
+    });
+
+    it("should decrease lpBalance for LiquidityChangeType.Withdraw", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+
+      // Buy to set boughtCap, then deposit
+      await buyAndDeposit(processor, NORMAL_USER_1, ONE, tokenAddress, 50);
+
+      // Withdraw removes from lpBalance
+      const withdrawEvent: LiquidityChange = {
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: `-${ONE}`,
+        blockNumber: 55,
+        timestamp: 1005,
+        __typename: "LiquidityV2Change",
+        transactionHash: nextTxHash(),
+      };
+
       await processor.processLiquidityPositions(withdrawEvent);
       const balances = await processor.getEligibleBalances();
 
-      // Balance should still be ONEn because Withdraw doesn't change currentNetBalance
+      // lpBalance = 1 - 1 = 0. boughtCap = 1. eligible = min(1, 0) = 0
       expect(
         balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
-      ).toBe(ONEn);
+      ).toBe(0n);
     });
 
     it("should skip liquidity events for ineligible tokens", async () => {
