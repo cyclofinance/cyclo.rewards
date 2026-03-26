@@ -38,8 +38,8 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A08-3 | LOW | `transactionHash` passed through without validation | PENDING |
 | A08-4 | LOW | No runtime validation of subgraph response shape | PENDING |
 | A10-1 | MEDIUM | Code injection via `python3 -c` string interpolation of RPC data in fetch script | DISMISSED — script is Dec 2025-specific, removed from CI, not used for current epochs |
-| A10-2 | LOW | Relative output path assumes working directory in fetch script | PENDING |
-| A10-3 | LOW | No validation of `cast tx` output format in fetch script | PENDING |
+| A10-2 | LOW | Relative output path assumes working directory in fetch script | DISMISSED — Dec 2025 specific, not in active use |
+| A10-3 | LOW | No validation of `cast tx` output format in fetch script | DISMISSED — Dec 2025 specific, not in active use |
 
 ## Pass 2: Test Coverage
 | ID | Severity | Finding | Status |
@@ -48,13 +48,13 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A01-P2-2 | LOW | No test for inverted range (`start > end`) in `generateSnapshotBlocks` | PENDING |
 | A01-P2-3 | LOW | `parseEnv` silently accepts `"123abc"` — no test documents this | PENDING |
 | A02-P2-1 | MEDIUM | `validateAddress` (only function in constants.ts) has zero test coverage | FIXED — 8 direct tests added |
-| A02-P2-2 | LOW | `DEC25_REWARD_POOL` value never directly asserted | PENDING |
+| A02-P2-2 | LOW | `DEC25_REWARD_POOL` value never directly asserted | DISMISSED — Dec 2025 specific, not in active use |
 | A02-P2-3 | LOW | `BOUNTY_PERCENT` not tested | PENDING |
 | A03-P2-1 | MEDIUM | No CRLF line ending test for `readCsv` | FIXED — normalize CRLF to LF in readCsv; LF and CRLF tests added |
 | A03-P2-2 | MEDIUM | No duplicate address test for `calculateDiff` inputs | FIXED — duplicate of A03-1 |
 | A03-P2-3 | MEDIUM | No negative reward test for `calculateDiff` | FIXED — duplicate of A03-6 |
 | A03-P2-4 | LOW | No large BigInt value test for `readCsv` | PENDING |
-| A03-P2-5 | LOW | `main()` in diffCalculator not independently testable | PENDING |
+| A03-P2-5 | LOW | `main()` in diffCalculator not independently testable | DISMISSED — Dec 2025 specific, not in active use |
 | A03-P2-6 | LOW | No explicit whitespace-in-address test for `readCsv` | PENDING |
 | A04-P2-1 | MEDIUM | No unit test for reward pool tolerance check (index.ts lines 163-173) | FIXED — extracted verifyRewardPoolTolerance to pipeline.ts; 5 tests added |
 | A04-P2-2 | MEDIUM | No unit test for balance verification throw (index.ts lines 125-127) | DISMISSED — summarizeTokenBalances.verified already tested in pipeline.test.ts |
@@ -93,17 +93,17 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A01-P3-2 | LOW | No module-level JSDoc on `config.ts` | PENDING |
 | A02-P3-1 | LOW | `REWARD_POOL`/`DEC25_REWARD_POOL` hardcoded without derivation logic in source | PENDING |
 | A02-P3-2 | LOW | CLAUDE.md references stale `ONE` name and wrong REWARD_POOL amount (dup of A00-1) | PENDING |
-| A03-P3-1 | LOW | `readCsv` JSDoc says "array and map" but only array returned | PENDING |
-| A03-P3-2 | LOW | `readCsv` missing `@returns` tag | PENDING |
-| A03-P3-3 | LOW | `readCsv` missing `@throws` documentation | PENDING |
-| A03-P3-4 | MEDIUM | `calculateDiff` has no JSDoc | PENDING |
+| A03-P3-1 | LOW | `readCsv` JSDoc says "array and map" but only array returned | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-2 | LOW | `readCsv` missing `@returns` tag | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-3 | LOW | `readCsv` missing `@throws` documentation | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-4 | MEDIUM | `calculateDiff` has no JSDoc | DISMISSED — Dec 2025 specific, not in active use |
 | A03-P3-5 | MEDIUM | `DISTRIBUTED_COUNT = 100` magic constant unexplained | FIXED — duplicate of A03-5 |
-| A03-P3-6 | LOW | `main()` in diffCalculator undocumented | PENDING |
-| A03-P3-7 | LOW | Typo: "distirbuted" (line 70) | PENDING |
-| A03-P3-8 | LOW | Typo: "undistruibuted" / "thos" (line 76) | PENDING |
-| A03-P3-9 | LOW | Hardcoded "3 accounts" in log; should use `result.underpaid.length` | PENDING |
-| A03-P3-10 | LOW | Typo: "cant" should be "can't" (line 98) | PENDING |
-| A03-P3-11 | LOW | `RewardEntry`, `DiffEntry`, `DiffResult` types undocumented | PENDING |
+| A03-P3-6 | LOW | `main()` in diffCalculator undocumented | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-7 | LOW | Typo: "distirbuted" (line 70) | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-8 | LOW | Typo: "undistruibuted" / "thos" (line 76) | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-9 | LOW | Hardcoded "3 accounts" in log; should use `result.underpaid.length` | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-10 | LOW | Typo: "cant" should be "can't" (line 98) | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P3-11 | LOW | `RewardEntry`, `DiffEntry`, `DiffResult` types undocumented | DISMISSED — Dec 2025 specific, not in active use |
 | A04-P3-1 | LOW | `main()` JSDoc omits thrown errors | PENDING |
 | A04-P3-2 | LOW | `main()` JSDoc omits output files | PENDING |
 | A04-P3-3 | LOW | `main()` JSDoc doesn't mention pools data file | PENDING |
@@ -146,17 +146,17 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A01-P4-7 | LOW | Duplicate env parsing logic between config.ts and scraper.ts | PENDING |
 | A02-P4-1 | LOW | REWARD_POOL/DEC25_REWARD_POOL use opaque literals instead of derivation expressions | PENDING |
 | A02-P4-2 | LOW | TRANSFER_FILE_COUNT decoupled from scraper — no assertion prevents data loss | PENDING |
-| A03-P4-1 | MEDIUM | Inconsistent indentation in diffCalculator.ts (4-space vs 2-space) | PENDING |
-| A03-P4-2 | MEDIUM | ~20 missing semicolons in diffCalculator.ts | PENDING |
-| A03-P4-3 | HIGH | `main()` executes unconditionally on import (dup of A03-2) | PENDING |
-| A03-P4-4 | HIGH | 5 hardcoded epoch-specific file paths in diffCalculator `main()` | PENDING |
-| A03-P4-6 | MEDIUM | Redundant `.toLowerCase()` calls in `calculateDiff` | PENDING |
-| A03-P4-7 | LOW | Inconsistent `./` prefix in file paths | PENDING |
-| A03-P4-8 | LOW | CSV header construction duplicated | PENDING |
-| A03-P4-9 | LOW | `DISTRIBUTED_COUNT` epoch-specific but exported as general | PENDING |
-| A03-P4-10 | LOW | Greedy budget allocation order-dependent but undocumented | PENDING |
-| A03-P4-11 | LOW | `structuredClone` on flat objects where shallow copy suffices | PENDING |
-| A04-P4-1 | MEDIUM | Tolerance check uses manual BigInt abs and magic `1000n` — not testable independently | PENDING |
+| A03-P4-1 | MEDIUM | Inconsistent indentation in diffCalculator.ts (4-space vs 2-space) | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-2 | MEDIUM | ~20 missing semicolons in diffCalculator.ts | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-3 | HIGH | `main()` executes unconditionally on import (dup of A03-2) | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-4 | HIGH | 5 hardcoded epoch-specific file paths in diffCalculator `main()` | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-6 | MEDIUM | Redundant `.toLowerCase()` calls in `calculateDiff` | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-7 | LOW | Inconsistent `./` prefix in file paths | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-8 | LOW | CSV header construction duplicated | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-9 | LOW | `DISTRIBUTED_COUNT` epoch-specific but exported as general | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-10 | LOW | Greedy budget allocation order-dependent but undocumented | DISMISSED — Dec 2025 specific, not in active use |
+| A03-P4-11 | LOW | `structuredClone` on flat objects where shallow copy suffices | DISMISSED — Dec 2025 specific, not in active use |
+| A04-P4-1 | MEDIUM | Tolerance check uses manual BigInt abs and magic `1000n` — not testable independently | FIXED — extracted verifyRewardPoolTolerance (dup of A04-P2-1) |
 | A04-P4-2 | LOW | Quadratic array growth via spread in transfer loading loop | PENDING |
 | A04-P4-3 | LOW | UPPER_CASE local variables (SEED, START_SNAPSHOT, etc.) | PENDING |
 | A04-P4-4 | LOW | Missing semicolons in index.ts | PENDING |
