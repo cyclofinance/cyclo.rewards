@@ -122,6 +122,7 @@ describe("Processor", () => {
       await processor.organizeLiquidityPositions(liquidityChangeEvent);
       await processor.processTransfer(transfer);
       await processor.processTransfer(depositTransfer);
+      await processor.processLiquidityPositions(liquidityChangeEvent);
       const balances = await processor.getEligibleBalances();
 
       expect(
@@ -211,79 +212,89 @@ describe("Processor", () => {
 
   describe("Snapshot Timing", () => {
     it("should handle valid transfers before snapshot 1", async () => {
-      const transfer: Transfer = {
-        from: NORMAL_USER_1,
-        to: "0xpool",
+      // Buy from approved source to set boughtCap
+      const buyTransfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
         value: ONE,
-        blockNumber: 50, // Before snapshot 1
-        timestamp: 1000, // Before snapshot 1
+        blockNumber: 40,
+        timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "b".repeat(64),
+      };
+      // LP deposit (returns early from processTransfer, handled by processLiquidityPositions)
+      const depositTransfer: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0x6000000000000000000000000000000000000000",
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "a".repeat(64),
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
+        lpAddress: "0x6000000000000000000000000000000000000000",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
         liquidityChange: "1234",
-        depositedBalanceChange: ONE, // 1 token deposit
+        depositedBalanceChange: ONE,
         blockNumber: 50,
         timestamp: 1000,
         __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
       };
 
       await processor.organizeLiquidityPositions(liquidityChangeEvent);
-      await processor.processTransfer(transfer);
+      await processor.processTransfer(buyTransfer);
+      await processor.processTransfer(depositTransfer);
+      await processor.processLiquidityPositions(liquidityChangeEvent);
       const balances = await processor.getEligibleBalances();
 
-      const index = balances
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_1)?.snapshots[0];
-      expect(index).toBe(ONEn);
-      expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.snapshots[1]
-      ).toBe(ONEn);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(ONEn);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1]).toBe(ONEn);
     });
 
     it("should handle transfers between snapshots", async () => {
-      const transfer: Transfer = {
-        from: NORMAL_USER_1,
-        to: "0xpool",
+      const buyTransfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
         value: ONE,
-        blockNumber: 150, // Between snapshots
-        timestamp: 1000, // Between snapshots
+        blockNumber: 140,
+        timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "b".repeat(64),
+      };
+      const depositTransfer: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0x6000000000000000000000000000000000000000",
+        value: ONE,
+        blockNumber: 150,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "a".repeat(64),
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
+        lpAddress: "0x6000000000000000000000000000000000000000",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
         liquidityChange: "1234",
-        depositedBalanceChange: ONE, // 1 token deposit
+        depositedBalanceChange: ONE,
         blockNumber: 150,
         timestamp: 1000,
         __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
       };
 
       await processor.organizeLiquidityPositions(liquidityChangeEvent);
-      await processor.processTransfer(transfer);
+      await processor.processTransfer(buyTransfer);
+      await processor.processTransfer(depositTransfer);
+      await processor.processLiquidityPositions(liquidityChangeEvent);
       const balances = await processor.getEligibleBalances();
 
-      expect(
-        balances
-          .get(CYTOKENS[0].address)
-          ?.get(NORMAL_USER_1)?.snapshots[0]
-      ).toBe(0n);
-      expect(
-        balances
-          .get(CYTOKENS[0].address)
-          ?.get(NORMAL_USER_1)?.snapshots[1]
-      ).toBe(ONEn);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(0n);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1]).toBe(ONEn);
     });
 
     it("should handle transfers after snapshot 2", async () => {
@@ -314,18 +325,27 @@ describe("Processor", () => {
     });
 
     it("should include transfer exactly at snapshot block boundary", async () => {
-      const transfer: Transfer = {
-        from: NORMAL_USER_1,
-        to: "0xpool",
+      const buyTransfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
         value: ONE,
-        blockNumber: 100, // Exactly at snapshot 1
+        blockNumber: 90,
+        timestamp: 900,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "b".repeat(64),
+      };
+      const depositTransfer: Transfer = {
+        from: NORMAL_USER_1,
+        to: "0x6000000000000000000000000000000000000000",
+        value: ONE,
+        blockNumber: 100,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
+        lpAddress: "0x6000000000000000000000000000000000000000",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
         liquidityChange: "1234",
@@ -333,11 +353,13 @@ describe("Processor", () => {
         blockNumber: 100,
         timestamp: 1000,
         __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
       };
 
       await processor.organizeLiquidityPositions(liquidityChangeEvent);
-      await processor.processTransfer(transfer);
+      await processor.processTransfer(buyTransfer);
+      await processor.processTransfer(depositTransfer);
+      await processor.processLiquidityPositions(liquidityChangeEvent);
       const balances = await processor.getEligibleBalances();
 
       // Transfer at block 100 (== snapshot[0]) should be included in snapshot[0] due to <= comparison
@@ -360,30 +382,41 @@ describe("Processor", () => {
       processor.isApprovedSource = async (source: string) =>
         source === APPROVED_SOURCE;
 
-      const transfer: Transfer = {
+      const buyTransfer: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_2,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "b".repeat(64),
+      };
+      const depositTransfer: Transfer = {
         from: NORMAL_USER_2,
-        to: "0xpool",
+        to: "0x6000000000000000000000000000000000000000",
         value: ONE,
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
+        lpAddress: "0x6000000000000000000000000000000000000000",
         owner: NORMAL_USER_2,
         changeType: LiquidityChangeType.Deposit,
         liquidityChange: "1234",
-        depositedBalanceChange: ONE, // 1 token deposit
+        depositedBalanceChange: ONE,
         blockNumber: 50,
         timestamp: 1000,
         __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
       };
 
       await processor.organizeLiquidityPositions(liquidityChangeEvent);
-      await processor.processTransfer(transfer);
+      await processor.processTransfer(buyTransfer);
+      await processor.processTransfer(depositTransfer);
+      await processor.processLiquidityPositions(liquidityChangeEvent);
       const balances = await processor.getEligibleBalances();
 
       const index = balances
@@ -463,10 +496,26 @@ describe("Processor", () => {
         transactionHash: "0xtxhash2",
       };
 
+      // Buy transfers to set boughtCap for both users
+      const buy1: Transfer = {
+        from: APPROVED_SOURCE, to: NORMAL_USER_2, value: ONE,
+        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "c".repeat(64),
+      };
+      const buy2: Transfer = {
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "d".repeat(64),
+      };
+
       await processor.organizeLiquidityPositions(liquidityChangeEvent1);
       await processor.organizeLiquidityPositions(liquidityChangeEvent2);
+      await processor.processTransfer(buy1);
+      await processor.processTransfer(buy2);
       await processor.processTransfer(transfer1);
       await processor.processTransfer(transfer2);
+      await processor.processLiquidityPositions(liquidityChangeEvent1);
+      await processor.processLiquidityPositions(liquidityChangeEvent2);
 
       const balances = await processor.getEligibleBalances();
 
@@ -494,82 +543,67 @@ describe("Processor", () => {
 
   describe("Reward Calculation", () => {
     it("should calculate rewards proportionally for single token", async () => {
-      // Setup two accounts with different balances
-      const transfer1: Transfer = {
-        from: NORMAL_USER_1,
-        to: "0xpool1",
-        value: "2000000000000000000", // 2 tokens
-        blockNumber: 50,
-        timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash1",
+      // User 1: buys 2, LPs 2 → eligible 2
+      // User 2: buys 3, LPs 3 → eligible 3
+      // Reward split: 2:3 = 0.4:0.6
+      const TWO = "2000000000000000000";
+      const THREE = "3000000000000000000";
+
+      const buy1: Transfer = {
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: TWO,
+        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "c".repeat(64),
       };
-      const liquidityChangeEvent1: LiquidityChange = {
+      const deposit1: Transfer = {
+        from: NORMAL_USER_1, to: "0x6000000000000000000000000000000000000000",
+        value: TWO, blockNumber: 50, timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address, transactionHash: "0x" + "a".repeat(64),
+      };
+      const liq1: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_1,
-        changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234",
-        depositedBalanceChange: ONE, // 1 token deposit
-        blockNumber: 50,
-        timestamp: 1000,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash1",
+        lpAddress: "0x6000000000000000000000000000000000000000",
+        owner: NORMAL_USER_1, changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234", depositedBalanceChange: TWO,
+        blockNumber: 50, timestamp: 1000, __typename: "LiquidityV2Change",
+        transactionHash: "0x" + "a".repeat(64),
       };
 
-      const transfer2: Transfer = {
-        from: NORMAL_USER_2,
-        to: "0xpool2",
-        value: "3000000000000000000", // 3 tokens
-        blockNumber: 50,
-        timestamp: 1000,
+      const buy2: Transfer = {
+        from: APPROVED_SOURCE, to: NORMAL_USER_2, value: THREE,
+        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "d".repeat(64),
+      };
+      const deposit2: Transfer = {
+        from: NORMAL_USER_2, to: "0x6000000000000000000000000000000000000000",
+        value: THREE, blockNumber: 50, timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address, transactionHash: "0x" + "e".repeat(64),
+      };
+      const liq2: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
-        transactionHash: "0xtxhash2",
-      };
-      const liquidityChangeEvent2: LiquidityChange = {
-        tokenAddress: CYTOKENS[0].address,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_2,
-        changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234",
-        depositedBalanceChange: ONE, // 1 token deposit
-        blockNumber: 50,
-        timestamp: 1000,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash2",
+        lpAddress: "0x6000000000000000000000000000000000000000",
+        owner: NORMAL_USER_2, changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234", depositedBalanceChange: THREE,
+        blockNumber: 50, timestamp: 1000, __typename: "LiquidityV2Change",
+        transactionHash: "0x" + "e".repeat(64),
       };
 
-      // we need at least one transfer for the second token so we don't divide by 0 later
-      const transfer3: Transfer = {
-        from: NORMAL_USER_1,
-        to: NORMAL_USER_2,
-        value: "3000000000000000000", // 3 tokens
-        blockNumber: 50,
-        timestamp: 1000,
-        tokenAddress: CYTOKENS[1].address,
-        transactionHash: "0xtxhash3",
-      };
+      await processor.organizeLiquidityPositions(liq1);
+      await processor.organizeLiquidityPositions(liq2);
+      await processor.processTransfer(buy1);
+      await processor.processTransfer(buy2);
+      await processor.processTransfer(deposit1);
+      await processor.processTransfer(deposit2);
+      await processor.processLiquidityPositions(liq1);
+      await processor.processLiquidityPositions(liq2);
 
-      await processor.organizeLiquidityPositions(liquidityChangeEvent1);
-      await processor.organizeLiquidityPositions(liquidityChangeEvent2);
-      await processor.processTransfer(transfer1);
-      await processor.processTransfer(transfer2);
-      await processor.processTransfer(transfer3);
-
-      const rewardPool = ONEn; // 1 token reward pool
+      const rewardPool = ONEn;
       const result = await processor.calculateRewards(rewardPool);
 
-      const user1Reward = result
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_1);
-      const user2Reward = result
-        .get(CYTOKENS[0].address)
-        ?.get(NORMAL_USER_2);
+      const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
+      const user2Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_2);
 
       expect(user1Reward).toBe(400000000000000000n); // 0.4 tokens
       expect(user2Reward).toBe(600000000000000000n); // 0.6 tokens
-
-      // Total should equal reward pool
       expect(user1Reward! + user2Reward!).toBe(rewardPool);
     });
 
@@ -1746,7 +1780,8 @@ describe("Processor", () => {
         transfersInFromApproved: 500n,
         transfersOut: 0n,
         netBalanceAtSnapshots: [0n, 0n],
-        currentNetBalance: 500n,
+        boughtCap: 500n,
+        lpBalance: 500n,
       };
       (processor as any).updateSnapshots(balance, 150);
       // block 150 is after snapshot[0]=100, so only snapshot[1]=200 is updated
@@ -1759,7 +1794,8 @@ describe("Processor", () => {
         transfersInFromApproved: 300n,
         transfersOut: 0n,
         netBalanceAtSnapshots: [0n, 0n],
-        currentNetBalance: 300n,
+        boughtCap: 300n,
+        lpBalance: 300n,
       };
       (processor as any).updateSnapshots(balance, 50);
       expect(balance.netBalanceAtSnapshots[0]).toBe(300n);
@@ -1771,31 +1807,60 @@ describe("Processor", () => {
         transfersInFromApproved: 300n,
         transfersOut: 0n,
         netBalanceAtSnapshots: [0n, 0n],
-        currentNetBalance: 300n,
+        boughtCap: 300n,
+        lpBalance: 300n,
       };
       (processor as any).updateSnapshots(balance, 300);
       expect(balance.netBalanceAtSnapshots[0]).toBe(0n);
       expect(balance.netBalanceAtSnapshots[1]).toBe(0n);
     });
 
-    it("should clamp negative currentNetBalance to zero", async () => {
+    it("should clamp negative boughtCap to zero", async () => {
       const balance = {
         transfersInFromApproved: 100n,
         transfersOut: 500n,
         netBalanceAtSnapshots: [999n, 999n],
-        currentNetBalance: -400n,
+        boughtCap: -400n,
+        lpBalance: 1000n,
       };
       (processor as any).updateSnapshots(balance, 50);
       expect(balance.netBalanceAtSnapshots[0]).toBe(0n);
       expect(balance.netBalanceAtSnapshots[1]).toBe(0n);
     });
 
-    it("should set zero when currentNetBalance is exactly zero", async () => {
+    it("should use min of boughtCap and lpBalance", async () => {
       const balance = {
-        transfersInFromApproved: 100n,
-        transfersOut: 100n,
+        transfersInFromApproved: 1000n,
+        transfersOut: 0n,
+        netBalanceAtSnapshots: [0n, 0n],
+        boughtCap: 1000n,
+        lpBalance: 300n,
+      };
+      (processor as any).updateSnapshots(balance, 50);
+      expect(balance.netBalanceAtSnapshots[0]).toBe(300n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(300n);
+    });
+
+    it("should cap lpBalance at boughtCap", async () => {
+      const balance = {
+        transfersInFromApproved: 200n,
+        transfersOut: 0n,
+        netBalanceAtSnapshots: [0n, 0n],
+        boughtCap: 200n,
+        lpBalance: 500n,
+      };
+      (processor as any).updateSnapshots(balance, 50);
+      expect(balance.netBalanceAtSnapshots[0]).toBe(200n);
+      expect(balance.netBalanceAtSnapshots[1]).toBe(200n);
+    });
+
+    it("should set zero when both are zero", async () => {
+      const balance = {
+        transfersInFromApproved: 0n,
+        transfersOut: 0n,
         netBalanceAtSnapshots: [999n, 999n],
-        currentNetBalance: 0n,
+        boughtCap: 0n,
+        lpBalance: 0n,
       };
       (processor as any).updateSnapshots(balance, 50);
       expect(balance.netBalanceAtSnapshots[0]).toBe(0n);
@@ -1807,7 +1872,8 @@ describe("Processor", () => {
         transfersInFromApproved: 200n,
         transfersOut: 0n,
         netBalanceAtSnapshots: [0n, 0n],
-        currentNetBalance: 200n,
+        boughtCap: 200n,
+        lpBalance: 200n,
       };
       // block 100 === SNAPSHOTS[0], should be included
       (processor as any).updateSnapshots(balance, 100);
