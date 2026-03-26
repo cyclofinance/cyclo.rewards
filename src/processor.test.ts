@@ -1058,31 +1058,7 @@ describe("Processor", () => {
     it("should include liquidity event exactly at snapshot block boundary", async () => {
       const tokenAddress = CYTOKENS[0].address;
 
-      const transfer: Transfer = {
-        from: NORMAL_USER_1,
-        to: "0xpool",
-        value: ONE,
-        blockNumber: 100, // Exactly at snapshot 1
-        timestamp: 1000,
-        tokenAddress,
-        transactionHash: "0xtxhash",
-      };
-      const liquidityChangeEvent: LiquidityChange = {
-        tokenAddress,
-        lpAddress: "0xLpAddress",
-        owner: NORMAL_USER_1,
-        changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234",
-        depositedBalanceChange: ONE,
-        blockNumber: 100, // Exactly at snapshot 1
-        timestamp: 1000,
-        __typename: "LiquidityV2Change",
-        transactionHash: "0xtxhash",
-      };
-
-      await processor.organizeLiquidityPositions(liquidityChangeEvent);
-      await processor.processTransfer(transfer);
-      await processor.processLiquidityPositions(liquidityChangeEvent);
+      await buyAndDeposit(processor, NORMAL_USER_1, ONE, tokenAddress, 100);
 
       const balances = await processor.getEligibleBalances();
 
@@ -1097,26 +1073,32 @@ describe("Processor", () => {
 
     it("should track V3 liquidity positions in lp3TrackList", async () => {
       const tokenAddress = CYTOKENS[0].address;
+      // Buy to set boughtCap
+      await processor.processTransfer({
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 40, timestamp: 900, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
       const transfer: Transfer = {
         from: NORMAL_USER_1,
-        to: "0xpool",
+        to: "0x6000000000000000000000000000000000000000",
         value: ONE,
         blockNumber: 50,
         timestamp: 1000,
         tokenAddress,
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
       };
       const v3Event: LiquidityChange = {
         tokenAddress,
-        lpAddress: "0xLpAddress",
+        lpAddress: "0x6000000000000000000000000000000000000000",
         owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234",
+        liquidityChange: ARBITRARY_LIQUIDITY,
         depositedBalanceChange: ONE,
         blockNumber: 50,
         timestamp: 1000,
         __typename: "LiquidityV3Change",
-        transactionHash: "0xtxhash",
+        transactionHash: "0x" + "a".repeat(64),
         tokenId: "42",
         poolAddress: POOL_ADDRESS,
         fee: 3000,
@@ -1164,9 +1146,10 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
       const userBalance = balances.get(tokenAddress)?.get(owner);
       expect(userBalance).toBeDefined();
-      expect(userBalance?.snapshots[0]).toBe(ONEn);
-      expect(userBalance?.snapshots[1]).toBe(ONEn);
-      expect(userBalance?.average).toBe(ONEn);
+      // LP balance is 1 but boughtCap is 0 (no approved purchase) → eligible = min(0, 1) = 0
+      expect(userBalance?.snapshots[0]).toBe(0n);
+      expect(userBalance?.snapshots[1]).toBe(0n);
+      expect(userBalance?.average).toBe(0n);
     });
   });
 
