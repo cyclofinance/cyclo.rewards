@@ -73,7 +73,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A07-P2-1 | MEDIUM | `transferIsDeposit`/`transferIsWithdraw` have no direct branch-level tests | FIXED — 6 direct tests: match, no match, wrong change type for each |
 | A07-P2-2 | MEDIUM | Penalty/bounty logic only tested with single token | FIXED — multi-token penalty test verifying independent per-token penalties and bounties |
 | A07-P2-3 | MEDIUM | Inverse-fraction reward weighting has no correctness test (existing test is tautological) | FIXED — 4 tests: unequal split, equal split, single token, 3 tokens with different decimals |
-| A07-P2-4 | MEDIUM | `processLpRange` negative-balance clamping untested | PENDING |
+| A07-P2-4 | MEDIUM | `processLpRange` negative-balance clamping untested | FIXED — covered by V3 end-to-end out-of-range test |
 | A07-P2-5 | LOW | `getUniqueAddresses`, `calculateTotalEligibleBalances`, `getTokensWithBalance` only tested indirectly | PENDING |
 | A07-P2-6 | LOW | `organizeLiquidityPositions` ineligible-token skip untested | PENDING |
 | A08-P2-1 | MEDIUM | `parseIntStrict` accepts trailing garbage — no test covers this | PENDING |
@@ -182,7 +182,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A08-P4-3 | LOW | `UNTIL_SNAPSHOT` adds `+1` despite inclusive `blockNumber_lte` | PENDING |
 | A08-P4-4 | LOW | Duplicated pagination/batching structure in scraper | PENDING |
 | A09-P4-1 | LOW | `LiquidityChangeBase` exported but never imported outside types.ts | PENDING |
-| A10-P4-1 | MEDIUM | `python3` per-iteration in loop; overlaps injection finding A10-1 | PENDING |
+| A10-P4-1 | MEDIUM | `python3` per-iteration in loop; overlaps injection finding A10-1 | DISMISSED — Dec 2025 script, not in active use |
 | A10-P4-2 | LOW | Magic numbers in ABI offset arithmetic | PENDING |
 | A10-P4-3 | LOW | Duplicated decode-and-append for TX1/TX2 | PENDING |
 | A10-P4-4 | LOW | `local` declarations misleading in bash function scope | PENDING |
@@ -207,6 +207,6 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A08-P5-2 | LOW | `UNTIL_SNAPSHOT` +1 fetches one extra block beyond stated intent | PENDING |
 | A09-P5-1 | LOW | `currentNetBalance` JSDoc invariant violated by LP transfer events | PENDING |
 | A09-P5-2 | LOW | `depositedBalanceChange` JSDoc omits Transfer variant sign convention | PENDING |
-| A10-P5-1 | MEDIUM | Undocumented function signature makes ABI layout unverifiable in fetch script | PENDING |
+| A10-P5-1 | MEDIUM | Undocumented function signature makes ABI layout unverifiable in fetch script | DISMISSED — Dec 2025 script, not in active use |
 | A10-P5-2 | LOW | No validation that address and amount arrays have equal length | PENDING |
 | A10-P5-3 | LOW | No validation that address zero-padding bytes are zero | PENDING |
