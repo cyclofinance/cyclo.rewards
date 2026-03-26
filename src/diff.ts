@@ -10,7 +10,7 @@ export const DISTRIBUTED_COUNT = 100 as const;
  */
 export function readCsv(filePath: string): Array<{address: string; reward: bigint}> {
   const data = readFileSync(filePath, "utf8");
-  const lines = data.split("\n").filter(Boolean);
+  const lines = data.replace(/\r\n/g, "\n").split("\n").filter(Boolean);
 
   if (lines.length === 0) {
     throw new Error(`CSV file is empty: ${filePath}`);

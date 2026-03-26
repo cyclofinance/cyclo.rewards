@@ -37,7 +37,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A08-2 | LOW | `parseIntStrict` uses `parseInt` without radix, accepts trailing garbage | PENDING |
 | A08-3 | LOW | `transactionHash` passed through without validation | PENDING |
 | A08-4 | LOW | No runtime validation of subgraph response shape | PENDING |
-| A10-1 | MEDIUM | Code injection via `python3 -c` string interpolation of RPC data in fetch script | PENDING |
+| A10-1 | MEDIUM | Code injection via `python3 -c` string interpolation of RPC data in fetch script | DISMISSED — script is Dec 2025-specific, removed from CI, not used for current epochs |
 | A10-2 | LOW | Relative output path assumes working directory in fetch script | PENDING |
 | A10-3 | LOW | No validation of `cast tx` output format in fetch script | PENDING |
 
@@ -47,10 +47,10 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A01-P2-1 | LOW | `generateSnapshotBlocks` does not test start/end always included | PENDING |
 | A01-P2-2 | LOW | No test for inverted range (`start > end`) in `generateSnapshotBlocks` | PENDING |
 | A01-P2-3 | LOW | `parseEnv` silently accepts `"123abc"` — no test documents this | PENDING |
-| A02-P2-1 | MEDIUM | `validateAddress` (only function in constants.ts) has zero test coverage | PENDING |
+| A02-P2-1 | MEDIUM | `validateAddress` (only function in constants.ts) has zero test coverage | FIXED — 8 direct tests added |
 | A02-P2-2 | LOW | `DEC25_REWARD_POOL` value never directly asserted | PENDING |
 | A02-P2-3 | LOW | `BOUNTY_PERCENT` not tested | PENDING |
-| A03-P2-1 | MEDIUM | No CRLF line ending test for `readCsv` | PENDING |
+| A03-P2-1 | MEDIUM | No CRLF line ending test for `readCsv` | FIXED — normalize CRLF to LF in readCsv; LF and CRLF tests added |
 | A03-P2-2 | MEDIUM | No duplicate address test for `calculateDiff` inputs | FIXED — duplicate of A03-1 |
 | A03-P2-3 | MEDIUM | No negative reward test for `calculateDiff` | FIXED — duplicate of A03-6 |
 | A03-P2-4 | LOW | No large BigInt value test for `readCsv` | PENDING |

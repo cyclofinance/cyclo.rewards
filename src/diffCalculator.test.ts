@@ -152,6 +152,26 @@ describe('readCsv', () => {
     expect(() => readCsv('bad.csv')).toThrow();
   });
 
+  it('should handle LF line endings', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\n'
+    );
+    const result = readCsv('lf.csv');
+    expect(result).toEqual([
+      { address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', reward: 1000n },
+    ]);
+  });
+
+  it('should handle CRLF line endings', () => {
+    mockReadFileSync.mockReturnValue(
+      header + '\r\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\r\n'
+    );
+    const result = readCsv('crlf.csv');
+    expect(result).toEqual([
+      { address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', reward: 1000n },
+    ]);
+  });
+
   it('should reject CSV with wrong header', () => {
     mockReadFileSync.mockReturnValue(
       'wrong header\n0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1000\n'
