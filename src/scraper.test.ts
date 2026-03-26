@@ -324,5 +324,11 @@ describe("parseIntStrict", () => {
   it("should reject empty string", () => {
     expect(() => parseIntStrict("", "test")).toThrow();
   });
+
+  it("should accept numeric inputs (subgraph returns numbers for some fields)", () => {
+    expect(parseIntStrict(100 as unknown as string, "test")).toBe(100);
+    expect(parseIntStrict(0 as unknown as string, "test")).toBe(0);
+    expect(parseIntStrict(-42 as unknown as string, "test")).toBe(-42);
+  });
 });
 
