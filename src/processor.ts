@@ -630,7 +630,7 @@ export class Processor {
             const idStart = `${token}-${owner}-${lp.pool}`;
             if (!key.startsWith(idStart)) continue;
             if (lp.value <= 0n) continue;
-            if (lp.lowerTick <= tick && tick <= lp.upperTick) continue; // skip if in range
+            if (lp.lowerTick <= tick && tick < lp.upperTick) continue; // skip if in range (upper bound exclusive per Uniswap V3)
 
             // deduct out of range lp position for snapshot
             balance.netBalanceAtSnapshots[i] -= lp.value;

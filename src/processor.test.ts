@@ -882,6 +882,46 @@ describe("Processor", () => {
       // In range → position kept → eligible = min(1, 1) = 1
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(ONEn);
     });
+
+    it("should treat tick exactly at upperTick as out-of-range (exclusive upper bound)", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const depositTx = nextTxHash();
+
+      await processor.processTransfer({
+        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 40, timestamp: 900, tokenAddress,
+        transactionHash: nextTxHash(),
+      });
+      const v3Event: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV3Change",
+        transactionHash: depositTx,
+        tokenId: "42", poolAddress: POOL_ADDRESS,
+        fee: 3000, lowerTick: -100, upperTick: 100,
+      };
+
+      await processor.organizeLiquidityPositions(v3Event);
+      await processor.processTransfer({
+        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: depositTx,
+      });
+      await processor.processLiquidityPositions(v3Event);
+
+      // Mock pool tick at exactly upperTick (100) — should be OUT of range per Uniswap V3
+      (getPoolsTick as Mock).mockResolvedValue({
+        [POOL_ADDRESS]: 100,
+      });
+
+      await processor.processLpRange();
+
+      const balances = await processor.getEligibleBalances();
+      // tick === upperTick → out of range → deducted → eligible = 0
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(0n);
+    });
   });
 
   describe("organizeLiquidityPositions duplicate handling", () => {
