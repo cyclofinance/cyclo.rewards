@@ -150,6 +150,16 @@ export function formatRewardsCsv(addresses: string[], rewards: Map<string, bigin
   return [header, ...rows];
 }
 
+/**
+ * Formats the full balances CSV with per-token snapshot values, averages, penalties, bounties, finals, rewards, and total.
+ * @param addresses - Sorted list of addresses to include
+ * @param cytokens - Token definitions for column generation
+ * @param snapshots - Snapshot block numbers (for column headers)
+ * @param balances - Per-token per-account eligible balances
+ * @param rewardsPerToken - Per-token per-account reward amounts
+ * @param totalRewardsPerAddress - Aggregated total rewards per address
+ * @returns Array of CSV lines (header + data rows)
+ */
 export function formatBalancesCsv(
   addresses: string[],
   cytokens: CyToken[],

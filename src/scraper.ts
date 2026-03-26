@@ -64,7 +64,7 @@ export type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
 /** Discriminated union of V2 and V3 subgraph liquidity change events */
 export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquidityChangeV3
 
-const VALID_CHANGE_TYPES = ["DEPOSIT", "TRANSFER", "WITHDRAW"];
+const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
 
 /** Parse a string to integer and throw if the result is NaN */
 function parseIntStrict(value: string, field: string): number {

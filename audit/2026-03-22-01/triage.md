@@ -116,7 +116,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A06-P3-4 | LOW | `aggregateRewardsPerAddress` undocumented | PENDING |
 | A06-P3-5 | LOW | `sortAddressesByReward` undocumented | PENDING |
 | A06-P3-7 | LOW | `formatRewardsCsv` undocumented | PENDING |
-| A06-P3-8 | MEDIUM | `formatBalancesCsv` undocumented (6 params, complex column generation) | PENDING |
+| A06-P3-8 | MEDIUM | `formatBalancesCsv` undocumented (6 params, complex column generation) | FIXED — added JSDoc with all params and return |
 | A06-P3-9 | LOW | `parseJsonl` undocumented | PENDING |
 | A06-P3-10 | LOW | `parseBlocklist` undocumented | PENDING |
 | A07-P3-1 | LOW | `getEligibleBalances` doesn't document that `final` can be negative | PENDING |
@@ -175,9 +175,9 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A07-P4-4 | MEDIUM | `processLpRange` O(snapshots * tokens * accounts * positions) | PENDING |
 | A07-P4-5 | LOW | `calculateTotalEligibleBalances` called 4 times with same input | PENDING |
 | A07-P4-7 | LOW | Inline ABI literal inconsistent with module-level pattern in liquidity.ts | PENDING |
-| A07-P4-10 | MEDIUM | V3 position IDs built by string interpolation in two locations with no shared helper | PENDING |
+| A07-P4-10 | MEDIUM | V3 position IDs built by string interpolation in two locations with no shared helper | FIXED — extracted lpV3PositionId helper |
 | A07-P4-11 | MEDIUM | `processTransfer` is a 72-line god method with confusing credit-then-undo pattern | FIXED — replaced with 18-line bought cap model; LP movements return early |
-| A08-P4-1 | MEDIUM | `VALID_CHANGE_TYPES` duplicates `LiquidityChangeType` enum — two sources of truth | PENDING |
+| A08-P4-1 | MEDIUM | `VALID_CHANGE_TYPES` duplicates `LiquidityChangeType` enum — two sources of truth | FIXED — scraper now derives from Object.values(LiquidityChangeType) |
 | A08-P4-2 | LOW | Duplicate import statements from `./constants` | PENDING |
 | A08-P4-3 | LOW | `UNTIL_SNAPSHOT` adds `+1` despite inclusive `blockNumber_lte` | PENDING |
 | A08-P4-4 | LOW | Duplicated pagination/batching structure in scraper | PENDING |

@@ -31,6 +31,11 @@ function clamp0(val: bigint): bigint {
   return val < 0n ? 0n : val;
 }
 
+/** Build a V3 LP position ID from token, owner, pool, and tokenId */
+function lpV3PositionId(token: string, owner: string, pool: string, tokenId: string): string {
+  return `${token}-${owner}-${pool}-${tokenId}`;
+}
+
 /**
  * Processes on-chain transfer and liquidity events to calculate reward-eligible balances
  * and distribute the reward pool across accounts proportionally.
@@ -576,15 +581,12 @@ export class Processor {
 
         // update lp v3 tracklist
         if (liquidityChangeEvent.__typename === "LiquidityV3Change") {
-          const id =`${
-            liquidityChangeEvent.tokenAddress
-          }-${
-            liquidityChangeEvent.owner
-          }-${
-            liquidityChangeEvent.poolAddress
-          }-${
-            liquidityChangeEvent.tokenId
-          }`;
+          const id = lpV3PositionId(
+            liquidityChangeEvent.tokenAddress,
+            liquidityChangeEvent.owner,
+            liquidityChangeEvent.poolAddress,
+            liquidityChangeEvent.tokenId,
+          );
           const prev = this.lp3TrackList[this.snapshots[i]].get(id) ?? {
             value: 0n,
             pool: liquidityChangeEvent.poolAddress,
@@ -627,7 +629,7 @@ export class Processor {
             const tick = poolsTicks[lp.pool];
             if (tick === undefined) continue;
 
-            const idStart = `${token}-${owner}-${lp.pool}`;
+            const idStart = `${token}-${owner}-${lp.pool}-`;
             if (!key.startsWith(idStart)) continue;
             if (lp.value <= 0n) continue;
             if (lp.lowerTick <= tick && tick < lp.upperTick) continue; // skip if in range (upper bound exclusive per Uniswap V3)
