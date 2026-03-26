@@ -585,6 +585,117 @@ describe("Processor", () => {
     });
   });
 
+  describe("Multi-token penalty", () => {
+    it("should apply penalties independently per token", async () => {
+      const reports = [{ reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 }];
+      const proc = new Processor(SNAPSHOTS, reports, mockClient);
+      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+
+      // Cheater has balance in both tokens
+      await buyAndDeposit(proc, NORMAL_USER_2, ONE, CYTOKENS[0].address, 50);
+      await buyAndDeposit(proc, NORMAL_USER_2, "2000000000000000000", CYTOKENS[1].address, 50);
+
+      // Reporter has balance in token 0 only
+      await buyAndDeposit(proc, NORMAL_USER_1, ONE, CYTOKENS[0].address, 50);
+
+      const balances = await proc.getEligibleBalances();
+
+      // Cheater penalized in both tokens independently
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.penalty).toBe(ONEn);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.final).toBe(0n);
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.penalty).toBe(2000000000000000000n);
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.final).toBe(0n);
+
+      // Reporter gets bounty in both tokens
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.bounty).toBe(ONEn / 10n);
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.bounty).toBe(200000000000000000n);
+
+      // Reporter's final in token 0 = original + bounty
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.final).toBe(ONEn + ONEn / 10n);
+      // Reporter's final in token 1 = just bounty (no original balance)
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.final).toBe(200000000000000000n);
+    });
+  });
+
+  describe("Inverse-fraction reward weighting", () => {
+    it("should allocate more rewards to token with less total eligible balance", async () => {
+      // Token A: 100 total eligible (one user)
+      // Token B: 400 total eligible (one user)
+      // Inverse fractions: A = 500/100 = 5, B = 500/400 = 1.25
+      // Pool shares: A = 5/(5+1.25) = 80%, B = 1.25/6.25 = 20%
+      const proc = new Processor(SNAPSHOTS, [], mockClient);
+      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+
+      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(proc, NORMAL_USER_2, "400000000000000000000", CYTOKENS[1].address, 50);
+
+      const rewardPool = 1000000000000000000000n; // 1000 tokens
+      const balances = await proc.getEligibleBalances();
+      const pools = proc.calculateRewardsPoolsPerToken(balances, rewardPool);
+
+      const tokenAPool = pools.get(CYTOKENS[0].address)!;
+      const tokenBPool = pools.get(CYTOKENS[1].address)!;
+
+      // Token A (smaller) should get more rewards than Token B (larger)
+      expect(tokenAPool).toBeGreaterThan(tokenBPool);
+      // A gets 80%, B gets 20%
+      expect(tokenAPool).toBe(800000000000000000000n);
+      expect(tokenBPool).toBe(200000000000000000000n);
+    });
+
+    it("should split evenly when both tokens have equal total eligible", async () => {
+      const proc = new Processor(SNAPSHOTS, [], mockClient);
+      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+
+      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(proc, NORMAL_USER_2, "100000000000000000000", CYTOKENS[1].address, 50);
+
+      const rewardPool = 1000000000000000000000n;
+      const balances = await proc.getEligibleBalances();
+      const pools = proc.calculateRewardsPoolsPerToken(balances, rewardPool);
+
+      expect(pools.get(CYTOKENS[0].address)).toBe(500000000000000000000n);
+      expect(pools.get(CYTOKENS[1].address)).toBe(500000000000000000000n);
+    });
+
+    it("should give all rewards to a single token when only one has balance", async () => {
+      const proc = new Processor(SNAPSHOTS, [], mockClient);
+      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+
+      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
+
+      const rewardPool = 1000000000000000000000n;
+      const balances = await proc.getEligibleBalances();
+      const pools = proc.calculateRewardsPoolsPerToken(balances, rewardPool);
+
+      expect(pools.get(CYTOKENS[0].address)).toBe(1000000000000000000000n);
+      expect(pools.get(CYTOKENS[1].address)).toBeUndefined();
+    });
+
+    it("should handle 3 tokens with different balances", async () => {
+      // A: 100, B: 200, C: 300 (using 6 decimal cyFXRP for C)
+      // Sum = 100+200+300 = 600 (all scaled to 18 decimals)
+      // Inverse fractions: A=600/100=6, B=600/200=3, C=600/300=2
+      // Sum of inverses: 11
+      // Shares: A=6/11, B=3/11, C=2/11
+      const proc = new Processor(SNAPSHOTS, [], mockClient);
+      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+
+      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(proc, NORMAL_USER_2, "200000000000000000000", CYTOKENS[1].address, 50);
+      // cyFXRP has 6 decimals, so 300 tokens = 300_000_000 in 6-decimal
+      await buyAndDeposit(proc, NORMAL_USER_1, "300000000", CYTOKENS[2].address, 50);
+
+      const rewardPool = 1100000000000000000000n; // 1100 tokens for clean division by 11
+      const balances = await proc.getEligibleBalances();
+      const pools = proc.calculateRewardsPoolsPerToken(balances, rewardPool);
+
+      expect(pools.get(CYTOKENS[0].address)).toBe(600000000000000000000n); // 6/11 * 1100
+      expect(pools.get(CYTOKENS[1].address)).toBe(300000000000000000000n); // 3/11 * 1100
+      expect(pools.get(CYTOKENS[2].address)).toBe(200000000000000000000n); // 2/11 * 1100
+    });
+  });
+
   describe("Reward Calculation", () => {
     it("should calculate rewards proportionally for single token", async () => {
       // User 1: buys 2, LPs 2 → eligible 2
@@ -921,6 +1032,110 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
       // tick === upperTick → out of range → deducted → eligible = 0
       expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(0n);
+    });
+  });
+
+  describe("transferIsDeposit", () => {
+    it("should return the LP event when transfer matches a deposit", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const txHash = nextTxHash();
+      const liq: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV2Change", transactionHash: txHash,
+      };
+      await processor.organizeLiquidityPositions(liq);
+
+      const transfer: Transfer = {
+        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: txHash,
+      };
+      expect(processor.transferIsDeposit(transfer)).toEqual(liq);
+    });
+
+    it("should return undefined when no matching LP event exists", () => {
+      const transfer: Transfer = {
+        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
+        blockNumber: 50, timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: nextTxHash(),
+      };
+      expect(processor.transferIsDeposit(transfer)).toBeUndefined();
+    });
+
+    it("should return undefined when LP event is a Withdraw not a Deposit", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const txHash = nextTxHash();
+      const liq: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: `-${ONE}`,
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV2Change", transactionHash: txHash,
+      };
+      await processor.organizeLiquidityPositions(liq);
+
+      const transfer: Transfer = {
+        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: txHash,
+      };
+      expect(processor.transferIsDeposit(transfer)).toBeUndefined();
+    });
+  });
+
+  describe("transferIsWithdraw", () => {
+    it("should return the LP event when transfer matches a withdrawal", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const txHash = nextTxHash();
+      const liq: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Withdraw,
+        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: `-${ONE}`,
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV2Change", transactionHash: txHash,
+      };
+      await processor.organizeLiquidityPositions(liq);
+
+      const transfer: Transfer = {
+        from: LP_ADDRESS, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: txHash,
+      };
+      expect(processor.transferIsWithdraw(transfer)).toEqual(liq);
+    });
+
+    it("should return undefined when no matching LP event exists", () => {
+      const transfer: Transfer = {
+        from: LP_ADDRESS, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 50, timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: nextTxHash(),
+      };
+      expect(processor.transferIsWithdraw(transfer)).toBeUndefined();
+    });
+
+    it("should return undefined when LP event is a Deposit not a Withdraw", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const txHash = nextTxHash();
+      const liq: LiquidityChange = {
+        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
+        blockNumber: 50, timestamp: 1000,
+        __typename: "LiquidityV2Change", transactionHash: txHash,
+      };
+      await processor.organizeLiquidityPositions(liq);
+
+      const transfer: Transfer = {
+        from: LP_ADDRESS, to: NORMAL_USER_1, value: ONE,
+        blockNumber: 50, timestamp: 1000, tokenAddress,
+        transactionHash: txHash,
+      };
+      expect(processor.transferIsWithdraw(transfer)).toBeUndefined();
     });
   });
 

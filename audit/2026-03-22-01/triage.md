@@ -60,7 +60,7 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A04-P2-2 | MEDIUM | No unit test for balance verification throw (index.ts lines 125-127) | DISMISSED — summarizeTokenBalances.verified already tested in pipeline.test.ts |
 | A04-P2-3 | LOW | No test for silent transfer file read errors | PENDING |
 | A04-P2-4 | LOW | No test for pools JSON.parse without validation | PENDING |
-| A05-P2-1 | MEDIUM | `client.getCode()` throwing during failure classification untested | PENDING |
+| A05-P2-1 | MEDIUM | `client.getCode()` throwing during failure classification untested | FIXED — test added showing getCode errors propagate correctly |
 | A05-P2-2 | LOW | setTimeout delay duration never asserted in retry tests | PENDING |
 | A05-P2-3 | LOW | Fractional/Infinity blockNumber not tested | PENDING |
 | A05-P2-4 | LOW | Success on third (final) retry attempt untested | PENDING |
@@ -70,9 +70,9 @@ Findings are deduplicated across passes. When the same issue was flagged in mult
 | A06-P2-4 | LOW | `formatBalancesCsv` `totalRewardsPerAddress` missing entry untested | PENDING |
 | A06-P2-5 | LOW | `formatBalancesCsv` inner-map miss untested | PENDING |
 | A06-P2-6 | LOW | `parseBlocklist` malformed whitespace untested | PENDING |
-| A07-P2-1 | MEDIUM | `transferIsDeposit`/`transferIsWithdraw` have no direct branch-level tests | PENDING |
-| A07-P2-2 | MEDIUM | Penalty/bounty logic only tested with single token | PENDING |
-| A07-P2-3 | MEDIUM | Inverse-fraction reward weighting has no correctness test (existing test is tautological) | PENDING |
+| A07-P2-1 | MEDIUM | `transferIsDeposit`/`transferIsWithdraw` have no direct branch-level tests | FIXED — 6 direct tests: match, no match, wrong change type for each |
+| A07-P2-2 | MEDIUM | Penalty/bounty logic only tested with single token | FIXED — multi-token penalty test verifying independent per-token penalties and bounties |
+| A07-P2-3 | MEDIUM | Inverse-fraction reward weighting has no correctness test (existing test is tautological) | FIXED — 4 tests: unequal split, equal split, single token, 3 tokens with different decimals |
 | A07-P2-4 | MEDIUM | `processLpRange` negative-balance clamping untested | PENDING |
 | A07-P2-5 | LOW | `getUniqueAddresses`, `calculateTotalEligibleBalances`, `getTokensWithBalance` only tested indirectly | PENDING |
 | A07-P2-6 | LOW | `organizeLiquidityPositions` ineligible-token skip untested | PENDING |

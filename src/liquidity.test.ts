@@ -320,6 +320,31 @@ describe('getPoolsTickMulticall', () => {
       });
     });
 
+    it('should propagate getCode errors', async () => {
+      const twoPools = [
+        '0x1234567890123456789012345678901234567890',
+        '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
+      ] as `0x${string}`[];
+
+      const mockResults = [
+        {
+          status: 'success' as const,
+          result: [0n, 100, 1, 1, 1, 0, true]
+        },
+        {
+          status: 'failure' as const,
+          error: new Error('Pool call failed')
+        }
+      ];
+
+      (mockClient.multicall as any).mockResolvedValue(mockResults);
+      (mockClient.getCode as any).mockRejectedValue(new Error('RPC down'));
+
+      await expect(
+        getPoolsTickMulticall(mockClient, twoPools, blockNumber)
+      ).rejects.toThrow('RPC down');
+    });
+
     it('should propagate multicall errors', async () => {
       const multicallError = new Error('Multicall failed');
       (mockClient.multicall as any).mockRejectedValue(multicallError);
