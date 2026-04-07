@@ -6,10 +6,16 @@
 /** 1e18 as BigInt — the fixed-point unit for 18-decimal token arithmetic */
 export const ONE_18 = 10n ** 18n;
 
+// Mar 2026 epoch: 300,000 tokens (18 decimals)
+export const MAR26_REWARD_POOL = 300_000_000_000_000_000_000_000n;
+// Feb 2026 epoch: 500,000 tokens (18 decimals)
+export const FEB26_REWARD_POOL = 500_000_000_000_000_000_000_000n;
 // Jan 2026 epoch: 500,000 tokens (18 decimals)
-export const REWARD_POOL = 500_000_000_000_000_000_000_000n;
+export const JAN26_REWARD_POOL = 500_000_000_000_000_000_000_000n;
 // Dec 2025 epoch: 1,000,000 tokens (18 decimals) — used by diffCalculator for reconciliation
 export const DEC25_REWARD_POOL = 1_000_000_000_000_000_000_000_000n;
+
+export const REWARD_POOL = MAR26_REWARD_POOL;
 
 // Must match expected structure
 // https://github.com/flare-foundation/rnat-distribution-tool/blob/main/README.md#add-csv-file-with-rewards-data
@@ -57,7 +63,7 @@ export const TRANSFER_CHUNK_SIZE = 270000;
 export const TRANSFER_FILE_COUNT = 10;
 
 /** 1-indexed epoch number for the current rewards run */
-export const CURRENT_EPOCH = 21;
+export const CURRENT_EPOCH = 22;
 
 export interface Epoch {
   number: number;
@@ -98,7 +104,7 @@ export const EPOCHS: Epoch[] = [
   { number: 19, end: "2025-12-28T12:00:00Z", seed: "cyclo-rewards-for-dec-2025", startBlock: 51355293, endBlock: 52936176 },
   { number: 20, end: "2026-01-27T12:00:00Z", seed: "cyclo-rewards-for-jan-2026", startBlock: 52936176, endBlock: 54506725 },
   { number: 21, end: "2026-02-26T12:00:00Z", seed: "e18b5100f9b97f8c88f3a79de3d82fdd", startBlock: 54506725, endBlock: 56142314 },
-  { number: 22, end: "2026-03-28T12:00:00Z", startBlock: 56142314 },
+  { number: 22, end: "2026-03-28T12:00:00Z", seed: "7dd2a4c0ddf7ee0f0411904572454481", startBlock: 56142314, endBlock: 57729994 },
   { number: 23, end: "2026-04-27T12:00:00Z" },
   { number: 24, end: "2026-05-27T12:00:00Z" },
 ];
