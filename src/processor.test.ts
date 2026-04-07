@@ -99,7 +99,7 @@ describe("Processor", () => {
   });
 
   describe("Basic Transfer Processing", () => {
-    it("should track approved transfers correctly", async () => {
+    it("should give zero eligible balance for approved buy without LP deposit", async () => {
       const transfer: Transfer = {
         from: APPROVED_SOURCE,
         to: NORMAL_USER_1,

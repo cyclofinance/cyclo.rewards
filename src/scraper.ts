@@ -6,8 +6,7 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
-import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH } from "./constants";
-import { validateAddress } from "./constants";
+import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH, validateAddress } from "./constants";
 import assert from "assert";
 
 /** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
