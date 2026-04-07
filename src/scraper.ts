@@ -65,7 +65,7 @@ export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquid
 
 const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
 
-/** Parse a string to integer and throw if the result is NaN */
+/** Parse a string or number to integer, throwing if non-integer or round-trip fails */
 export function parseIntStrict(value: string | number, field: string): number {
   const s = String(value);
   const n = Number(s);

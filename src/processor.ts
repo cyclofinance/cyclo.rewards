@@ -238,21 +238,21 @@ export class Processor {
    * @returns The matching deposit liquidity event, or undefined
    */
   transferIsDeposit(transfer: Transfer): LiquidityChange | undefined {
-    const token = transfer.tokenAddress
-    const txhash = transfer.transactionHash
-    const owner = transfer.from
+    const token = transfer.tokenAddress;
+    const txhash = transfer.transactionHash;
+    const owner = transfer.from;
 
     const ownerEvents = this.liquidityEvents.get(owner)
-    if (!ownerEvents) return
+    if (!ownerEvents) return;
 
     const ownerTokenEvents = ownerEvents.get(token)
-    if (!ownerTokenEvents) return
+    if (!ownerTokenEvents) return;
 
     const ownerTokenTxEvent = ownerTokenEvents.get(txhash)
-    if (!ownerTokenTxEvent) return
+    if (!ownerTokenTxEvent) return;
 
-    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Deposit) return ownerTokenTxEvent
-    return
+    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Deposit) return ownerTokenTxEvent;
+    return;
   }
 
   /**
@@ -261,21 +261,21 @@ export class Processor {
    * @returns The matching withdrawal liquidity event, or undefined
    */
   transferIsWithdraw(transfer: Transfer): LiquidityChange | undefined {
-    const token = transfer.tokenAddress
-    const txhash = transfer.transactionHash
-    const owner = transfer.to
+    const token = transfer.tokenAddress;
+    const txhash = transfer.transactionHash;
+    const owner = transfer.to;
 
-    const ownerEvents = this.liquidityEvents.get(owner)
-    if (!ownerEvents) return
+    const ownerEvents = this.liquidityEvents.get(owner);
+    if (!ownerEvents) return;
 
-    const ownerTokenEvents = ownerEvents.get(token)
-    if (!ownerTokenEvents) return
+    const ownerTokenEvents = ownerEvents.get(token);
+    if (!ownerTokenEvents) return;
 
-    const ownerTokenTxEvent = ownerTokenEvents.get(txhash)
-    if (!ownerTokenTxEvent) return
+    const ownerTokenTxEvent = ownerTokenEvents.get(txhash);
+    if (!ownerTokenTxEvent) return;
 
-    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Withdraw) return ownerTokenTxEvent
-    return
+    if (ownerTokenTxEvent.changeType === LiquidityChangeType.Withdraw) return ownerTokenTxEvent;
+    return;
   }
 
   /**
@@ -517,20 +517,20 @@ export class Processor {
 
     const ownerEvents = this.liquidityEvents.get(liquidityChangeEvent.owner);
     if (!ownerEvents) {
-      this.liquidityEvents.set(liquidityChangeEvent.owner, new Map([[liquidityChangeEvent.tokenAddress, new Map([[liquidityChangeEvent.transactionHash, liquidityChangeEvent]])]]))
-      return
+      this.liquidityEvents.set(liquidityChangeEvent.owner, new Map([[liquidityChangeEvent.tokenAddress, new Map([[liquidityChangeEvent.transactionHash, liquidityChangeEvent]])]]));
+      return;
     }
 
-    const ownerTokenEvents = ownerEvents.get(liquidityChangeEvent.tokenAddress)
+    const ownerTokenEvents = ownerEvents.get(liquidityChangeEvent.tokenAddress);
     if (!ownerTokenEvents) {
-      ownerEvents.set(liquidityChangeEvent.tokenAddress, new Map([[liquidityChangeEvent.transactionHash, liquidityChangeEvent]]))
-      return
+      ownerEvents.set(liquidityChangeEvent.tokenAddress, new Map([[liquidityChangeEvent.transactionHash, liquidityChangeEvent]]));
+      return;
     }
 
     if (ownerTokenEvents.has(liquidityChangeEvent.transactionHash)) {
       throw new Error(`Duplicate liquidity event for owner=${liquidityChangeEvent.owner} token=${liquidityChangeEvent.tokenAddress} txHash=${liquidityChangeEvent.transactionHash}`);
     }
-    ownerTokenEvents.set(liquidityChangeEvent.transactionHash, liquidityChangeEvent)
+    ownerTokenEvents.set(liquidityChangeEvent.transactionHash, liquidityChangeEvent);
   }
 
   /**

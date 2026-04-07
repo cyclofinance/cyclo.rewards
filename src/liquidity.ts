@@ -106,7 +106,7 @@ export async function getPoolsTickMulticall(
 }
 
 /**
- * Fetches pool ticks with retry logic (3 attempts, 10s delay between retries).
+ * Fetches pool ticks with retry logic (3 attempts total, 10s delay between retries).
  * @param client - Viem public client
  * @param pools - Array of pool contract addresses
  * @param blockNumber - Block number to query at
