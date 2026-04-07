@@ -162,6 +162,89 @@ describe('current epoch balances output', () => {
   });
 });
 
+describe('balances arithmetic consistency', () => {
+  const balancesData = readFileSync(BALANCES_FILE, 'utf8');
+  const lines = balancesData.split('\n').filter(Boolean);
+  const columns = lines[0].split(',');
+  const { entries: rewardEntries } = parseCsv(REWARDS_FILE);
+
+  // Parse all rows into structured data
+  function parseRow(line: string) {
+    const parts = line.split(',');
+    const address = parts[0];
+    const tokenData: Record<string, { snapshots: bigint[]; average: bigint; penalty: bigint; bounty: bigint; final: bigint; rewards: bigint }> = {};
+    for (let t = 0; t < CYTOKENS.length; t++) {
+      const base = 1 + t * 35;
+      const snapshots = parts.slice(base, base + 30).map(BigInt);
+      tokenData[CYTOKENS[t].name] = {
+        snapshots,
+        average: BigInt(parts[base + 30]),
+        penalty: BigInt(parts[base + 31]),
+        bounty: BigInt(parts[base + 32]),
+        final: BigInt(parts[base + 33]),
+        rewards: BigInt(parts[base + 34]),
+      };
+    }
+    return { address, tokenData, totalRewards: BigInt(parts[parts.length - 1]) };
+  }
+
+  const allRows = lines.slice(1).map(parseRow);
+
+  it('average equals mean of 30 snapshots for all accounts', () => {
+    for (const row of allRows) {
+      for (const token of CYTOKENS) {
+        const td = row.tokenData[token.name];
+        const sum = td.snapshots.reduce((s, v) => s + v, 0n);
+        const expectedAvg = sum / 30n;
+        expect(td.average).toBe(expectedAvg);
+      }
+    }
+  });
+
+  it('final equals average - penalty + bounty for all accounts', () => {
+    for (const row of allRows) {
+      for (const token of CYTOKENS) {
+        const td = row.tokenData[token.name];
+        expect(td.final).toBe(td.average - td.penalty + td.bounty);
+      }
+    }
+  });
+
+  it('total_rewards equals sum of per-token rewards for all accounts', () => {
+    for (const row of allRows) {
+      const sum = CYTOKENS.reduce((s, t) => s + row.tokenData[t.name].rewards, 0n);
+      expect(row.totalRewards).toBe(sum);
+    }
+  });
+
+  it('rewards CSV amount matches total_rewards in balances for rewarded accounts', () => {
+    for (const entry of rewardEntries) {
+      const row = allRows.find(r => r.address === entry.address);
+      expect(row).toBeDefined();
+      expect(entry.reward).toBe(row!.totalRewards);
+    }
+  });
+
+  it('zero-reward accounts have zero total_rewards in balances', () => {
+    const rewardAddresses = new Set(rewardEntries.map(r => r.address));
+    for (const row of allRows) {
+      if (!rewardAddresses.has(row.address)) {
+        expect(row.totalRewards).toBe(0n);
+      }
+    }
+  });
+
+  it('all snapshots are non-negative for all accounts', () => {
+    for (const row of allRows) {
+      for (const token of CYTOKENS) {
+        for (const snap of row.tokenData[token.name].snapshots) {
+          expect(snap).toBeGreaterThanOrEqual(0n);
+        }
+      }
+    }
+  });
+});
+
 describe('snapshot blocks', () => {
   const data = readFileSync(SNAPSHOTS_FILE, 'utf8');
   const blocks = data.split('\n').filter(Boolean).map(Number);
