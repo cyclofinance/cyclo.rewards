@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress, REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
 import { VALID_ADDRESS_REGEX, EPOCHS, CURRENT_EPOCH } from './constants';
 
-describe('Test generateSnapshotTimestampForEpoch', () => {
+describe('generateSnapshotBlocks', () => {
   
   const start = 5000;
   const end = 9000;
