@@ -193,6 +193,7 @@ describe('snapshot blocks', () => {
 describe('cross-epoch comparison', () => {
   const prevEpoch = EPOCHS[CURRENT_EPOCH - 2];
   const prevFile = `./output/dispersed/rewards-${prevEpoch.startBlock}-${prevEpoch.endBlock}.csv`;
+  const approvalFile = `./output/approved-changes-${epoch.startBlock}-${epoch.endBlock}.txt`;
   const { entries: currentEntries } = parseCsv(REWARDS_FILE);
   const { entries: prevEntries } = parseCsv(prevFile);
 
@@ -202,20 +203,13 @@ describe('cross-epoch comparison', () => {
   const currentShares = new Map(currentEntries.map(r => [r.address, Number(r.reward * 10000n / currentTotal) / 10000]));
   const prevShares = new Map(prevEntries.map(r => [r.address, Number(r.reward * 10000n / prevTotal) / 10000]));
 
-  it('previous epoch rewards file exists', () => {
-    expect(prevEntries.length).toBeGreaterThan(0);
-  });
-
-  it('logs accounts with large share changes for review', () => {
+  function getFlaggedChanges(): Array<{address: string; prevShare: number; currentShare: number; change: string}> {
     const changes: Array<{address: string; prevShare: number; currentShare: number; change: string}> = [];
-
     const allAddresses = new Set([...currentShares.keys(), ...prevShares.keys()]);
     for (const addr of allAddresses) {
       const prev = prevShares.get(addr) ?? 0;
       const curr = currentShares.get(addr) ?? 0;
       if (prev === 0 && curr === 0) continue;
-
-      // New entrant or exited — always log
       if (prev === 0) {
         changes.push({ address: addr, prevShare: 0, currentShare: curr, change: 'NEW' });
       } else if (curr === 0) {
@@ -227,15 +221,40 @@ describe('cross-epoch comparison', () => {
         }
       }
     }
+    return changes.sort((a, b) => b.currentShare - a.currentShare);
+  }
 
-    // Log for manual review — this test always passes
-    if (changes.length > 0) {
-      console.log(`\n${changes.length} accounts with large share changes:`);
-      for (const c of changes.sort((a, b) => b.currentShare - a.currentShare)) {
-        console.log(`  ${c.address}  prev=${(c.prevShare * 100).toFixed(2)}%  curr=${(c.currentShare * 100).toFixed(2)}%  (${c.change})`);
-      }
+  function getApprovedAddresses(): Set<string> {
+    try {
+      const data = readFileSync(approvalFile, 'utf8');
+      return new Set(
+        data.split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'))
+          .map(line => line.split(/\s+/)[0].toLowerCase())
+      );
+    } catch {
+      return new Set();
     }
-    expect(true).toBe(true);
+  }
+
+  it('previous epoch rewards file exists', () => {
+    expect(prevEntries.length).toBeGreaterThan(0);
+  });
+
+  it('all large share changes are approved', () => {
+    const flagged = getFlaggedChanges();
+    const approved = getApprovedAddresses();
+    const unapproved = flagged.filter(c => !approved.has(c.address));
+
+    if (unapproved.length > 0) {
+      const lines = unapproved.map(c =>
+        `  ${c.address}  prev=${(c.prevShare * 100).toFixed(2)}%  curr=${(c.currentShare * 100).toFixed(2)}%  (${c.change})`
+      );
+      throw new Error(
+        `${unapproved.length} unapproved share changes. Add to ${approvalFile}:\n${lines.join('\n')}`
+      );
+    }
   });
 });
 
