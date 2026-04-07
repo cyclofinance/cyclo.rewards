@@ -190,6 +190,55 @@ describe('snapshot blocks', () => {
   });
 });
 
+describe('cross-epoch comparison', () => {
+  const prevEpoch = EPOCHS[CURRENT_EPOCH - 2];
+  const prevFile = `./output/dispersed/rewards-${prevEpoch.startBlock}-${prevEpoch.endBlock}.csv`;
+  const { entries: currentEntries } = parseCsv(REWARDS_FILE);
+  const { entries: prevEntries } = parseCsv(prevFile);
+
+  const currentTotal = currentEntries.reduce((s, r) => s + r.reward, 0n);
+  const prevTotal = prevEntries.reduce((s, r) => s + r.reward, 0n);
+
+  const currentShares = new Map(currentEntries.map(r => [r.address, Number(r.reward * 10000n / currentTotal) / 10000]));
+  const prevShares = new Map(prevEntries.map(r => [r.address, Number(r.reward * 10000n / prevTotal) / 10000]));
+
+  it('previous epoch rewards file exists', () => {
+    expect(prevEntries.length).toBeGreaterThan(0);
+  });
+
+  it('logs accounts with large share changes for review', () => {
+    const changes: Array<{address: string; prevShare: number; currentShare: number; change: string}> = [];
+
+    const allAddresses = new Set([...currentShares.keys(), ...prevShares.keys()]);
+    for (const addr of allAddresses) {
+      const prev = prevShares.get(addr) ?? 0;
+      const curr = currentShares.get(addr) ?? 0;
+      if (prev === 0 && curr === 0) continue;
+
+      // New entrant or exited — always log
+      if (prev === 0) {
+        changes.push({ address: addr, prevShare: 0, currentShare: curr, change: 'NEW' });
+      } else if (curr === 0) {
+        changes.push({ address: addr, prevShare: prev, currentShare: 0, change: 'EXITED' });
+      } else {
+        const relativeChange = Math.abs(curr - prev) / prev;
+        if (relativeChange > 0.5) {
+          changes.push({ address: addr, prevShare: prev, currentShare: curr, change: `${(relativeChange * 100).toFixed(0)}%` });
+        }
+      }
+    }
+
+    // Log for manual review — this test always passes
+    if (changes.length > 0) {
+      console.log(`\n${changes.length} accounts with large share changes:`);
+      for (const c of changes.sort((a, b) => b.currentShare - a.currentShare)) {
+        console.log(`  ${c.address}  prev=${(c.prevShare * 100).toFixed(2)}%  curr=${(c.currentShare * 100).toFixed(2)}%  (${c.change})`);
+      }
+    }
+    expect(true).toBe(true);
+  });
+});
+
 describe('blocklist vs rewards', () => {
   const blocklistData = readFileSync('./data/blocklist.txt', 'utf8');
   const reports = blocklistData.split('\n').filter(Boolean).map(line => {
