@@ -6,6 +6,7 @@ import { REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
 const epoch = EPOCHS[CURRENT_EPOCH - 1];
 const REWARDS_FILE = `./output/rewards-${epoch.startBlock}-${epoch.endBlock}.csv`;
 const BALANCES_FILE = `./output/balances-${epoch.startBlock}-${epoch.endBlock}.csv`;
+const SNAPSHOTS_FILE = `./output/snapshots-${epoch.startBlock}-${epoch.endBlock}.txt`;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 function parseCsv(filePath: string): { header: string; entries: Array<{address: string; reward: bigint}> } {
@@ -157,6 +158,34 @@ describe('current epoch balances output', () => {
     const balanceAddresses = new Set(addresses);
     for (const addr of rewardAddresses) {
       expect(balanceAddresses.has(addr)).toBe(true);
+    }
+  });
+});
+
+describe('snapshot blocks', () => {
+  const data = readFileSync(SNAPSHOTS_FILE, 'utf8');
+  const blocks = data.split('\n').filter(Boolean).map(Number);
+
+  it('has exactly 30 snapshot blocks', () => {
+    expect(blocks.length).toBe(30);
+  });
+
+  it('all blocks are within epoch range', () => {
+    for (const block of blocks) {
+      expect(block).toBeGreaterThanOrEqual(epoch.startBlock);
+      expect(block).toBeLessThanOrEqual(epoch.endBlock);
+    }
+  });
+
+  it('blocks are sorted ascending', () => {
+    for (let i = 1; i < blocks.length; i++) {
+      expect(blocks[i]).toBeGreaterThan(blocks[i - 1]);
+    }
+  });
+
+  it('all blocks are integers', () => {
+    for (const block of blocks) {
+      expect(Number.isInteger(block)).toBe(true);
     }
   });
 });
