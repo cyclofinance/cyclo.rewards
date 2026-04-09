@@ -86,6 +86,29 @@ describe("parseBlocklist", () => {
     expect(() => parseBlocklist(ADDR_A)).toThrow();
   });
 
+  it("handles double spaces between addresses", () => {
+    const data = `${ADDR_A}  ${ADDR_B}`;
+    expect(parseBlocklist(data)).toEqual([
+      { reporter: ADDR_A, cheater: ADDR_B },
+    ]);
+  });
+
+  it("does not split across newlines within entries", () => {
+    // \s+ could match newlines, but split("\n") runs first so lines never contain \n
+    const data = `${ADDR_A} ${ADDR_B}\n${ADDR_C} ${ADDR_D}`;
+    const result = parseBlocklist(data);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ reporter: ADDR_A, cheater: ADDR_B });
+    expect(result[1]).toEqual({ reporter: ADDR_C, cheater: ADDR_D });
+  });
+
+  it("handles tab separator", () => {
+    const data = `${ADDR_A}\t${ADDR_B}`;
+    expect(parseBlocklist(data)).toEqual([
+      { reporter: ADDR_A, cheater: ADDR_B },
+    ]);
+  });
+
   it("should throw on duplicate cheater address", () => {
     const data = `${ADDR_A} ${ADDR_B}\n${ADDR_C} ${ADDR_B}`;
     expect(() => parseBlocklist(data)).toThrow("duplicate");
