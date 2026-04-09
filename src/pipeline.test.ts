@@ -196,15 +196,23 @@ describe("sortAddressesByReward", () => {
     expect(sortAddressesByReward(rewards)).toEqual(["0xaaa"]);
   });
 
-  it("handles equal rewards", () => {
-    const rewards = new Map([
-      ["0xaaa", 100n],
-      ["0xbbb", 100n],
-    ]);
-    const result = sortAddressesByReward(rewards);
-    expect(result).toHaveLength(2);
-    expect(result).toContain("0xaaa");
-    expect(result).toContain("0xbbb");
+  it("breaks ties deterministically regardless of insertion order", () => {
+    const addresses = [
+      "0xaaa", "0xbbb", "0xccc", "0xddd", "0xeee",
+      "0xfff", "0x111", "0x222", "0x333", "0x444",
+    ];
+    // All equal rewards — sort order depends entirely on tiebreaker
+    const reference = sortAddressesByReward(
+      new Map(addresses.map(a => [a, 100n]))
+    );
+    // Shuffle and sort 10 times — all must produce the same result
+    for (let i = 0; i < 10; i++) {
+      const shuffled = [...addresses].sort(() => Math.random() - 0.5);
+      const result = sortAddressesByReward(
+        new Map(shuffled.map(a => [a, 100n]))
+      );
+      expect(result).toEqual(reference);
+    }
   });
 });
 

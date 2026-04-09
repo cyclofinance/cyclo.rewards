@@ -134,7 +134,9 @@ export function sortAddressesByReward(rewards: Map<string, bigint>): string[] {
   return Array.from(rewards.keys()).sort((a, b) => {
     const valueB = rewards.get(b)!;
     const valueA = rewards.get(a)!;
-    return valueB > valueA ? 1 : valueB < valueA ? -1 : 0;
+    if (valueB > valueA) return 1;
+    if (valueB < valueA) return -1;
+    return a.localeCompare(b);
   });
 }
 
