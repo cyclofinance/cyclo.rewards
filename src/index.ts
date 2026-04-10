@@ -43,10 +43,10 @@ async function main() {
 
   // Read transfers file
   console.log("Reading transfers file...");
-  let transfers: Transfer[] = [];
+  const transfers: Transfer[] = [];
   for (let i = 0; i < TRANSFER_FILE_COUNT; i++) {
     const transfersData = await readOptionalFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`);
-    transfers = [...transfers, ...parseJsonl(transfersData, normalizeTransfer)];
+    transfers.push(...parseJsonl(transfersData, normalizeTransfer));
   }
   console.log(`Found ${transfers.length} transfers`);
 
