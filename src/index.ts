@@ -41,12 +41,14 @@ async function main() {
   console.log("Starting processor...");
   console.log(`Snapshot blocks: ${START_SNAPSHOT}, ${END_SNAPSHOT}`);
 
-  // Read transfers file
+  // Read transfers file — append per file with push to avoid quadratic copying from [...prev, ...batch]
   console.log("Reading transfers file...");
-  let transfers: Transfer[] = [];
+  const transfers: Transfer[] = [];
   for (let i = 0; i < TRANSFER_FILE_COUNT; i++) {
     const transfersData = await readOptionalFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`);
-    transfers = [...transfers, ...parseJsonl(transfersData, normalizeTransfer)];
+    for (const t of parseJsonl(transfersData, normalizeTransfer)) {
+      transfers.push(t);
+    }
   }
   console.log(`Found ${transfers.length} transfers`);
 
