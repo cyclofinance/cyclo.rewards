@@ -6,7 +6,7 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
-import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH, validateAddress } from "./constants";
+import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH, validateAddress } from "./constants";
 import assert from "assert";
 
 /** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
@@ -211,6 +211,7 @@ async function scrapeTransfers() {
     // if the scraper fails mid-run, previously fetched data is preserved on disk.
     // Files are split at TRANSFER_CHUNK_SIZE lines to stay under GitHub's 100MB file size limit.
     const fileCount = Math.ceil(transfers.length / TRANSFER_CHUNK_SIZE);
+    assert(fileCount <= TRANSFER_FILE_COUNT, `Transfer data requires ${fileCount} files but TRANSFER_FILE_COUNT is ${TRANSFER_FILE_COUNT} — increase TRANSFER_FILE_COUNT to avoid data loss`);
     for (let i = 0; i < fileCount; i++) {
       await writeFile(
         `${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`,
