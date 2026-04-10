@@ -1,6 +1,6 @@
 import assert from "assert";
 import { CyToken } from "./types";
-import { validateAddress, EPOCHS, CURRENT_EPOCH } from "./constants";
+import { validateAddress, EPOCHS, CURRENT_EPOCH, SNAPSHOT_COUNT } from "./constants";
 import seedrandom from "seedrandom";
 import { shuffle } from "./shuffle";
 
@@ -71,7 +71,7 @@ export function isSameAddress(a: string, b: string): boolean {
  * @param seed - The seed phrase
  * @param start - The start block number
  * @param end - The end block number
- * @returns Sorted array of 30 unique block numbers between start and end (inclusive)
+ * @returns Sorted array of SNAPSHOT_COUNT unique block numbers between start and end (inclusive)
  */
 export function generateSnapshotBlocks(
   seed: string,
@@ -84,16 +84,16 @@ export function generateSnapshotBlocks(
   const rng = seedrandom(seed);
   const range = end - start + 1;
 
-  assert.ok(range >= 30, `Snapshot range must be at least 30, got ${range}`);
+  assert.ok(range >= SNAPSHOT_COUNT, `Snapshot range must be at least ${SNAPSHOT_COUNT}, got ${range}`);
 
-  // Build candidate array and sample 30 via Fisher-Yates shuffle
+  // Build candidate array and sample SNAPSHOT_COUNT via Fisher-Yates shuffle
   const candidates = Array.from({ length: range }, (_, i) => start + i);
   const shuffled = shuffle(candidates, rng);
-  const snapshots = shuffled.slice(0, 30).sort((a, b) => a - b);
+  const snapshots = shuffled.slice(0, SNAPSHOT_COUNT).sort((a, b) => a - b);
 
   assert.ok(
-    snapshots.length === 30,
-    `failed to generate expected number of snapshots, expected: 30, got: ${snapshots.length}`
+    snapshots.length === SNAPSHOT_COUNT,
+    `failed to generate expected number of snapshots, expected: ${SNAPSHOT_COUNT}, got: ${snapshots.length}`
   );
 
   return snapshots;
