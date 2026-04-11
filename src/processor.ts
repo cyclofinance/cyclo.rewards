@@ -564,16 +564,12 @@ export class Processor {
     // Update LP balance from liquidity events
     ownerBalance.lpBalance += depositedBalanceChange;
 
-    // Update snapshot balances: eligible = min(boughtCap, lpBalance), clamped to 0
-    const cap = clamp0(ownerBalance.boughtCap);
-    const lp = clamp0(ownerBalance.lpBalance);
-    const value = cap < lp ? cap : lp;
-    for (let i = 0; i < this.snapshots.length; i++) {
-      if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
-        ownerBalance.netBalanceAtSnapshots[i] = value;
+    this.updateSnapshots(ownerBalance, liquidityChangeEvent.blockNumber);
 
-        // update lp v3 tracklist
-        if (liquidityChangeEvent.__typename === "LiquidityV3Change") {
+    // update lp v3 tracklist
+    if (liquidityChangeEvent.__typename === "LiquidityV3Change") {
+      for (let i = 0; i < this.snapshots.length; i++) {
+        if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
           const id = lpV3PositionId(
             liquidityChangeEvent.tokenAddress,
             liquidityChangeEvent.owner,
