@@ -151,5 +151,34 @@ describe("subgraph self-consistency: lpBalance vs liquidity change events", () =
       );
     }
   }, 60_000);
+
+  it(`${token.name} balance equals min(clamp0(boughtCap), clamp0(lpBalance))`, async () => {
+    const vaultBalances = await querySubgraphLpBalances(token.address);
+
+    const mismatches: Array<{ address: string; expected: bigint; actual: bigint }> = [];
+
+    for (const [address, vb] of vaultBalances) {
+      const cap = BigInt(vb.boughtCap);
+      const lp = BigInt(vb.lpBalance);
+      const clampedCap = cap < 0n ? 0n : cap;
+      const clampedLp = lp < 0n ? 0n : lp;
+      const expected = clampedCap < clampedLp ? clampedCap : clampedLp;
+      const actual = BigInt(vb.balance);
+      if (actual !== expected) {
+        mismatches.push({ address, expected, actual });
+      }
+    }
+
+    if (mismatches.length > 0) {
+      const details = mismatches
+        .sort((a, b) => Number(b.expected - a.expected))
+        .slice(0, 10)
+        .map((m) => `  ${m.address}  expected=${m.expected}  actual=${m.actual}`)
+        .join("\n");
+      throw new Error(
+        `${mismatches.length} accounts have wrong ${token.name} balance:\n${details}`
+      );
+    }
+  }, 60_000);
   }
 });
