@@ -31,6 +31,17 @@ function clamp0(val: bigint): bigint {
   return val < 0n ? 0n : val;
 }
 
+/** ABI for querying a pool's factory address */
+const factoryAbi = [
+  {
+    name: "factory",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "address" }],
+  },
+] as const;
+
 /** Build a V3 LP position ID from token, owner, pool, and tokenId */
 function lpV3PositionId(token: string, owner: string, pool: string, tokenId: string): string {
   return `${token}-${owner}-${pool}-${tokenId}`;
@@ -105,15 +116,7 @@ export class Processor {
       try {
         const factory = (await this.client.readContract({
           address: source as Address,
-          abi: [
-            {
-              name: "factory",
-              type: "function",
-              stateMutability: "view",
-              inputs: [],
-              outputs: [{ type: "address" }],
-            },
-          ],
+          abi: factoryAbi,
           functionName: "factory",
         })) as Address;
 
