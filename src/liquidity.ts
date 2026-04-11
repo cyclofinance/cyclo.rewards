@@ -3,6 +3,7 @@
  */
 
 import { PublicClient } from "viem";
+import { TICK_RETRY_ATTEMPTS, TICK_RETRY_DELAY_MS } from "./constants";
 
 /** Multicall3 canonical deployment address (same on all EVM chains) */
 export const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11" as const;
@@ -120,14 +121,12 @@ export async function getPoolsTick(
     if (!Number.isInteger(blockNumber) || blockNumber < 0) {
         throw new Error(`Invalid blockNumber: ${blockNumber}`);
     }
-    const MAX_ATTEMPTS = 3;
-    const RETRY_DELAY_MS = 10_000;
-    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    for (let i = 0; i < TICK_RETRY_ATTEMPTS; i++) {
         try {
             return await getPoolsTickMulticall(client, pools, BigInt(blockNumber))
         } catch (error) {
-            if (i >= MAX_ATTEMPTS - 1) throw error;
-            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+            if (i >= TICK_RETRY_ATTEMPTS - 1) throw error;
+            await new Promise((resolve) => setTimeout(resolve, TICK_RETRY_DELAY_MS));
         }
     }
 
