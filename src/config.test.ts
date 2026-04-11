@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress, REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
-import { VALID_ADDRESS_REGEX, EPOCHS, CURRENT_EPOCH } from './constants';
+import { VALID_ADDRESS_REGEX, EPOCHS, CURRENT_EPOCH, SNAPSHOT_COUNT } from './constants';
 
 describe('generateSnapshotBlocks', () => {
   
@@ -8,7 +8,7 @@ describe('generateSnapshotBlocks', () => {
   const end = 9000;
   it('should generate correct number of blocks', () => {
     const blocks = generateSnapshotBlocks('test-seed', start, end);
-    expect(blocks).toHaveLength(30);
+    expect(blocks).toHaveLength(SNAPSHOT_COUNT);
   });
 
   it('should be deterministic - same seed produces same results', () => {
@@ -35,15 +35,15 @@ describe('generateSnapshotBlocks', () => {
   });
 
   it('should not produce duplicate blocks', () => {
-    // Range of exactly 30 — pigeonhole principle means 30 unique blocks
+    // Range of exactly SNAPSHOT_COUNT — pigeonhole principle means SNAPSHOT_COUNT unique blocks
     // are possible but random draws will almost certainly collide.
-    const blocks = generateSnapshotBlocks('test-seed', 5000, 5029);
+    const blocks = generateSnapshotBlocks('test-seed', 5000, 5000 + SNAPSHOT_COUNT - 1);
     const unique = new Set(blocks);
     expect(unique.size).toBe(blocks.length);
   });
 
-  it('should error if range is less than 30', () => {
-    expect(() => generateSnapshotBlocks('test-seed', 5000, 5028)).toThrow();
+  it(`should error if range is less than ${SNAPSHOT_COUNT}`, () => {
+    expect(() => generateSnapshotBlocks('test-seed', 5000, 5000 + SNAPSHOT_COUNT - 2)).toThrow();
   });
 
   it('should generate blocks within the epoch range', () => {
@@ -56,9 +56,9 @@ describe('generateSnapshotBlocks', () => {
 
   it('should handle very large range (production scale)', () => {
     const blocks = generateSnapshotBlocks('cyclo-rewards', 52_974_045, 54_474_045);
-    expect(blocks).toHaveLength(30);
+    expect(blocks).toHaveLength(SNAPSHOT_COUNT);
     const unique = new Set(blocks);
-    expect(unique.size).toBe(30);
+    expect(unique.size).toBe(SNAPSHOT_COUNT);
     blocks.forEach(block => {
       expect(block).toBeGreaterThanOrEqual(52_974_045);
       expect(block).toBeLessThanOrEqual(54_474_045);
@@ -85,14 +85,14 @@ describe('generateSnapshotBlocks', () => {
     expect(() => generateSnapshotBlocks('test-seed', -1, 9000)).toThrow();
   });
 
-  it('should terminate quickly with minimum range of exactly 30', () => {
+  it(`should terminate quickly with minimum range of exactly ${SNAPSHOT_COUNT}`, () => {
     const start = Date.now();
-    const blocks = generateSnapshotBlocks('test-seed', 100, 129);
+    const blocks = generateSnapshotBlocks('test-seed', 100, 100 + SNAPSHOT_COUNT - 1);
     const elapsed = Date.now() - start;
-    expect(blocks).toHaveLength(30);
-    // Must contain every value in [100, 129]
-    expect(new Set(blocks).size).toBe(30);
-    for (let i = 100; i <= 129; i++) {
+    expect(blocks).toHaveLength(SNAPSHOT_COUNT);
+    // Must contain every value in [100, 100 + SNAPSHOT_COUNT - 1]
+    expect(new Set(blocks).size).toBe(SNAPSHOT_COUNT);
+    for (let i = 100; i <= 100 + SNAPSHOT_COUNT - 1; i++) {
       expect(blocks).toContain(i);
     }
     // Should complete in well under 1 second (shuffle is O(n))

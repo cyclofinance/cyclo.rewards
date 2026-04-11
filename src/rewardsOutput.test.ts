@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { REWARD_POOL, VALID_ADDRESS_REGEX, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, EPOCHS, CURRENT_EPOCH } from './constants';
+import { REWARD_POOL, VALID_ADDRESS_REGEX, REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD, EPOCHS, CURRENT_EPOCH, SNAPSHOT_COUNT } from './constants';
 import { REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
 
 const epoch = EPOCHS[CURRENT_EPOCH - 1];
@@ -123,8 +123,8 @@ describe('current epoch balances output', () => {
   const rewardAddresses = new Set(rewardEntries.map(r => r.address));
 
   it('has correct number of columns (address + 35 per token + total_rewards)', () => {
-    // address + (30 snapshots + average + penalty + bounty + final + rewards) × 3 tokens + total_rewards
-    const expected = 1 + (35 * CYTOKENS.length) + 1;
+    // address + (SNAPSHOT_COUNT snapshots + average + penalty + bounty + final + rewards) × 3 tokens + total_rewards
+    const expected = 1 + ((SNAPSHOT_COUNT + 5) * CYTOKENS.length) + 1;
     expect(columns.length).toBe(expected);
   });
 
@@ -136,9 +136,9 @@ describe('current epoch balances output', () => {
     expect(columns[columns.length - 1]).toBe('total_rewards');
   });
 
-  it('has 30 snapshot columns per token', () => {
+  it(`has ${SNAPSHOT_COUNT} snapshot columns per token`, () => {
     for (const token of CYTOKENS) {
-      for (let i = 1; i <= 30; i++) {
+      for (let i = 1; i <= SNAPSHOT_COUNT; i++) {
         expect(columns).toContain(`${token.name}_snapshot${i}`);
       }
     }
@@ -174,15 +174,15 @@ describe('balances arithmetic consistency', () => {
     const address = parts[0];
     const tokenData: Record<string, { snapshots: bigint[]; average: bigint; penalty: bigint; bounty: bigint; final: bigint; rewards: bigint }> = {};
     for (let t = 0; t < CYTOKENS.length; t++) {
-      const base = 1 + t * 35;
-      const snapshots = parts.slice(base, base + 30).map(BigInt);
+      const base = 1 + t * (SNAPSHOT_COUNT + 5);
+      const snapshots = parts.slice(base, base + SNAPSHOT_COUNT).map(BigInt);
       tokenData[CYTOKENS[t].name] = {
         snapshots,
-        average: BigInt(parts[base + 30]),
-        penalty: BigInt(parts[base + 31]),
-        bounty: BigInt(parts[base + 32]),
-        final: BigInt(parts[base + 33]),
-        rewards: BigInt(parts[base + 34]),
+        average: BigInt(parts[base + SNAPSHOT_COUNT]),
+        penalty: BigInt(parts[base + SNAPSHOT_COUNT + 1]),
+        bounty: BigInt(parts[base + SNAPSHOT_COUNT + 2]),
+        final: BigInt(parts[base + SNAPSHOT_COUNT + 3]),
+        rewards: BigInt(parts[base + SNAPSHOT_COUNT + 4]),
       };
     }
     return { address, tokenData, totalRewards: BigInt(parts[parts.length - 1]) };
@@ -190,12 +190,12 @@ describe('balances arithmetic consistency', () => {
 
   const allRows = lines.slice(1).map(parseRow);
 
-  it('average equals mean of 30 snapshots for all accounts', () => {
+  it(`average equals mean of ${SNAPSHOT_COUNT} snapshots for all accounts`, () => {
     for (const row of allRows) {
       for (const token of CYTOKENS) {
         const td = row.tokenData[token.name];
         const sum = td.snapshots.reduce((s, v) => s + v, 0n);
-        const expectedAvg = sum / 30n;
+        const expectedAvg = sum / BigInt(SNAPSHOT_COUNT);
         expect(td.average).toBe(expectedAvg);
       }
     }
@@ -249,8 +249,8 @@ describe('snapshot blocks', () => {
   const data = readFileSync(SNAPSHOTS_FILE, 'utf8');
   const blocks = data.split('\n').filter(Boolean).map(Number);
 
-  it('has exactly 30 snapshot blocks', () => {
-    expect(blocks.length).toBe(30);
+  it(`has exactly ${SNAPSHOT_COUNT} snapshot blocks`, () => {
+    expect(blocks.length).toBe(SNAPSHOT_COUNT);
   });
 
   it('all blocks are within epoch range', () => {
