@@ -11,7 +11,7 @@ import assert from "assert";
 
 /** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
 const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-06-99d3/gn";
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-09-ae4f/gn";
 const BATCH_SIZE = 1000;
 
 const epoch = EPOCHS[CURRENT_EPOCH - 1];
