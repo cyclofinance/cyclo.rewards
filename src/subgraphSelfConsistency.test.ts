@@ -5,11 +5,10 @@
  * deposits/withdrawals correctly in VaultBalance.lpBalance.
  */
 import { describe, it, expect } from "vitest";
+import { CYTOKENS } from "./config";
 
 const SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-09-ae4f/gn";
-
-const CYSFLR = "0x19831cfb53a0dbead9866c43557c1d48dff76567";
 
 interface LiquidityChangeResult {
   owner: { id: string };
@@ -19,6 +18,8 @@ interface LiquidityChangeResult {
 interface VaultBalanceResult {
   owner: { id: string };
   lpBalance: string;
+  boughtCap: string;
+  balance: string;
 }
 
 async function queryAllPaginated<T>(
@@ -71,8 +72,8 @@ async function computeLpBalancesFromSubgraphEvents(
 
 async function querySubgraphLpBalances(
   tokenAddress: string,
-): Promise<Map<string, bigint>> {
-  const balances = new Map<string, bigint>();
+): Promise<Map<string, VaultBalanceResult>> {
+  const balances = new Map<string, VaultBalanceResult>();
   let lastId = "";
   const first = 1000;
   while (true) {
@@ -81,13 +82,13 @@ async function querySubgraphLpBalances(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        query: `{ vaultBalances(where: {vault: "${tokenAddress}"${idFilter}}, first: ${first}, orderBy: id, orderDirection: asc) { id owner { id } lpBalance } }`,
+        query: `{ vaultBalances(where: {vault: "${tokenAddress}"${idFilter}}, first: ${first}, orderBy: id, orderDirection: asc) { id owner { id } lpBalance boughtCap balance } }`,
       }),
     });
     const data = await response.json();
     const batch = data.data.vaultBalances as (VaultBalanceResult & { id: string })[];
     for (const vb of batch) {
-      balances.set(vb.owner.id, BigInt(vb.lpBalance));
+      balances.set(vb.owner.id, vb);
     }
     if (batch.length < first) break;
     lastId = batch[batch.length - 1].id;
@@ -96,15 +97,17 @@ async function querySubgraphLpBalances(
 }
 
 describe("subgraph self-consistency: lpBalance vs liquidity change events", () => {
-  it("cysFLR vaultBalance.lpBalance matches sum of liquidityChange events", async () => {
-    const fromEvents = await computeLpBalancesFromSubgraphEvents(CYSFLR);
-    const fromVaultBalances = await querySubgraphLpBalances(CYSFLR);
+  for (const token of CYTOKENS) {
+  it(`${token.name} vaultBalance.lpBalance matches sum of liquidityChange events`, async () => {
+    const fromEvents = await computeLpBalancesFromSubgraphEvents(token.address);
+    const fromVaultBalances = await querySubgraphLpBalances(token.address);
 
     const accountsWithLp = [...fromEvents.entries()].filter(([, v]) => v > 0n);
     const mismatches: Array<{ address: string; fromEvents: bigint; fromVaultBalance: bigint }> = [];
 
     for (const [address, eventLp] of accountsWithLp) {
-      const vaultLp = fromVaultBalances.get(address) ?? 0n;
+      const vb = fromVaultBalances.get(address);
+      const vaultLp = vb ? BigInt(vb.lpBalance) : 0n;
       if (vaultLp !== eventLp) {
         mismatches.push({ address, fromEvents: eventLp, fromVaultBalance: vaultLp });
       }
@@ -117,8 +120,9 @@ describe("subgraph self-consistency: lpBalance vs liquidity change events", () =
         .map((m) => `  ${m.address}  events=${m.fromEvents}  vaultBalance=${m.fromVaultBalance}`)
         .join("\n");
       throw new Error(
-        `${mismatches.length} of ${accountsWithLp.length} accounts have inconsistent cysFLR lpBalance:\n${details}`
+        `${mismatches.length} of ${accountsWithLp.length} accounts have inconsistent ${token.name} lpBalance:\n${details}`
       );
     }
   }, 60_000);
+  }
 });
