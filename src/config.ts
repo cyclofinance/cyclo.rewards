@@ -78,20 +78,20 @@ export function generateSnapshotBlocks(
   start: number,
   end: number,
 ): number[] {
-  assert.ok(seed.length > 0, "Seed must not be empty");
-  assert.ok(Number.isInteger(start) && start >= 0, `start must be a non-negative integer, got ${start}`);
-  assert.ok(Number.isInteger(end) && end >= 0, `end must be a non-negative integer, got ${end}`);
+  assert(seed.length > 0, "Seed must not be empty");
+  assert(Number.isInteger(start) && start >= 0, `start must be a non-negative integer, got ${start}`);
+  assert(Number.isInteger(end) && end >= 0, `end must be a non-negative integer, got ${end}`);
   const rng = seedrandom(seed);
   const range = end - start + 1;
 
-  assert.ok(range >= SNAPSHOT_COUNT, `Snapshot range must be at least ${SNAPSHOT_COUNT}, got ${range}`);
+  assert(range >= SNAPSHOT_COUNT, `Snapshot range must be at least ${SNAPSHOT_COUNT}, got ${range}`);
 
   // Build candidate array and sample SNAPSHOT_COUNT via Fisher-Yates shuffle
   const candidates = Array.from({ length: range }, (_, i) => start + i);
   const shuffled = shuffle(candidates, rng);
   const snapshots = shuffled.slice(0, SNAPSHOT_COUNT).sort((a, b) => a - b);
 
-  assert.ok(
+  assert(
     snapshots.length === SNAPSHOT_COUNT,
     `failed to generate expected number of snapshots, expected: ${SNAPSHOT_COUNT}, got: ${snapshots.length}`
   );
