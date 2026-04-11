@@ -255,8 +255,8 @@ describe('snapshot blocks', () => {
 
   it('all blocks are within epoch range', () => {
     for (const block of blocks) {
-      expect(block).toBeGreaterThanOrEqual(epoch.startBlock);
-      expect(block).toBeLessThanOrEqual(epoch.endBlock);
+      expect(block).toBeGreaterThanOrEqual(epoch.startBlock!);
+      expect(block).toBeLessThanOrEqual(epoch.endBlock!);
     }
   });
 

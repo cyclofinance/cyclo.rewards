@@ -12,6 +12,7 @@ const BATCH_SIZE = 1000;
 
 const epoch = EPOCHS[CURRENT_EPOCH - 1];
 assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
+assert(epoch.endBlock !== undefined, `Epoch ${epoch.number} has no endBlock`);
 // +1 to make sure every transfer at the end snapshot block is gathered
 const UNTIL_SNAPSHOT = epoch.endBlock + 1;
 
@@ -110,7 +111,7 @@ export function mapSubgraphLiquidityChange(t: SubgraphLiquidityChange): Liquidit
   validateAddress(t.tokenAddress, "tokenAddress");
   validateAddress(t.lpAddress, "lpAddress");
   validateAddress(t.owner.address, "owner");
-  if (!VALID_CHANGE_TYPES.includes(t.liquidityChangeType)) {
+  if (!(VALID_CHANGE_TYPES as string[]).includes(t.liquidityChangeType)) {
     throw new Error(`Invalid liquidityChangeType: "${t.liquidityChangeType}"`);
   }
   validateIntegerString(t.liquidityChange, "liquidityChange");

@@ -123,5 +123,6 @@ export function parseEnv(): { seed: string; startSnapshot: number; endSnapshot: 
   assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
   assert(epoch.seed, `Epoch ${epoch.number} has no seed`);
   assert(epoch.startBlock !== undefined, `Epoch ${epoch.number} has no startBlock`);
+  assert(epoch.endBlock !== undefined, `Epoch ${epoch.number} has no endBlock`);
   return { seed: epoch.seed, startSnapshot: epoch.startBlock, endSnapshot: epoch.endBlock };
 }

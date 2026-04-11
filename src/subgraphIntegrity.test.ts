@@ -58,7 +58,7 @@ describe("subgraph lpBalance matches rewards processor", () => {
   const epoch = EPOCHS[CURRENT_EPOCH - 1];
 
   it("cysFLR lpBalance matches for all accounts with LP positions", async () => {
-    const expected = computeLpBalancesFromEvents(CYSFLR, epoch.endBlock);
+    const expected = computeLpBalancesFromEvents(CYSFLR, epoch.endBlock!);
     const actual = await querySubgraphLpBalances(CYSFLR);
 
     const accountsWithLp = [...expected.entries()].filter(([, v]) => v > 0n);

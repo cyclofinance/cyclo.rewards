@@ -78,7 +78,7 @@ export interface Epoch {
   /** First block at or after the epoch start timestamp */
   startBlock?: number;
   /** First block at or after the epoch end timestamp */
-  endBlock: number;
+  endBlock?: number;
 }
 
 /**
