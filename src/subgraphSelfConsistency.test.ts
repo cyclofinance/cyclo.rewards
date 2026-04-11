@@ -6,9 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { CYTOKENS } from "./config";
-
-const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-09-ae4f/gn";
+import { SUBGRAPH_URL } from "./constants";
 
 interface LiquidityChangeResult {
   owner: { id: string };

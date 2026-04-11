@@ -5,10 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
-import { EPOCHS, CURRENT_EPOCH } from "./constants";
-
-const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-09-ae4f/gn";
+import { EPOCHS, CURRENT_EPOCH, SUBGRAPH_URL } from "./constants";
 
 const CYSFLR = "0x19831cfb53a0dbead9866c43557c1d48dff76567";
 

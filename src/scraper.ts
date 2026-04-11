@@ -6,12 +6,8 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
-import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH, validateAddress } from "./constants";
+import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH, validateAddress, SUBGRAPH_URL } from "./constants";
 import assert from "assert";
-
-/** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
-const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-06-99d3/gn";
 const BATCH_SIZE = 1000;
 
 const epoch = EPOCHS[CURRENT_EPOCH - 1];
