@@ -404,11 +404,10 @@ export class Processor {
    * @param balances - Eligible balances from getEligibleBalances()
    * @returns CyToken definitions that have at least one account with balance
    */
-  getTokensWithBalance(balances: EligibleBalances): CyToken[] {
-    const tokensWithBalance: CyToken[] = [];
-    const totalBalances = this.calculateTotalEligibleBalances(balances);
+  getTokensWithBalance(balances: EligibleBalances, totalBalances?: Map<string, bigint>): CyToken[] {
+    const totals = totalBalances ?? this.calculateTotalEligibleBalances(balances);
     for (const token of CYTOKENS) {
-      if (totalBalances.get(token.address)! > 0n) {
+      if (totals.get(token.address)! > 0n) {
         tokensWithBalance.push(token);
       }
     }
@@ -424,14 +423,15 @@ export class Processor {
    */
   calculateRewardsPoolsPerToken(
     balances: EligibleBalances,
-    rewardPool: bigint
+    rewardPool: bigint,
+    totalBalances?: Map<string, bigint>,
   ): Map<string, bigint> {
-    const totalBalances = this.calculateTotalEligibleBalances(balances);
+    const totals = totalBalances ?? this.calculateTotalEligibleBalances(balances);
 
     // we only want to calculate rewards for tokens that have a balance
-    const tokensWithBalance = this.getTokensWithBalance(balances);
+    const tokensWithBalance = this.getTokensWithBalance(balances, totals);
 
-    const sumOfAllBalances = Array.from(totalBalances.values()).reduce(
+    const sumOfAllBalances = Array.from(totals.values()).reduce(
       (acc, balance) => acc + balance,
       0n
     );
@@ -441,7 +441,7 @@ export class Processor {
     for (const token of tokensWithBalance) {
       const tokenInverseFraction =
         (sumOfAllBalances * ONE_18) /
-        totalBalances.get(token.address)!;
+        totals.get(token.address)!;
       tokenInverseFractions.set(
         token.address,
         tokenInverseFraction
@@ -475,15 +475,15 @@ export class Processor {
    */
   async calculateRewards(rewardPool: bigint): Promise<RewardsPerToken> {
     const balances = await this.getEligibleBalances();
+    const totalBalances = this.calculateTotalEligibleBalances(balances);
 
     const totalRewardsPerToken = this.calculateRewardsPoolsPerToken(
       balances,
-      rewardPool
+      rewardPool,
+      totalBalances,
     );
 
-    const totalBalances = this.calculateTotalEligibleBalances(balances);
-
-    const tokensWithBalance = this.getTokensWithBalance(balances);
+    const tokensWithBalance = this.getTokensWithBalance(balances, totalBalances);
     // Calculate each address's share of the rewards
     const rewards = new Map<string, Map<string, bigint>>();
     for (const token of tokensWithBalance) {
