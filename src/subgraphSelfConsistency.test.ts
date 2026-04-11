@@ -124,5 +124,32 @@ describe("subgraph self-consistency: lpBalance vs liquidity change events", () =
       );
     }
   }, 60_000);
+
+  it(`${token.name} no vaultBalance has lpBalance > 0 without matching events`, async () => {
+    const fromEvents = await computeLpBalancesFromSubgraphEvents(token.address);
+    const vaultBalances = await querySubgraphLpBalances(token.address);
+
+    const mismatches: Array<{ address: string; fromEvents: bigint; fromVaultBalance: bigint }> = [];
+
+    for (const [address, vb] of vaultBalances) {
+      const vaultLp = BigInt(vb.lpBalance);
+      if (vaultLp <= 0n) continue;
+      const eventLp = fromEvents.get(address) ?? 0n;
+      if (eventLp !== vaultLp) {
+        mismatches.push({ address, fromEvents: eventLp, fromVaultBalance: vaultLp });
+      }
+    }
+
+    if (mismatches.length > 0) {
+      const details = mismatches
+        .sort((a, b) => Number(b.fromVaultBalance - a.fromVaultBalance))
+        .slice(0, 10)
+        .map((m) => `  ${m.address}  events=${m.fromEvents}  vaultBalance=${m.fromVaultBalance}`)
+        .join("\n");
+      throw new Error(
+        `${mismatches.length} accounts have ${token.name} lpBalance > 0 without matching events:\n${details}`
+      );
+    }
+  }, 60_000);
   }
 });
