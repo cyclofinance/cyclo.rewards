@@ -103,10 +103,16 @@ export function summarizeTokenBalances(balances: EligibleBalances, cytokens: CyT
     const tokenBalances = balances.get(token.address);
     if (!tokenBalances) continue;
 
-    const totalAverage = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.average, 0n);
-    const totalPenalties = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.penalty, 0n);
-    const totalBounties = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.bounty, 0n);
-    const totalFinal = Array.from(tokenBalances.values()).reduce((sum, bal) => sum + bal.final, 0n);
+    let totalAverage = 0n;
+    let totalPenalties = 0n;
+    let totalBounties = 0n;
+    let totalFinal = 0n;
+    for (const bal of tokenBalances.values()) {
+      totalAverage += bal.average;
+      totalPenalties += bal.penalty;
+      totalBounties += bal.bounty;
+      totalFinal += bal.final;
+    }
 
     summaries.push({
       name: token.name,
