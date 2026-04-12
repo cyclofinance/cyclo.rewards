@@ -405,6 +405,7 @@ export class Processor {
    * @returns CyToken definitions that have at least one account with balance
    */
   getTokensWithBalance(balances: EligibleBalances, totalBalances?: Map<string, bigint>): CyToken[] {
+    const tokensWithBalance: CyToken[] = [];
     const totals = totalBalances ?? this.calculateTotalEligibleBalances(balances);
     for (const token of CYTOKENS) {
       if (totals.get(token.address)! > 0n) {
