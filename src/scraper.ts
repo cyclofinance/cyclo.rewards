@@ -16,8 +16,8 @@ const SUBGRAPH_URL =
 const BATCH_SIZE = 1000;
 
 const { endSnapshot } = parseEnv();
-// +1 to make sure every transfer at the end snapshot block is gathered
-const UNTIL_SNAPSHOT = endSnapshot + 1;
+// blockNumber_lte is inclusive, so no +1 needed
+export const UNTIL_SNAPSHOT = endSnapshot;
 
 /** Raw transfer event shape from the Goldsky subgraph GraphQL response */
 export interface SubgraphTransfer {
