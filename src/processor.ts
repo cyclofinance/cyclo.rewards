@@ -612,23 +612,33 @@ export class Processor {
         block,
       );
 
-      // iter tokens
-      for (const [token, account] of this.accountBalancesPerToken) {
-        // iter accounts
-        for (const [owner, balance] of account) {
-          // iter tracked lp v3 position
-          for (const [key, lp] of lpTrackList) {
-            const tick = poolsTicks[lp.pool];
-            if (tick === undefined) continue;
+      // Collect deductions per token+owner from out-of-range positions
+      const deductions = new Map<string, Map<string, bigint>>();
+      for (const [key, lp] of lpTrackList) {
+        if (lp.value <= 0n) continue;
+        const tick = poolsTicks[lp.pool];
+        if (tick === undefined) continue;
+        if (lp.lowerTick <= tick && tick < lp.upperTick) continue; // skip if in range (upper bound exclusive per Uniswap V3)
 
-            const idStart = `${token}-${owner}-${lp.pool}-`;
-            if (!key.startsWith(idStart)) continue;
-            if (lp.value <= 0n) continue;
-            if (lp.lowerTick <= tick && tick < lp.upperTick) continue; // skip if in range (upper bound exclusive per Uniswap V3)
+        // Extract token and owner from position key: token-owner-pool-tokenId
+        const firstDash = key.indexOf("-");
+        const secondDash = key.indexOf("-", firstDash + 1);
+        const token = key.substring(0, firstDash);
+        const owner = key.substring(firstDash + 1, secondDash);
 
-            // deduct out of range lp position for snapshot
-            balance.netBalanceAtSnapshots[i] -= lp.value;
-          }; 
+        if (!deductions.has(token)) deductions.set(token, new Map());
+        const ownerDeductions = deductions.get(token)!;
+        ownerDeductions.set(owner, (ownerDeductions.get(owner) ?? 0n) + lp.value);
+      }
+
+      // Apply deductions to snapshot balances
+      for (const [token, ownerDeductions] of deductions) {
+        const accountBalances = this.accountBalancesPerToken.get(token);
+        if (!accountBalances) continue;
+        for (const [owner, deduction] of ownerDeductions) {
+          const balance = accountBalances.get(owner);
+          if (!balance) continue;
+          balance.netBalanceAtSnapshots[i] -= deduction;
           if (balance.netBalanceAtSnapshots[i] < 0n) {
             balance.netBalanceAtSnapshots[i] = 0n;
           }
