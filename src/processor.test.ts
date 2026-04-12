@@ -1984,6 +1984,85 @@ describe("Processor", () => {
         const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([400n, 500n, 400n]); // Deduct 100n for snapshots 0 and 2
       });
+
+      it('should accumulate deductions from multiple out-of-range positions for same owner', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress, {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+        });
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        // Two positions, both out of range
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-1`, {
+            value: 100n,
+            pool: poolAddress,
+            lowerTick: 150,
+            upperTick: 250,
+          });
+          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-2`, {
+            value: 150n,
+            pool: poolAddress,
+            lowerTick: 200,
+            upperTick: 300,
+          });
+        }
+
+        await processor.processLpRange();
+
+        const updatedBalance = balanceMap.get(ownerAddress);
+        // Both positions deducted: 500 - 100 - 150 = 250
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([250n, 250n, 250n]);
+      });
+
+      it('should clamp balance to zero when deductions exceed balance', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress, {
+          transfersInFromApproved: 100n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [50n, 50n, 50n],
+        });
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-1`, {
+            value: 200n, // Exceeds balance of 50
+            pool: poolAddress,
+            lowerTick: 150,
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        const updatedBalance = balanceMap.get(ownerAddress);
+        // Clamped to 0, not negative
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([0n, 0n, 0n]);
+      });
     });
   });
 
