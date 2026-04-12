@@ -28,22 +28,22 @@ async function main() {
   assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
   const RPC_URL = process.env.RPC_URL;
 
-  const { seed: SEED, startSnapshot: START_SNAPSHOT, endSnapshot: END_SNAPSHOT } = parseEnv();
+  const { seed, startSnapshot, endSnapshot } = parseEnv();
 
   // generate snapshot blocks
-  const SNAPSHOTS = generateSnapshotBlocks(SEED, START_SNAPSHOT, END_SNAPSHOT);
+  const snapshots = generateSnapshotBlocks(seed, startSnapshot, endSnapshot);
 
   // Create output directory if it doesn't exist
   await mkdir(OUTPUT_DIR, { recursive: true });
 
   // write generated snapshots
   await writeFile(
-    `${OUTPUT_DIR}/snapshots-${START_SNAPSHOT}-${END_SNAPSHOT}.txt`,
-    SNAPSHOTS.join("\n")
+    `${OUTPUT_DIR}/snapshots-${startSnapshot}-${endSnapshot}.txt`,
+    snapshots.join("\n")
   );
 
   console.log("Starting processor...");
-  console.log(`Snapshot blocks: ${START_SNAPSHOT}, ${END_SNAPSHOT}`);
+  console.log(`Snapshot blocks: ${startSnapshot}, ${endSnapshot}`);
 
   // Read transfers file — append per file with push to avoid quadratic copying
   console.log("Reading transfers file...");
@@ -77,7 +77,7 @@ async function main() {
   // Setup processor with snapshot blocks and blocklist
   console.log("Setting up processor...");
   const client = createPublicClient({ chain: flare, transport: http(RPC_URL) });
-  const processor = new Processor(SNAPSHOTS, reports, client, pools);
+  const processor = new Processor(snapshots, reports, client, pools);
 
   // Organize liquidity changes
   console.log(`Organizing ${liquidities.length} liquidity change events...`);
@@ -118,20 +118,17 @@ async function main() {
   console.log("Getting eligible balances...");
   const balances = await processor.getEligibleBalances();
 
-  // Add per-token balance logging
-  for (const summary of summarizeTokenBalances(balances, CYTOKENS)) {
-    console.log("Getting token balances for ", summary.name);
-    console.log("- Total Avg:", summary.totalAverage.toString());
-    console.log("- Total Penalties:", summary.totalPenalties.toString());
-    console.log("- Total Bounties:", summary.totalBounties.toString());
-    console.log("- Total Final:", summary.totalFinal.toString());
-    console.log(
-      `Note: Final Total for ${summary.name} should equal Average Total - Penalties + Bounties`
-    );
+  // Verify all token balances before proceeding
+  const summaries = summarizeTokenBalances(balances, CYTOKENS);
+  for (const summary of summaries) {
     if (!summary.verified) {
       throw new Error(`Balance verification failed for ${summary.name}: totalAverage - totalPenalties + totalBounties !== totalFinal`);
     }
-    console.log("Verification: ✓");
+  }
+
+  // Log per-token balance summaries
+  for (const summary of summaries) {
+    console.log(`${summary.name}: avg=${summary.totalAverage} penalties=${summary.totalPenalties} bounties=${summary.totalBounties} final=${summary.totalFinal} ✓`);
   }
 
   // Write balances with per-token data
@@ -146,12 +143,12 @@ async function main() {
   }
   const totalRewardsPerAddress = aggregateRewardsPerAddress(rewardsPerToken);
   const addresses = sortAddressesByReward(totalRewardsPerAddress);
-  const balancesOutput = formatBalancesCsv(addresses, CYTOKENS, SNAPSHOTS, balances, rewardsPerToken, totalRewardsPerAddress);
+  const balancesOutput = formatBalancesCsv(addresses, CYTOKENS, snapshots, balances, rewardsPerToken, totalRewardsPerAddress);
   await writeFile(
-    `${OUTPUT_DIR}/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`,
+    `${OUTPUT_DIR}/balances-${startSnapshot}-${endSnapshot}.csv`,
     balancesOutput.join("\n")
   );
-  console.log(`Wrote ${addresses.length} balances to ${OUTPUT_DIR}/balances-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
+  console.log(`Wrote ${addresses.length} balances to ${OUTPUT_DIR}/balances-${startSnapshot}-${endSnapshot}.csv`);
 
   // Calculate and write rewards
   console.log("Calculating rewards...");
@@ -160,10 +157,10 @@ async function main() {
   const rewardedAddresses = filterZeroRewards(addresses, totalRewardsPerAddress);
   const rewardsOutput = formatRewardsCsv(rewardedAddresses, totalRewardsPerAddress);
   await writeFile(
-    `${OUTPUT_DIR}/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`,
+    `${OUTPUT_DIR}/rewards-${startSnapshot}-${endSnapshot}.csv`,
     rewardsOutput.join("\n")
   );
-  console.log(`Wrote ${rewardedAddresses.length} rewards to ${OUTPUT_DIR}/rewards-${START_SNAPSHOT}-${END_SNAPSHOT}.csv`);
+  console.log(`Wrote ${rewardedAddresses.length} rewards to ${OUTPUT_DIR}/rewards-${startSnapshot}-${endSnapshot}.csv`);
 
   // Verify total rewards equals reward pool
   const totalRewards = Array.from(totalRewardsPerAddress.values()).reduce(
