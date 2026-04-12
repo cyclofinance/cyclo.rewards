@@ -6,10 +6,13 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
-import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE, SUBGRAPH_URL, validateAddress } from "./constants";
+import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE, validateAddress } from "./constants";
 import { parseEnv } from "./config";
 import assert from "assert";
 
+/** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
+const SUBGRAPH_URL =
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-09-ae4f/gn";
 const BATCH_SIZE = 1000;
 
 const { endSnapshot } = parseEnv();
