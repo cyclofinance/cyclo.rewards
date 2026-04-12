@@ -820,6 +820,29 @@ describe("Processor", () => {
     });
   });
 
+  describe("Reward truncation", () => {
+    it("total rewards should be <= pool due to BigInt truncation", async () => {
+      // Use amounts that don't divide evenly to force truncation
+      await buyAndDeposit(processor, NORMAL_USER_1, "3000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(processor, NORMAL_USER_2, "7000000000000000000", CYTOKENS[0].address, 50);
+
+      const rewardPool = ONEn;
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
+
+      let totalDistributed = 0n;
+      for (const tokenRewards of result.values()) {
+        for (const reward of tokenRewards.values()) {
+          totalDistributed += reward;
+        }
+      }
+
+      expect(totalDistributed).toBeLessThanOrEqual(rewardPool);
+      // Should be very close — within 1 wei per account per token
+      expect(rewardPool - totalDistributed).toBeLessThan(10n);
+    });
+  });
+
   describe("Bought cap recovery", () => {
     it("should recover from negative bought cap with a subsequent buy", async () => {
       const tokenAddress = CYTOKENS[0].address;
