@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress, REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
 import { VALID_ADDRESS_REGEX, EPOCHS, CURRENT_EPOCH, SNAPSHOT_COUNT } from './constants';
 
@@ -97,24 +97,6 @@ describe('generateSnapshotBlocks', () => {
     }
     // Should complete in well under 1 second (shuffle is O(n))
     expect(elapsed).toBeLessThan(1000);
-  });
-});
-
-describe("RPC_URL", () => {
-  it("should export RPC_URL from environment", async () => {
-    const { RPC_URL } = await import('./config');
-    expect(RPC_URL).toBe(process.env.RPC_URL);
-  });
-
-  it("should error if RPC_URL is not set", async () => {
-    const original = process.env.RPC_URL;
-    delete process.env.RPC_URL;
-    try {
-      vi.resetModules();
-      await expect(import('./config')).rejects.toThrow("RPC_URL environment variable must be set");
-    } finally {
-      process.env.RPC_URL = original;
-    }
   });
 });
 

@@ -8,7 +8,8 @@ import { createPublicClient, http } from "viem";
 import { flare } from "viem/chains";
 import { Processor } from "./processor";
 import { config } from "dotenv";
-import { CYTOKENS, generateSnapshotBlocks, parseEnv, RPC_URL } from "./config";
+import assert from "assert";
+import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
 import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, parsePools, readOptionalFile, sortAddressesByReward, summarizeTokenBalances, normalizeTransfer, normalizeLiquidityChange, verifyRewardPoolTolerance } from "./pipeline";
 import { BLOCKLIST_FILE, DATA_DIR, LIQUIDITY_FILE, OUTPUT_DIR, POOLS_FILE, REWARD_POOL, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE } from "./constants";
 import { LiquidityChange, Transfer } from "./types";
@@ -24,6 +25,9 @@ config();
  * processes all events through the Processor, and writes output CSVs.
  */
 async function main() {
+  assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
+  const RPC_URL = process.env.RPC_URL;
+
   const { seed: SEED, startSnapshot: START_SNAPSHOT, endSnapshot: END_SNAPSHOT } = parseEnv();
 
   // generate snapshot blocks
