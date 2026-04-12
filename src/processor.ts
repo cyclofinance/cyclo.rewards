@@ -91,6 +91,15 @@ export class Processor {
   ) {
     this.client = client;
 
+    // Reject duplicate cheaters — stacking penalties leads to negative balances
+    const cheaters = new Set<string>();
+    for (const report of reports) {
+      if (cheaters.has(report.cheater)) {
+        throw new Error(`Duplicate cheater in blocklist: ${report.cheater}`);
+      }
+      cheaters.add(report.cheater);
+    }
+
     // Initialize token balances maps
     for (const token of CYTOKENS) {
       const balanceMap = new Map<string, AccountBalance>();
