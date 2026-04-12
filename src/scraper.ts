@@ -16,8 +16,8 @@ const BATCH_SIZE = 1000;
 
 const epoch = EPOCHS[CURRENT_EPOCH - 1];
 assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
-// +1 to make sure every transfer at the end snapshot block is gathered
-const UNTIL_SNAPSHOT = epoch.endBlock + 1;
+// blockNumber_lte is inclusive, so no +1 needed
+export const UNTIL_SNAPSHOT = epoch.endBlock;
 
 /** Raw transfer event shape from the Goldsky subgraph GraphQL response */
 export interface SubgraphTransfer {
