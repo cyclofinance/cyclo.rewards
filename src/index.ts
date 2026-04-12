@@ -114,20 +114,17 @@ async function main() {
   console.log("Getting eligible balances...");
   const balances = await processor.getEligibleBalances();
 
-  // Add per-token balance logging
-  for (const summary of summarizeTokenBalances(balances, CYTOKENS)) {
-    console.log("Getting token balances for ", summary.name);
-    console.log("- Total Avg:", summary.totalAverage.toString());
-    console.log("- Total Penalties:", summary.totalPenalties.toString());
-    console.log("- Total Bounties:", summary.totalBounties.toString());
-    console.log("- Total Final:", summary.totalFinal.toString());
-    console.log(
-      `Note: Final Total for ${summary.name} should equal Average Total - Penalties + Bounties`
-    );
+  // Verify all token balances before proceeding
+  const summaries = summarizeTokenBalances(balances, CYTOKENS);
+  for (const summary of summaries) {
     if (!summary.verified) {
       throw new Error(`Balance verification failed for ${summary.name}: totalAverage - totalPenalties + totalBounties !== totalFinal`);
     }
-    console.log("Verification: ✓");
+  }
+
+  // Log per-token balance summaries
+  for (const summary of summaries) {
+    console.log(`${summary.name}: avg=${summary.totalAverage} penalties=${summary.totalPenalties} bounties=${summary.totalBounties} final=${summary.totalFinal} ✓`);
   }
 
   // Write balances with per-token data
