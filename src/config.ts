@@ -50,10 +50,6 @@ export const CYTOKENS: CyToken[] = [
   },
 ];
 
-assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
-/** Flare RPC endpoint URL for on-chain queries */
-export const RPC_URL = process.env.RPC_URL;
-
 /**
  * Case-insensitive comparison of two Ethereum addresses
  * @param a - First address
