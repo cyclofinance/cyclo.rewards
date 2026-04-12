@@ -38,6 +38,12 @@ export const BOUNTY_PERCENT = 10n;
 /** Base delay in ms for exponential backoff on RPC retries */
 export const RETRY_BASE_DELAY_MS = 500;
 
+/** Max retry attempts for tick multicall queries */
+export const TICK_RETRY_ATTEMPTS = 3;
+
+/** Fixed delay in ms between tick multicall retries */
+export const TICK_RETRY_DELAY_MS = 10_000;
+
 /** Directory for scraped data files */
 export const DATA_DIR = "data";
 
