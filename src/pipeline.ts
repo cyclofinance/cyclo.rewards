@@ -132,8 +132,8 @@ export function aggregateRewardsPerAddress(rewardsPerToken: RewardsPerToken): Ma
 
 export function sortAddressesByReward(rewards: Map<string, bigint>): string[] {
   return Array.from(rewards.keys()).sort((a, b) => {
-    const valueB = rewards.get(b)!;
-    const valueA = rewards.get(a)!;
+    const valueB = rewards.get(b) ?? 0n;
+    const valueA = rewards.get(a) ?? 0n;
     if (valueB > valueA) return 1;
     if (valueB < valueA) return -1;
     return a.localeCompare(b);
