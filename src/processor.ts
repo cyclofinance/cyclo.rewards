@@ -31,6 +31,17 @@ function clamp0(val: bigint): bigint {
   return val < 0n ? 0n : val;
 }
 
+/** Create a fresh zero-initialized AccountBalance for a given number of snapshots */
+function newAccountBalance(snapshotCount: number): AccountBalance {
+  return {
+    transfersInFromApproved: 0n,
+    transfersOut: 0n,
+    netBalanceAtSnapshots: new Array(snapshotCount).fill(0n),
+    boughtCap: 0n,
+    lpBalance: 0n,
+  };
+}
+
 /** Build a V3 LP position ID from token, owner, pool, and tokenId */
 function lpV3PositionId(token: string, owner: string, pool: string, tokenId: string): string {
   return `${token}-${owner}-${pool}-${tokenId}`;
@@ -190,22 +201,10 @@ export class Processor {
 
     // Initialize balances if needed
     if (!accountBalances.has(transfer.to)) {
-      accountBalances.set(transfer.to, {
-        transfersInFromApproved: 0n,
-        transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        boughtCap: 0n,
-        lpBalance: 0n,
-      });
+      accountBalances.set(transfer.to, newAccountBalance(this.snapshots.length));
     }
     if (!accountBalances.has(transfer.from)) {
-      accountBalances.set(transfer.from, {
-        transfersInFromApproved: 0n,
-        transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        boughtCap: 0n,
-        lpBalance: 0n,
-      });
+      accountBalances.set(transfer.from, newAccountBalance(this.snapshots.length));
     }
 
     // LP deposits and withdrawals are neutral to the bought cap —
@@ -558,29 +557,19 @@ export class Processor {
 
     // Initialize balances if needed
     if (!accountBalances.has(liquidityChangeEvent.owner)) {
-      accountBalances.set(liquidityChangeEvent.owner, {
-        transfersInFromApproved: 0n,
-        transfersOut: 0n,
-        netBalanceAtSnapshots: new Array(this.snapshots.length).fill(0n),
-        boughtCap: 0n,
-        lpBalance: 0n,
-      });
+      accountBalances.set(liquidityChangeEvent.owner, newAccountBalance(this.snapshots.length));
     }
 
     const ownerBalance = accountBalances.get(liquidityChangeEvent.owner)!;
     // Update LP balance from liquidity events
     ownerBalance.lpBalance += depositedBalanceChange;
 
-    // Update snapshot balances: eligible = min(boughtCap, lpBalance), clamped to 0
-    const cap = clamp0(ownerBalance.boughtCap);
-    const lp = clamp0(ownerBalance.lpBalance);
-    const value = cap < lp ? cap : lp;
-    for (let i = 0; i < this.snapshots.length; i++) {
-      if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
-        ownerBalance.netBalanceAtSnapshots[i] = value;
+    this.updateSnapshots(ownerBalance, liquidityChangeEvent.blockNumber);
 
-        // update lp v3 tracklist
-        if (liquidityChangeEvent.__typename === "LiquidityV3Change") {
+    // update lp v3 tracklist
+    if (liquidityChangeEvent.__typename === "LiquidityV3Change") {
+      for (let i = 0; i < this.snapshots.length; i++) {
+        if (liquidityChangeEvent.blockNumber <= this.snapshots[i]) {
           const id = lpV3PositionId(
             liquidityChangeEvent.tokenAddress,
             liquidityChangeEvent.owner,
