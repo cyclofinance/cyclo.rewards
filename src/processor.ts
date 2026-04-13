@@ -190,8 +190,9 @@ export class Processor {
 
   /**
    * Processes a single ERC-20 transfer, updating sender and receiver balances.
-   * Only credits the receiver if the sender is an approved source.
-   * Handles LP deposit/withdraw adjustments via linked liquidity events.
+   * Only credits the receiver's boughtCap if the sender is an approved source.
+   * The sender's boughtCap is always decremented (reversal: selling undoes buying).
+   * LP deposits and withdrawals are detected and skipped — they don't affect boughtCap.
    * @param transfer - Transfer event to process
    */
   async processTransfer(transfer: Transfer) {
@@ -314,6 +315,7 @@ export class Processor {
   /**
    * Computes reward-eligible balances for all accounts across all tokens.
    * Three passes: (1) average snapshot balances, (2) penalties/bounties, (3) final balances scaled to 18 decimals.
+   * Note: `final` can be negative for penalized accounts (penalty > average + bounty).
    * @returns Token address → user address → TokenBalances
    */
   async getEligibleBalances(): Promise<EligibleBalances> {
@@ -429,8 +431,14 @@ export class Processor {
   /**
    * Splits the reward pool across tokens using inverse-fraction weighting.
    * Tokens with smaller total balances receive a larger share of rewards.
+   *
+   * Formula: for each token, inverseFraction = (sumAllBalances * ONE_18) / tokenBalance.
+   * ONE_18 scaling preserves precision in the BigInt division. Each token's pool share
+   * is then (inverseFraction * rewardPool) / sumOfInverseFractions.
+   *
    * @param balances - Eligible balances from getEligibleBalances()
    * @param rewardPool - Total reward pool in wei
+   * @param totalBalances - Pre-computed total eligible balances per token (optional, avoids recomputation)
    * @returns Token address → reward pool share for that token
    */
   calculateRewardsPoolsPerToken(
@@ -550,7 +558,10 @@ export class Processor {
   }
 
   /**
-   * Processes a liquidity change event, updating the owner's balance and snapshot records.
+   * Processes a liquidity change event, updating the owner's lpBalance and snapshot records.
+   * Handles all change types uniformly via depositedBalanceChange sign:
+   * - Deposit: positive depositedBalanceChange increases lpBalance
+   * - Withdraw/Transfer: negative depositedBalanceChange decreases lpBalance
    * For V3 positions, also tracks the position in lp3TrackList for later in-range checks.
    * @param liquidityChangeEvent - Liquidity event to process
    */
