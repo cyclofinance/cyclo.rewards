@@ -13,14 +13,12 @@ import {
   TRANSFER_CHUNK_SIZE,
   TRANSFER_FILE_COUNT,
   TRANSFERS_FILE_BASE,
+  SUBGRAPH_URL,
   validateAddress,
 } from "./constants";
 import { parseEnv } from "./config";
 import assert from "assert";
 
-/** Goldsky-hosted Cyclo subgraph endpoint. Update this URL when deploying a new subgraph version. */
-const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-09-ae4f/gn";
 const BATCH_SIZE = 1000;
 
 const { endSnapshot } = parseEnv();
@@ -146,7 +144,7 @@ export function mapSubgraphLiquidityChange(
   validateAddress(t.tokenAddress, "tokenAddress");
   validateAddress(t.lpAddress, "lpAddress");
   validateAddress(t.owner.address, "owner");
-  if (!VALID_CHANGE_TYPES.includes(t.liquidityChangeType)) {
+  if (!(VALID_CHANGE_TYPES as string[]).includes(t.liquidityChangeType)) {
     throw new Error(`Invalid liquidityChangeType: "${t.liquidityChangeType}"`);
   }
   validateIntegerString(t.liquidityChange, "liquidityChange");
