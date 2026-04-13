@@ -4,9 +4,17 @@
  * same block range, so there is no time-mismatch.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
-import { EPOCHS, CURRENT_EPOCH, SUBGRAPH_URL } from "./constants";
+import { readFileSync, readdirSync } from "fs";
+import {
+  EPOCHS,
+  CURRENT_EPOCH,
+  SUBGRAPH_URL,
+  DATA_DIR,
+  TRANSFERS_FILE_BASE,
+  POOLS_FILE,
+} from "./constants";
 import { CYTOKENS } from "./config";
+import { parsePools } from "./pipeline";
 
 const epoch = EPOCHS[CURRENT_EPOCH - 1];
 const END_BLOCK = epoch.endBlock!;
@@ -120,4 +128,74 @@ describe("scraped liquidity data matches subgraph", () => {
       }
     }, 60_000);
   }
+});
+
+describe("scraped transfer count matches subgraph", () => {
+  it("subgraph has no more transfers than local data up to endBlock", async () => {
+    // Count local transfers
+    const transferFiles = readdirSync(DATA_DIR).filter(
+      (f) => f.startsWith(TRANSFERS_FILE_BASE) && f.endsWith(".dat"),
+    );
+    let localCount = 0;
+    for (const file of transferFiles) {
+      const data = readFileSync(`${DATA_DIR}/${file}`, "utf8");
+      localCount += data.split("\n").filter(Boolean).length;
+    }
+
+    // Check subgraph doesn't have more than local by skipping past local count
+    const res = await fetch(SUBGRAPH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `{ transfers(where: {blockNumber_lte: "${END_BLOCK}"}, first: 1, skip: ${localCount}, orderBy: blockNumber, orderDirection: asc) { id } }`,
+      }),
+    });
+    const data = await res.json();
+    expect(
+      data.data.transfers.length,
+      `Subgraph has more transfers than local (${localCount})`,
+    ).toBe(0);
+  }, 30_000);
+});
+
+describe("scraped pools match subgraph", () => {
+  it("local pools.dat matches V3 pool addresses in subgraph liquidity events", async () => {
+    const localPools = new Set(
+      parsePools(readFileSync(`${DATA_DIR}/${POOLS_FILE}`, "utf8")).map((p) =>
+        p.toLowerCase(),
+      ),
+    );
+
+    // Collect V3 pool addresses from subgraph
+    const sgPools = new Set<string>();
+    let skip = 0;
+    while (true) {
+      const res = await fetch(SUBGRAPH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `{ liquidityV3Changes(where: {blockNumber_lte: "${END_BLOCK}"}, first: 1000, skip: ${skip}, orderBy: blockNumber, orderDirection: asc) { poolAddress } }`,
+        }),
+      });
+      const data = await res.json();
+      const batch = data.data.liquidityV3Changes as Array<{
+        poolAddress: string;
+      }>;
+      for (const e of batch) sgPools.add(e.poolAddress.toLowerCase());
+      if (batch.length < 1000) break;
+      skip += 1000;
+    }
+
+    const missingLocal = [...sgPools].filter((p) => !localPools.has(p));
+    const extraLocal = [...localPools].filter((p) => !sgPools.has(p));
+
+    expect(
+      missingLocal,
+      `Subgraph has pools missing from local: ${missingLocal.join(", ")}`,
+    ).toHaveLength(0);
+    expect(
+      extraLocal,
+      `Local has extra pools not in subgraph: ${extraLocal.join(", ")}`,
+    ).toHaveLength(0);
+  }, 60_000);
 });
