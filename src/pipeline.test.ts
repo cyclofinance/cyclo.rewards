@@ -1,7 +1,30 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocklist, parseJsonl, parsePools, readOptionalFile, normalizeTransfer, normalizeLiquidityChange, aggregateRewardsPerAddress, sortAddressesByReward, filterZeroRewards, formatRewardsCsv, formatBalancesCsv, summarizeTokenBalances, verifyRewardPoolTolerance } from "./pipeline";
-import { CyToken, EligibleBalances, RewardsPerToken, Transfer, LiquidityChange } from "./types";
-import { REWARDS_CSV_COLUMN_HEADER_ADDRESS, REWARDS_CSV_COLUMN_HEADER_REWARD } from "./constants";
+import {
+  parseBlocklist,
+  parseJsonl,
+  parsePools,
+  readOptionalFile,
+  normalizeTransfer,
+  normalizeLiquidityChange,
+  aggregateRewardsPerAddress,
+  sortAddressesByReward,
+  filterZeroRewards,
+  formatRewardsCsv,
+  formatBalancesCsv,
+  summarizeTokenBalances,
+  verifyRewardPoolTolerance,
+} from "./pipeline";
+import {
+  CyToken,
+  EligibleBalances,
+  RewardsPerToken,
+  Transfer,
+  LiquidityChange,
+} from "./types";
+import {
+  REWARDS_CSV_COLUMN_HEADER_ADDRESS,
+  REWARDS_CSV_COLUMN_HEADER_REWARD,
+} from "./constants";
 
 describe("parseBlocklist", () => {
   const ADDR_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -18,7 +41,8 @@ describe("parseBlocklist", () => {
   });
 
   it("lowercases addresses", () => {
-    const data = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+    const data =
+      "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA 0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     expect(parseBlocklist(data)).toEqual([
       { reporter: ADDR_A, cheater: ADDR_B },
     ]);
@@ -71,7 +95,9 @@ describe("parseBlocklist", () => {
   });
 
   it("should throw on invalid reporter address", () => {
-    expect(() => parseBlocklist(`not-an-address ${ADDR_B}`)).toThrow("reporter");
+    expect(() => parseBlocklist(`not-an-address ${ADDR_B}`)).toThrow(
+      "reporter",
+    );
   });
 
   it("should throw on invalid cheater address", () => {
@@ -135,7 +161,10 @@ describe("parseJsonl", () => {
   });
 
   it("handles arrays as line values", () => {
-    expect(parseJsonl('[1,2,3]\n[4,5,6]')).toEqual([[1, 2, 3], [4, 5, 6]]);
+    expect(parseJsonl("[1,2,3]\n[4,5,6]")).toEqual([
+      [1, 2, 3],
+      [4, 5, 6],
+    ]);
   });
 
   it("throws with line number on malformed JSON", () => {
@@ -167,8 +196,20 @@ describe("parseJsonl", () => {
 describe("aggregateRewardsPerAddress", () => {
   it("sums rewards across multiple tokens for the same address", () => {
     const rewardsPerToken: RewardsPerToken = new Map([
-      ["token1", new Map([["0xaaa", 100n], ["0xbbb", 200n]])],
-      ["token2", new Map([["0xaaa", 50n], ["0xbbb", 30n]])],
+      [
+        "token1",
+        new Map([
+          ["0xaaa", 100n],
+          ["0xbbb", 200n],
+        ]),
+      ],
+      [
+        "token2",
+        new Map([
+          ["0xaaa", 50n],
+          ["0xbbb", 30n],
+        ]),
+      ],
     ]);
     const result = aggregateRewardsPerAddress(rewardsPerToken);
     expect(result.get("0xaaa")).toBe(150n);
@@ -221,18 +262,26 @@ describe("sortAddressesByReward", () => {
 
   it("breaks ties deterministically regardless of insertion order", () => {
     const addresses = [
-      "0xaaa", "0xbbb", "0xccc", "0xddd", "0xeee",
-      "0xfff", "0x111", "0x222", "0x333", "0x444",
+      "0xaaa",
+      "0xbbb",
+      "0xccc",
+      "0xddd",
+      "0xeee",
+      "0xfff",
+      "0x111",
+      "0x222",
+      "0x333",
+      "0x444",
     ];
     // All equal rewards — sort order depends entirely on tiebreaker
     const reference = sortAddressesByReward(
-      new Map(addresses.map(a => [a, 100n]))
+      new Map(addresses.map((a) => [a, 100n])),
     );
     // Shuffle and sort 10 times — all must produce the same result
     for (let i = 0; i < 10; i++) {
       const shuffled = [...addresses].sort(() => Math.random() - 0.5);
       const result = sortAddressesByReward(
-        new Map(shuffled.map(a => [a, 100n]))
+        new Map(shuffled.map((a) => [a, 100n])),
       );
       expect(result).toEqual(reference);
     }
@@ -248,7 +297,10 @@ describe("filterZeroRewards", () => {
       ["0xbbb", 0n],
       ["0xccc", 200n],
     ]);
-    expect(filterZeroRewards(["0xaaa", "0xbbb", "0xccc"], rewards)).toEqual(["0xaaa", "0xccc"]);
+    expect(filterZeroRewards(["0xaaa", "0xbbb", "0xccc"], rewards)).toEqual([
+      "0xaaa",
+      "0xccc",
+    ]);
   });
 
   it("returns all addresses when none are zero", () => {
@@ -256,7 +308,10 @@ describe("filterZeroRewards", () => {
       ["0xaaa", 100n],
       ["0xbbb", 200n],
     ]);
-    expect(filterZeroRewards(["0xaaa", "0xbbb"], rewards)).toEqual(["0xaaa", "0xbbb"]);
+    expect(filterZeroRewards(["0xaaa", "0xbbb"], rewards)).toEqual([
+      "0xaaa",
+      "0xbbb",
+    ]);
   });
 
   it("returns empty array when all are zero", () => {
@@ -277,7 +332,18 @@ describe("filterZeroRewards", () => {
       ["0xbbb", 200n],
       ["0xccc", 300n],
     ]);
-    expect(filterZeroRewards(["0xccc", "0xaaa", "0xbbb"], rewards)).toEqual(["0xccc", "0xaaa", "0xbbb"]);
+    expect(filterZeroRewards(["0xccc", "0xaaa", "0xbbb"], rewards)).toEqual([
+      "0xccc",
+      "0xaaa",
+      "0xbbb",
+    ]);
+  });
+
+  it("treats address absent from map as zero (filtered out)", () => {
+    const rewards = new Map([["0xaaa", 100n]]);
+    expect(filterZeroRewards(["0xaaa", "0xmissing"], rewards)).toEqual([
+      "0xaaa",
+    ]);
   });
 });
 
@@ -288,11 +354,7 @@ describe("formatRewardsCsv", () => {
       ["0xbbb", 200n],
     ]);
     const result = formatRewardsCsv(["0xbbb", "0xaaa"], rewards);
-    expect(result).toEqual([
-      REWARDS_HEADER,
-      "0xbbb,200",
-      "0xaaa,100",
-    ]);
+    expect(result).toEqual([REWARDS_HEADER, "0xbbb,200", "0xaaa,100"]);
   });
 
   it("returns only header for empty addresses", () => {
@@ -310,6 +372,12 @@ describe("formatRewardsCsv", () => {
     expect(result[1]).toBe("0xccc,200");
     expect(result[2]).toBe("0xaaa,300");
     expect(result[3]).toBe("0xbbb,100");
+  });
+
+  it("uses 0 for address absent from rewards map", () => {
+    const rewards = new Map([["0xaaa", 100n]]);
+    const result = formatRewardsCsv(["0xaaa", "0xmissing"], rewards);
+    expect(result[2]).toBe("0xmissing,0");
   });
 });
 
@@ -331,18 +399,36 @@ describe("formatBalancesCsv", () => {
     const totalRewards = new Map<string, bigint>();
 
     const result = formatBalancesCsv(
-      [], [token], snapshots, balances, rewardsPerToken, totalRewards
+      [],
+      [token],
+      snapshots,
+      balances,
+      rewardsPerToken,
+      totalRewards,
     );
     expect(result[0]).toBe(
-      "address,cysFLR_snapshot1,cysFLR_snapshot2,cysFLR_average,cysFLR_penalty,cysFLR_bounty,cysFLR_final,cysFLR_rewards,total_rewards"
+      "address,cysFLR_snapshot1,cysFLR_snapshot2,cysFLR_average,cysFLR_penalty,cysFLR_bounty,cysFLR_final,cysFLR_rewards,total_rewards",
     );
   });
 
   it("formats address rows with balance data", () => {
     const balances: EligibleBalances = new Map([
-      ["0xtoken1", new Map([
-        ["0xaaa", { snapshots: [10n, 20n], average: 15n, penalty: 0n, bounty: 0n, final: 15n, final18: 15n }],
-      ])],
+      [
+        "0xtoken1",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [10n, 20n],
+              average: 15n,
+              penalty: 0n,
+              bounty: 0n,
+              final: 15n,
+              final18: 15n,
+            },
+          ],
+        ]),
+      ],
     ]);
     const rewardsPerToken: RewardsPerToken = new Map([
       ["0xtoken1", new Map([["0xaaa", 500n]])],
@@ -350,7 +436,12 @@ describe("formatBalancesCsv", () => {
     const totalRewards = new Map([["0xaaa", 500n]]);
 
     const result = formatBalancesCsv(
-      ["0xaaa"], [token], snapshots, balances, rewardsPerToken, totalRewards
+      ["0xaaa"],
+      [token],
+      snapshots,
+      balances,
+      rewardsPerToken,
+      totalRewards,
     );
     expect(result[1]).toBe("0xaaa,10,20,15,0,0,15,500,500");
   });
@@ -361,14 +452,24 @@ describe("formatBalancesCsv", () => {
     const totalRewards = new Map([["0xaaa", 0n]]);
 
     const result = formatBalancesCsv(
-      ["0xaaa"], [token], snapshots, balances, rewardsPerToken, totalRewards
+      ["0xaaa"],
+      [token],
+      snapshots,
+      balances,
+      rewardsPerToken,
+      totalRewards,
     );
     expect(result[1]).toBe("0xaaa,0,0,0,0,0,0,0,0");
   });
 
   it("returns only header for empty addresses", () => {
     const result = formatBalancesCsv(
-      [], [token], snapshots, new Map(), new Map(), new Map()
+      [],
+      [token],
+      snapshots,
+      new Map(),
+      new Map(),
+      new Map(),
     );
     expect(result).toHaveLength(1);
   });
@@ -383,9 +484,22 @@ describe("formatBalancesCsv", () => {
       decimals: 18,
     };
     const balances: EligibleBalances = new Map([
-      ["0xtoken1", new Map([
-        ["0xaaa", { snapshots: [10n, 20n], average: 15n, penalty: 0n, bounty: 0n, final: 15n, final18: 15n }],
-      ])],
+      [
+        "0xtoken1",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [10n, 20n],
+              average: 15n,
+              penalty: 0n,
+              bounty: 0n,
+              final: 15n,
+              final18: 15n,
+            },
+          ],
+        ]),
+      ],
     ]);
     const rewardsPerToken: RewardsPerToken = new Map([
       ["0xtoken1", new Map([["0xaaa", 300n]])],
@@ -393,12 +507,103 @@ describe("formatBalancesCsv", () => {
     const totalRewards = new Map([["0xaaa", 300n]]);
 
     const result = formatBalancesCsv(
-      ["0xaaa"], [token, token2], snapshots, balances, rewardsPerToken, totalRewards
+      ["0xaaa"],
+      [token, token2],
+      snapshots,
+      balances,
+      rewardsPerToken,
+      totalRewards,
     );
     expect(result[0]).toContain("cysFLR_snapshot1");
     expect(result[0]).toContain("cyWETH_snapshot1");
     // token1 has data, token2 has zeros
     expect(result[1]).toBe("0xaaa,10,20,15,0,0,15,300,0,0,0,0,0,0,0,300");
+  });
+
+  it("uses zeros when token balance map exists but address is absent", () => {
+    const balances: EligibleBalances = new Map([["0xtoken1", new Map()]]);
+    const rewardsPerToken: RewardsPerToken = new Map([["0xtoken1", new Map()]]);
+    const totalRewards = new Map([["0xaaa", 0n]]);
+
+    const result = formatBalancesCsv(
+      ["0xaaa"],
+      [token],
+      snapshots,
+      balances,
+      rewardsPerToken,
+      totalRewards,
+    );
+    expect(result[1]).toBe("0xaaa,0,0,0,0,0,0,0,0");
+  });
+
+  it("uses 0 for totalRewardsPerAddress missing entry", () => {
+    const balances: EligibleBalances = new Map([
+      [
+        "0xtoken1",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [10n, 20n],
+              average: 15n,
+              penalty: 0n,
+              bounty: 0n,
+              final: 15n,
+              final18: 15n,
+            },
+          ],
+        ]),
+      ],
+    ]);
+    const rewardsPerToken: RewardsPerToken = new Map([
+      ["0xtoken1", new Map([["0xaaa", 500n]])],
+    ]);
+    const totalRewards = new Map<string, bigint>(); // missing 0xaaa
+
+    const result = formatBalancesCsv(
+      ["0xaaa"],
+      [token],
+      snapshots,
+      balances,
+      rewardsPerToken,
+      totalRewards,
+    );
+    expect(result[1]).toBe("0xaaa,10,20,15,0,0,15,500,0");
+  });
+
+  it("uses 0 for rewardsPerToken inner-map miss", () => {
+    const balances: EligibleBalances = new Map([
+      [
+        "0xtoken1",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [10n, 20n],
+              average: 15n,
+              penalty: 0n,
+              bounty: 0n,
+              final: 15n,
+              final18: 15n,
+            },
+          ],
+        ]),
+      ],
+    ]);
+    const rewardsPerToken: RewardsPerToken = new Map([
+      ["0xtoken1", new Map()], // token exists but address missing
+    ]);
+    const totalRewards = new Map([["0xaaa", 0n]]);
+
+    const result = formatBalancesCsv(
+      ["0xaaa"],
+      [token],
+      snapshots,
+      balances,
+      rewardsPerToken,
+      totalRewards,
+    );
+    expect(result[1]).toBe("0xaaa,10,20,15,0,0,15,0,0");
   });
 });
 
@@ -414,10 +619,33 @@ describe("summarizeTokenBalances", () => {
 
   it("computes totals across all accounts for a token", () => {
     const balances: EligibleBalances = new Map([
-      ["0xtoken1", new Map([
-        ["0xaaa", { snapshots: [10n], average: 100n, penalty: 10n, bounty: 5n, final: 95n, final18: 95n }],
-        ["0xbbb", { snapshots: [20n], average: 200n, penalty: 20n, bounty: 10n, final: 190n, final18: 190n }],
-      ])],
+      [
+        "0xtoken1",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [10n],
+              average: 100n,
+              penalty: 10n,
+              bounty: 5n,
+              final: 95n,
+              final18: 95n,
+            },
+          ],
+          [
+            "0xbbb",
+            {
+              snapshots: [20n],
+              average: 200n,
+              penalty: 20n,
+              bounty: 10n,
+              final: 190n,
+              final18: 190n,
+            },
+          ],
+        ]),
+      ],
     ]);
     const result = summarizeTokenBalances(balances, [token]);
     expect(result).toHaveLength(1);
@@ -433,9 +661,22 @@ describe("summarizeTokenBalances", () => {
 
   it("returns verified false when invariant fails", () => {
     const balances: EligibleBalances = new Map([
-      ["0xtoken1", new Map([
-        ["0xaaa", { snapshots: [10n], average: 100n, penalty: 10n, bounty: 5n, final: 999n, final18: 999n }],
-      ])],
+      [
+        "0xtoken1",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [10n],
+              average: 100n,
+              penalty: 10n,
+              bounty: 5n,
+              final: 999n,
+              final18: 999n,
+            },
+          ],
+        ]),
+      ],
     ]);
     const result = summarizeTokenBalances(balances, [token]);
     expect(result[0].verified).toBe(false);
@@ -457,12 +698,38 @@ describe("summarizeTokenBalances", () => {
       decimals: 18,
     };
     const balances: EligibleBalances = new Map([
-      ["0xtoken1", new Map([
-        ["0xaaa", { snapshots: [10n], average: 100n, penalty: 0n, bounty: 0n, final: 100n, final18: 100n }],
-      ])],
-      ["0xtoken2", new Map([
-        ["0xaaa", { snapshots: [20n], average: 200n, penalty: 0n, bounty: 0n, final: 200n, final18: 200n }],
-      ])],
+      [
+        "0xtoken1",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [10n],
+              average: 100n,
+              penalty: 0n,
+              bounty: 0n,
+              final: 100n,
+              final18: 100n,
+            },
+          ],
+        ]),
+      ],
+      [
+        "0xtoken2",
+        new Map([
+          [
+            "0xaaa",
+            {
+              snapshots: [20n],
+              average: 200n,
+              penalty: 0n,
+              bounty: 0n,
+              final: 200n,
+              final18: 200n,
+            },
+          ],
+        ]),
+      ],
     ]);
     const result = summarizeTokenBalances(balances, [token, token2]);
     expect(result).toHaveLength(2);
@@ -481,7 +748,8 @@ describe("normalizeTransfer", () => {
     blockNumber: 100,
     timestamp: 200,
     tokenAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
-    transactionHash: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    transactionHash:
+      "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
   };
 
   it("accepts a valid transfer", () => {
@@ -505,7 +773,9 @@ describe("normalizeTransfer", () => {
   });
 
   it("rejects missing transactionHash", () => {
-    expect(() => normalizeTransfer({ ...valid, transactionHash: undefined })).toThrow();
+    expect(() =>
+      normalizeTransfer({ ...valid, transactionHash: undefined }),
+    ).toThrow();
   });
 
   it("rejects invalid address in to", () => {
@@ -513,7 +783,9 @@ describe("normalizeTransfer", () => {
   });
 
   it("rejects invalid tokenAddress", () => {
-    expect(() => normalizeTransfer({ ...valid, tokenAddress: "bad" })).toThrow();
+    expect(() =>
+      normalizeTransfer({ ...valid, tokenAddress: "bad" }),
+    ).toThrow();
   });
 
   it("rejects non-integer timestamp", () => {
@@ -525,11 +797,15 @@ describe("normalizeTransfer", () => {
   });
 
   it("rejects missing blockNumber", () => {
-    expect(() => normalizeTransfer({ ...valid, blockNumber: undefined })).toThrow();
+    expect(() =>
+      normalizeTransfer({ ...valid, blockNumber: undefined }),
+    ).toThrow();
   });
 
   it("rejects missing tokenAddress", () => {
-    expect(() => normalizeTransfer({ ...valid, tokenAddress: undefined })).toThrow();
+    expect(() =>
+      normalizeTransfer({ ...valid, tokenAddress: undefined }),
+    ).toThrow();
   });
 
   it("rejects missing to", () => {
@@ -561,11 +837,15 @@ describe("normalizeTransfer", () => {
   });
 
   it("rejects invalid transactionHash format", () => {
-    expect(() => normalizeTransfer({ ...valid, transactionHash: "not-a-hash" })).toThrow();
+    expect(() =>
+      normalizeTransfer({ ...valid, transactionHash: "not-a-hash" }),
+    ).toThrow();
   });
 
   it("rejects short transactionHash", () => {
-    expect(() => normalizeTransfer({ ...valid, transactionHash: "0xabcd" })).toThrow();
+    expect(() =>
+      normalizeTransfer({ ...valid, transactionHash: "0xabcd" }),
+    ).toThrow();
   });
 
   it("rejects negative blockNumber", () => {
@@ -589,7 +869,8 @@ describe("normalizeTransfer", () => {
       from: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       to: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
       tokenAddress: "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-      transactionHash: "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
+      transactionHash:
+        "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
       value: "1000",
       blockNumber: 100,
       timestamp: 200,
@@ -613,7 +894,8 @@ describe("normalizeLiquidityChange", () => {
     depositedBalanceChange: "500",
     blockNumber: 100,
     timestamp: 200,
-    transactionHash: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    transactionHash:
+      "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
   };
 
   const validV3 = {
@@ -635,27 +917,39 @@ describe("normalizeLiquidityChange", () => {
   });
 
   it("rejects non-string changeType", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, changeType: 123 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, changeType: 123 }),
+    ).toThrow();
   });
 
   it("rejects invalid changeType", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, changeType: "BAD" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, changeType: "BAD" }),
+    ).toThrow();
   });
 
   it("rejects invalid owner address", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, owner: "bad" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, owner: "bad" }),
+    ).toThrow();
   });
 
   it("rejects V3 with missing poolAddress", () => {
-    expect(() => normalizeLiquidityChange({ ...validV3, poolAddress: undefined })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV3, poolAddress: undefined }),
+    ).toThrow();
   });
 
   it("rejects V3 with invalid poolAddress", () => {
-    expect(() => normalizeLiquidityChange({ ...validV3, poolAddress: "bad" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV3, poolAddress: "bad" }),
+    ).toThrow();
   });
 
   it("rejects V3 with non-string tokenId", () => {
-    expect(() => normalizeLiquidityChange({ ...validV3, tokenId: 123 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV3, tokenId: 123 }),
+    ).toThrow();
   });
 
   it("rejects V3 with non-integer fee", () => {
@@ -663,87 +957,133 @@ describe("normalizeLiquidityChange", () => {
   });
 
   it("rejects unknown __typename", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, __typename: "Unknown" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, __typename: "Unknown" }),
+    ).toThrow();
   });
 
   it("rejects missing tokenAddress", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, tokenAddress: undefined })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, tokenAddress: undefined }),
+    ).toThrow();
   });
 
   it("rejects invalid tokenAddress", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, tokenAddress: "bad" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, tokenAddress: "bad" }),
+    ).toThrow();
   });
 
   it("rejects missing lpAddress", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, lpAddress: undefined })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, lpAddress: undefined }),
+    ).toThrow();
   });
 
   it("rejects missing owner", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, owner: undefined })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, owner: undefined }),
+    ).toThrow();
   });
 
   it("rejects invalid lpAddress", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, lpAddress: "bad" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, lpAddress: "bad" }),
+    ).toThrow();
   });
 
   it("rejects non-integer blockNumber", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, blockNumber: 1.5 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, blockNumber: 1.5 }),
+    ).toThrow();
   });
 
   it("rejects non-integer timestamp", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, timestamp: 1.5 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, timestamp: 1.5 }),
+    ).toThrow();
   });
 
   it("rejects non-string liquidityChange", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, liquidityChange: 123 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, liquidityChange: 123 }),
+    ).toThrow();
   });
 
   it("rejects non-integer-string liquidityChange", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, liquidityChange: "abc" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, liquidityChange: "abc" }),
+    ).toThrow();
   });
 
   it("rejects non-string depositedBalanceChange", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, depositedBalanceChange: 123 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, depositedBalanceChange: 123 }),
+    ).toThrow();
   });
 
   it("rejects non-integer-string depositedBalanceChange", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, depositedBalanceChange: "1.5" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, depositedBalanceChange: "1.5" }),
+    ).toThrow();
   });
 
   it("rejects missing transactionHash", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, transactionHash: undefined })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, transactionHash: undefined }),
+    ).toThrow();
   });
 
   it("rejects invalid transactionHash format", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, transactionHash: "not-a-hash" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, transactionHash: "not-a-hash" }),
+    ).toThrow();
   });
 
   it("rejects V3 with missing tokenId", () => {
-    expect(() => normalizeLiquidityChange({ ...validV3, tokenId: undefined })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV3, tokenId: undefined }),
+    ).toThrow();
   });
 
   it("rejects V3 with non-integer lowerTick", () => {
-    expect(() => normalizeLiquidityChange({ ...validV3, lowerTick: 1.5 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV3, lowerTick: 1.5 }),
+    ).toThrow();
   });
 
   it("rejects V3 with non-integer upperTick", () => {
-    expect(() => normalizeLiquidityChange({ ...validV3, upperTick: 1.5 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV3, upperTick: 1.5 }),
+    ).toThrow();
   });
 
   it("accepts negative ticks in V3", () => {
-    expect(normalizeLiquidityChange({ ...validV3, lowerTick: -887272, upperTick: -100 })).toBeTruthy();
+    expect(
+      normalizeLiquidityChange({
+        ...validV3,
+        lowerTick: -887272,
+        upperTick: -100,
+      }),
+    ).toBeTruthy();
   });
 
   it("accepts negative liquidityChange", () => {
-    expect(normalizeLiquidityChange({ ...validV2, liquidityChange: "-500" })).toBeTruthy();
+    expect(
+      normalizeLiquidityChange({ ...validV2, liquidityChange: "-500" }),
+    ).toBeTruthy();
   });
 
   it("rejects empty changeType", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, changeType: "" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, changeType: "" }),
+    ).toThrow();
   });
 
   it("rejects empty liquidityChange", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, liquidityChange: "" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, liquidityChange: "" }),
+    ).toThrow();
   });
 
   it("rejects missing __typename", () => {
@@ -756,19 +1096,27 @@ describe("normalizeLiquidityChange", () => {
   });
 
   it("rejects negative blockNumber", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, blockNumber: -1 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, blockNumber: -1 }),
+    ).toThrow();
   });
 
   it("rejects negative timestamp", () => {
-    expect(() => normalizeLiquidityChange({ ...validV2, timestamp: -1 })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV2, timestamp: -1 }),
+    ).toThrow();
   });
 
   it("rejects V3 with empty tokenId", () => {
-    expect(() => normalizeLiquidityChange({ ...validV3, tokenId: "" })).toThrow();
+    expect(() =>
+      normalizeLiquidityChange({ ...validV3, tokenId: "" }),
+    ).toThrow();
   });
 
   it("accepts zero depositedBalanceChange", () => {
-    expect(normalizeLiquidityChange({ ...validV2, depositedBalanceChange: "0" })).toBeTruthy();
+    expect(
+      normalizeLiquidityChange({ ...validV2, depositedBalanceChange: "0" }),
+    ).toBeTruthy();
   });
 
   it("lowercases all address fields for V2", () => {
@@ -777,7 +1125,8 @@ describe("normalizeLiquidityChange", () => {
       tokenAddress: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       lpAddress: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
       owner: "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-      transactionHash: "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
+      transactionHash:
+        "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
     };
     const result: LiquidityChange = normalizeLiquidityChange(mixed);
     expect(result.tokenAddress).toBe(mixed.tokenAddress.toLowerCase());
@@ -801,7 +1150,9 @@ describe("normalizeLiquidityChange", () => {
 
 describe("readOptionalFile", () => {
   it("should return empty string for missing file", async () => {
-    const result = await readOptionalFile("/tmp/definitely-does-not-exist-" + Date.now() + ".dat");
+    const result = await readOptionalFile(
+      "/tmp/definitely-does-not-exist-" + Date.now() + ".dat",
+    );
     expect(result).toBe("");
   });
 
@@ -866,7 +1217,7 @@ describe("parsePools", () => {
   });
 
   it("should reject array with non-string elements", () => {
-    expect(() => parsePools('[123, 456]')).toThrow();
+    expect(() => parsePools("[123, 456]")).toThrow();
   });
 
   it("should reject array with invalid addresses", () => {
