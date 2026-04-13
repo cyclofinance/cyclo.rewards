@@ -1,3 +1,8 @@
+/**
+ * Runtime configuration: approved DEX sources, factory contracts, cy token definitions,
+ * RPC URL, snapshot block generation, and epoch environment parsing.
+ */
+
 import assert from "assert";
 import { CyToken } from "./types";
 import {
@@ -130,6 +135,7 @@ export function scaleTo18(value: bigint, decimals: number): bigint {
   }
 }
 
+/** Reads seed, startBlock, and endBlock from the current epoch. Throws if the epoch is incomplete. */
 export function parseEnv(): {
   seed: string;
   startSnapshot: number;

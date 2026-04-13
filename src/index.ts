@@ -10,8 +10,31 @@ import { Processor } from "./processor";
 import { config } from "dotenv";
 import assert from "assert";
 import { CYTOKENS, generateSnapshotBlocks, parseEnv } from "./config";
-import { aggregateRewardsPerAddress, filterZeroRewards, formatBalancesCsv, formatRewardsCsv, parseBlocklist, parseJsonl, parsePools, readOptionalFile, sortAddressesByReward, summarizeTokenBalances, normalizeTransfer, normalizeLiquidityChange, verifyRewardPoolTolerance } from "./pipeline";
-import { BLOCKLIST_FILE, DATA_DIR, LIQUIDITY_FILE, OUTPUT_DIR, POOLS_FILE, REWARD_POOL, TRANSFER_FILE_COUNT, TRANSFERS_FILE_BASE } from "./constants";
+import {
+  aggregateRewardsPerAddress,
+  filterZeroRewards,
+  formatBalancesCsv,
+  formatRewardsCsv,
+  parseBlocklist,
+  parseJsonl,
+  parsePools,
+  readOptionalFile,
+  sortAddressesByReward,
+  summarizeTokenBalances,
+  normalizeTransfer,
+  normalizeLiquidityChange,
+  verifyRewardPoolTolerance,
+} from "./pipeline";
+import {
+  BLOCKLIST_FILE,
+  DATA_DIR,
+  LIQUIDITY_FILE,
+  OUTPUT_DIR,
+  POOLS_FILE,
+  REWARD_POOL,
+  TRANSFER_FILE_COUNT,
+  TRANSFERS_FILE_BASE,
+} from "./constants";
 import { LiquidityChange, Transfer } from "./types";
 
 // Load environment variables
@@ -21,8 +44,11 @@ config();
  * Orchestrates the full reward calculation pipeline:
  * loads env config, reads scraped transfer/liquidity/pool data files
  * (transfers split across data/transfers1.dat–transfers10.dat to stay under GitHub's 100MB limit),
- * reads blocklist (space-separated "reporter cheater" pairs, one per line),
- * processes all events through the Processor, and writes output CSVs.
+ * reads pools from data/pools.dat, reads blocklist from data/blocklist.txt,
+ * processes all events through the Processor, and writes output CSVs
+ * (output/balances-{start}-{end}.csv, output/rewards-{start}-{end}.csv,
+ * output/snapshots-{start}-{end}.txt).
+ * @throws If balance verification fails or reward pool tolerance is exceeded
  */
 async function main() {
   assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
@@ -39,7 +65,7 @@ async function main() {
   // write generated snapshots
   await writeFile(
     `${OUTPUT_DIR}/snapshots-${startSnapshot}-${endSnapshot}.txt`,
-    snapshots.join("\n")
+    snapshots.join("\n"),
   );
 
   console.log("Starting processor...");
@@ -49,7 +75,9 @@ async function main() {
   console.log("Reading transfers file...");
   const transfers: Transfer[] = [];
   for (let i = 0; i < TRANSFER_FILE_COUNT; i++) {
-    const transfersData = await readOptionalFile(`${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`);
+    const transfersData = await readOptionalFile(
+      `${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`,
+    );
     for (const t of parseJsonl(transfersData, normalizeTransfer)) {
       transfers.push(t);
     }
@@ -105,14 +133,20 @@ async function main() {
     liquidityProcessedCount++;
 
     if (liquidityProcessedCount % 1000 === 0) {
-      console.log(`Processed ${liquidityProcessedCount} liquidity change events`);
+      console.log(
+        `Processed ${liquidityProcessedCount} liquidity change events`,
+      );
     }
   }
 
   // Process liquidity v3 price range
-  console.log(`Processing ${pools.length} v3 pools price range for all accounts...`);
+  console.log(
+    `Processing ${pools.length} v3 pools price range for all accounts...`,
+  );
   await processor.processLpRange();
-  console.log(`Processed ${pools.length} v3 pools price range for all accounts`);
+  console.log(
+    `Processed ${pools.length} v3 pools price range for all accounts`,
+  );
 
   // Get eligible balances
   console.log("Getting eligible balances...");
@@ -122,50 +156,77 @@ async function main() {
   const summaries = summarizeTokenBalances(balances, CYTOKENS);
   for (const summary of summaries) {
     if (!summary.verified) {
-      throw new Error(`Balance verification failed for ${summary.name}: totalAverage - totalPenalties + totalBounties !== totalFinal`);
+      throw new Error(
+        `Balance verification failed for ${summary.name}: totalAverage - totalPenalties + totalBounties !== totalFinal`,
+      );
     }
   }
 
   // Log per-token balance summaries
   for (const summary of summaries) {
-    console.log(`${summary.name}: avg=${summary.totalAverage} penalties=${summary.totalPenalties} bounties=${summary.totalBounties} final=${summary.totalFinal} ✓`);
+    console.log(
+      `${summary.name}: avg=${summary.totalAverage} penalties=${summary.totalPenalties} bounties=${summary.totalBounties} final=${summary.totalFinal} ✓`,
+    );
   }
 
   // Write balances with per-token data
   console.log("Writing balances...");
-  const rewardsPerToken = await processor.calculateRewards(REWARD_POOL, balances);
+  const rewardsPerToken = await processor.calculateRewards(
+    REWARD_POOL,
+    balances,
+  );
   for (const token of CYTOKENS) {
     const tokenRewards = rewardsPerToken.get(token.address);
     if (tokenRewards) {
-      const totalForToken = Array.from(tokenRewards.values()).reduce((a, b) => a + b, 0n);
+      const totalForToken = Array.from(tokenRewards.values()).reduce(
+        (a, b) => a + b,
+        0n,
+      );
       console.log(`Total rewards for ${token.name}: ${totalForToken}`);
     }
   }
   const totalRewardsPerAddress = aggregateRewardsPerAddress(rewardsPerToken);
   const addresses = sortAddressesByReward(totalRewardsPerAddress);
-  const balancesOutput = formatBalancesCsv(addresses, CYTOKENS, snapshots, balances, rewardsPerToken, totalRewardsPerAddress);
+  const balancesOutput = formatBalancesCsv(
+    addresses,
+    CYTOKENS,
+    snapshots,
+    balances,
+    rewardsPerToken,
+    totalRewardsPerAddress,
+  );
   await writeFile(
     `${OUTPUT_DIR}/balances-${startSnapshot}-${endSnapshot}.csv`,
-    balancesOutput.join("\n")
+    balancesOutput.join("\n"),
   );
-  console.log(`Wrote ${addresses.length} balances to ${OUTPUT_DIR}/balances-${startSnapshot}-${endSnapshot}.csv`);
+  console.log(
+    `Wrote ${addresses.length} balances to ${OUTPUT_DIR}/balances-${startSnapshot}-${endSnapshot}.csv`,
+  );
 
   // Calculate and write rewards
   console.log("Calculating rewards...");
 
   // remove any addresses with no rewards
-  const rewardedAddresses = filterZeroRewards(addresses, totalRewardsPerAddress);
-  const rewardsOutput = formatRewardsCsv(rewardedAddresses, totalRewardsPerAddress);
+  const rewardedAddresses = filterZeroRewards(
+    addresses,
+    totalRewardsPerAddress,
+  );
+  const rewardsOutput = formatRewardsCsv(
+    rewardedAddresses,
+    totalRewardsPerAddress,
+  );
   await writeFile(
     `${OUTPUT_DIR}/rewards-${startSnapshot}-${endSnapshot}.csv`,
-    rewardsOutput.join("\n")
+    rewardsOutput.join("\n"),
   );
-  console.log(`Wrote ${rewardedAddresses.length} rewards to ${OUTPUT_DIR}/rewards-${startSnapshot}-${endSnapshot}.csv`);
+  console.log(
+    `Wrote ${rewardedAddresses.length} rewards to ${OUTPUT_DIR}/rewards-${startSnapshot}-${endSnapshot}.csv`,
+  );
 
   // Verify total rewards equals reward pool
   const totalRewards = Array.from(totalRewardsPerAddress.values()).reduce(
     (sum, reward) => sum + reward,
-    0n
+    0n,
   );
   console.log(`\nTotal rewards: ${totalRewards}`);
   console.log(`Reward pool: ${REWARD_POOL}`);
