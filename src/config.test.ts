@@ -1,93 +1,120 @@
-import { describe, it, expect } from 'vitest';
-import { generateSnapshotBlocks, scaleTo18, parseEnv, isSameAddress, REWARDS_SOURCES, FACTORIES, CYTOKENS } from './config';
-import { VALID_ADDRESS_REGEX, EPOCHS, CURRENT_EPOCH, SNAPSHOT_COUNT } from './constants';
+import { describe, it, expect } from "vitest";
+import {
+  generateSnapshotBlocks,
+  scaleTo18,
+  parseEnv,
+  isSameAddress,
+  REWARDS_SOURCES,
+  FACTORIES,
+  CYTOKENS,
+} from "./config";
+import {
+  VALID_ADDRESS_REGEX,
+  EPOCHS,
+  CURRENT_EPOCH,
+  SNAPSHOT_COUNT,
+  BOUNTY_PERCENT,
+} from "./constants";
 
-describe('generateSnapshotBlocks', () => {
-  
+describe("generateSnapshotBlocks", () => {
   const start = 5000;
   const end = 9000;
-  it('should generate correct number of blocks', () => {
-    const blocks = generateSnapshotBlocks('test-seed', start, end);
+  it("should generate correct number of blocks", () => {
+    const blocks = generateSnapshotBlocks("test-seed", start, end);
     expect(blocks).toHaveLength(SNAPSHOT_COUNT);
   });
 
-  it('should be deterministic - same seed produces same results', () => {
-    const seed = 'deterministic-test';
+  it("should be deterministic - same seed produces same results", () => {
+    const seed = "deterministic-test";
     const blocks1 = generateSnapshotBlocks(seed, start, end);
     const blocks2 = generateSnapshotBlocks(seed, start, end);
-    
+
     expect(blocks1).toEqual(blocks2);
   });
 
-  it('should produce different results with different seeds', () => {
-    const blocks1 = generateSnapshotBlocks('seed1', start, end);
-    const blocks2 = generateSnapshotBlocks('seed2', start, end);
-    
+  it("should produce different results with different seeds", () => {
+    const blocks1 = generateSnapshotBlocks("seed1", start, end);
+    const blocks2 = generateSnapshotBlocks("seed2", start, end);
+
     expect(blocks1).not.toEqual(blocks2);
   });
 
-  it('should return blocks in ascending order', () => {
-    const blocks = generateSnapshotBlocks('test-seed', start, end);
-    
+  it("should return blocks in ascending order", () => {
+    const blocks = generateSnapshotBlocks("test-seed", start, end);
+
     for (let i = 1; i < blocks.length; i++) {
       expect(blocks[i]).toBeGreaterThan(blocks[i - 1]);
     }
   });
 
-  it('should not produce duplicate blocks', () => {
+  it("should not produce duplicate blocks", () => {
     // Range of exactly SNAPSHOT_COUNT — pigeonhole principle means SNAPSHOT_COUNT unique blocks
     // are possible but random draws will almost certainly collide.
-    const blocks = generateSnapshotBlocks('test-seed', 5000, 5000 + SNAPSHOT_COUNT - 1);
+    const blocks = generateSnapshotBlocks(
+      "test-seed",
+      5000,
+      5000 + SNAPSHOT_COUNT - 1,
+    );
     const unique = new Set(blocks);
     expect(unique.size).toBe(blocks.length);
   });
 
   it(`should error if range is less than ${SNAPSHOT_COUNT}`, () => {
-    expect(() => generateSnapshotBlocks('test-seed', 5000, 5000 + SNAPSHOT_COUNT - 2)).toThrow();
+    expect(() =>
+      generateSnapshotBlocks("test-seed", 5000, 5000 + SNAPSHOT_COUNT - 2),
+    ).toThrow();
   });
 
-  it('should generate blocks within the epoch range', () => {
-    const blocks = generateSnapshotBlocks('test-seed', start, end);
-    blocks.forEach(block => {
+  it("should generate blocks within the epoch range", () => {
+    const blocks = generateSnapshotBlocks("test-seed", start, end);
+    blocks.forEach((block) => {
       expect(block).toBeGreaterThanOrEqual(start);
       expect(block).toBeLessThanOrEqual(end);
     });
   });
 
-  it('should handle very large range (production scale)', () => {
-    const blocks = generateSnapshotBlocks('cyclo-rewards', 52_974_045, 54_474_045);
+  it("should handle very large range (production scale)", () => {
+    const blocks = generateSnapshotBlocks(
+      "cyclo-rewards",
+      52_974_045,
+      54_474_045,
+    );
     expect(blocks).toHaveLength(SNAPSHOT_COUNT);
     const unique = new Set(blocks);
     expect(unique.size).toBe(SNAPSHOT_COUNT);
-    blocks.forEach(block => {
+    blocks.forEach((block) => {
       expect(block).toBeGreaterThanOrEqual(52_974_045);
       expect(block).toBeLessThanOrEqual(54_474_045);
     });
   });
 
-  it('should error on empty seed', () => {
-    expect(() => generateSnapshotBlocks('', start, end)).toThrow();
+  it("should error on empty seed", () => {
+    expect(() => generateSnapshotBlocks("", start, end)).toThrow();
   });
 
-  it('should reject non-integer start', () => {
-    expect(() => generateSnapshotBlocks('test-seed', 5000.5, 9000)).toThrow();
+  it("should reject non-integer start", () => {
+    expect(() => generateSnapshotBlocks("test-seed", 5000.5, 9000)).toThrow();
   });
 
-  it('should reject non-integer end', () => {
-    expect(() => generateSnapshotBlocks('test-seed', 5000, 9000.5)).toThrow();
+  it("should reject non-integer end", () => {
+    expect(() => generateSnapshotBlocks("test-seed", 5000, 9000.5)).toThrow();
   });
 
-  it('should reject NaN start', () => {
-    expect(() => generateSnapshotBlocks('test-seed', NaN, 9000)).toThrow();
+  it("should reject NaN start", () => {
+    expect(() => generateSnapshotBlocks("test-seed", NaN, 9000)).toThrow();
   });
 
-  it('should reject negative start', () => {
-    expect(() => generateSnapshotBlocks('test-seed', -1, 9000)).toThrow();
+  it("should reject negative start", () => {
+    expect(() => generateSnapshotBlocks("test-seed", -1, 9000)).toThrow();
   });
 
   it(`should terminate quickly with minimum range of exactly ${SNAPSHOT_COUNT}`, () => {
     const start = Date.now();
-    const blocks = generateSnapshotBlocks('test-seed', 100, 100 + SNAPSHOT_COUNT - 1);
+    const blocks = generateSnapshotBlocks(
+      "test-seed",
+      100,
+      100 + SNAPSHOT_COUNT - 1,
+    );
     const elapsed = Date.now() - start;
     expect(blocks).toHaveLength(SNAPSHOT_COUNT);
     // Must contain every value in [100, 100 + SNAPSHOT_COUNT - 1]
@@ -97,6 +124,18 @@ describe('generateSnapshotBlocks', () => {
     }
     // Should complete in well under 1 second (shuffle is O(n))
     expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("does not guarantee start and end are included (random sample)", () => {
+    // With a range of 1001 and only 30 samples, start/end are unlikely to both appear.
+    // This documents that behavior — start/end inclusion is NOT guaranteed.
+    const blocks = generateSnapshotBlocks("inclusion-test", 1000, 2000);
+    expect(blocks[0]).toBeGreaterThanOrEqual(1000);
+    expect(blocks[blocks.length - 1]).toBeLessThanOrEqual(2000);
+  });
+
+  it("should throw on inverted range (start > end)", () => {
+    expect(() => generateSnapshotBlocks("test-seed", 9000, 5000)).toThrow();
   });
 });
 
@@ -119,7 +158,9 @@ describe("isSameAddress", () => {
   });
 
   it("matches addresses with different casing", () => {
-    expect(isSameAddress("0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa", ADDR_A)).toBe(true);
+    expect(
+      isSameAddress("0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa", ADDR_A),
+    ).toBe(true);
   });
 
   it("returns false for different addresses", () => {
@@ -199,7 +240,7 @@ describe("REWARDS_SOURCES", () => {
   });
 
   it("should have no duplicates (case-insensitive)", () => {
-    const lower = REWARDS_SOURCES.map(a => a.toLowerCase());
+    const lower = REWARDS_SOURCES.map((a) => a.toLowerCase());
     expect(new Set(lower).size).toBe(REWARDS_SOURCES.length);
   });
 
@@ -218,7 +259,7 @@ describe("FACTORIES", () => {
   });
 
   it("should have no duplicates (case-insensitive)", () => {
-    const lower = FACTORIES.map(a => a.toLowerCase());
+    const lower = FACTORIES.map((a) => a.toLowerCase());
     expect(new Set(lower).size).toBe(FACTORIES.length);
   });
 
@@ -239,18 +280,20 @@ describe("CYTOKENS", () => {
   });
 
   it("should have no duplicate addresses (case-insensitive)", () => {
-    const addresses = CYTOKENS.map(t => t.address.toLowerCase());
+    const addresses = CYTOKENS.map((t) => t.address.toLowerCase());
     expect(new Set(addresses).size).toBe(CYTOKENS.length);
-    const underlying = CYTOKENS.map(t => t.underlyingAddress.toLowerCase());
+    const underlying = CYTOKENS.map((t) => t.underlyingAddress.toLowerCase());
     expect(new Set(underlying).size).toBe(CYTOKENS.length);
-    const receipts = CYTOKENS.map(t => t.receiptAddress.toLowerCase());
+    const receipts = CYTOKENS.map((t) => t.receiptAddress.toLowerCase());
     expect(new Set(receipts).size).toBe(CYTOKENS.length);
   });
 
   it("should have all addresses lowercase", () => {
     for (const token of CYTOKENS) {
       expect(token.address).toBe(token.address.toLowerCase());
-      expect(token.underlyingAddress).toBe(token.underlyingAddress.toLowerCase());
+      expect(token.underlyingAddress).toBe(
+        token.underlyingAddress.toLowerCase(),
+      );
       expect(token.receiptAddress).toBe(token.receiptAddress.toLowerCase());
     }
   });
@@ -271,9 +314,20 @@ describe("CYTOKENS", () => {
 
 describe("REWARDS_SOURCES and FACTORIES", () => {
   it("should not overlap (case-insensitive)", () => {
-    const sources = new Set(REWARDS_SOURCES.map(a => a.toLowerCase()));
+    const sources = new Set(REWARDS_SOURCES.map((a) => a.toLowerCase()));
     for (const factory of FACTORIES) {
       expect(sources.has(factory.toLowerCase())).toBe(false);
     }
+  });
+});
+
+describe("BOUNTY_PERCENT", () => {
+  it("should be 10 (10% bounty)", () => {
+    expect(BOUNTY_PERCENT).toBe(10n);
+  });
+
+  it("should be between 0 and 100 exclusive", () => {
+    expect(BOUNTY_PERCENT).toBeGreaterThan(0n);
+    expect(BOUNTY_PERCENT).toBeLessThan(100n);
   });
 });
