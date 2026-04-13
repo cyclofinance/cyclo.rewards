@@ -241,6 +241,11 @@ async function scrapeTransfers() {
       },
     );
 
+    if (!Array.isArray(response.transfers)) {
+      throw new Error(
+        `Subgraph returned non-array transfers at skip=${skip}: ${typeof response.transfers}`,
+      );
+    }
     const batchTransfers = response.transfers.map(mapSubgraphTransfer);
 
     assertNoPaginationCeiling(hasMore, batchTransfers.length, skip);
@@ -338,6 +343,11 @@ async function scrapeLiquidityChanges() {
       untilSnapshot: UNTIL_SNAPSHOT,
     });
 
+    if (!Array.isArray(response.liquidityChanges)) {
+      throw new Error(
+        `Subgraph returned non-array liquidityChanges at skip=${skip}: ${typeof response.liquidityChanges}`,
+      );
+    }
     const batchLiquidityChanges = response.liquidityChanges.map((t) => {
       if (t.__typename === "LiquidityV3Change") {
         v3Pools.add(t.poolAddress.toLowerCase());
