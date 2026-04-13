@@ -21,6 +21,19 @@ import assert from "assert";
 
 const BATCH_SIZE = 1000;
 
+/** Throw if pagination hit a skip ceiling (expected more results but got none) */
+function assertNoPaginationCeiling(
+  hasMore: boolean,
+  batchLength: number,
+  skip: number,
+): void {
+  if (hasMore && batchLength === 0) {
+    throw new Error(
+      `Pagination ceiling hit at skip=${skip}: expected results but got 0. The subgraph may have a skip limit.`,
+    );
+  }
+}
+
 const { endSnapshot } = parseEnv();
 // blockNumber_lte is inclusive, so no +1 needed
 export const UNTIL_SNAPSHOT = endSnapshot;
@@ -230,6 +243,8 @@ async function scrapeTransfers() {
 
     const batchTransfers = response.transfers.map(mapSubgraphTransfer);
 
+    assertNoPaginationCeiling(hasMore, batchTransfers.length, skip);
+
     transfers.push(...batchTransfers);
 
     console.log(`Found ${batchTransfers.length} transfers in batch`);
@@ -329,6 +344,8 @@ async function scrapeLiquidityChanges() {
       }
       return mapSubgraphLiquidityChange(t);
     });
+
+    assertNoPaginationCeiling(hasMore, batchLiquidityChanges.length, skip);
 
     liquidityChanges.push(...batchLiquidityChanges);
 
