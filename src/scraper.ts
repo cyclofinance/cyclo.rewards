@@ -143,6 +143,9 @@ export function mapSubgraphLiquidityChange(t: SubgraphLiquidityChange): Liquidit
       upperTick: parseIntStrict(t.upperTick, "upperTick"),
     };
   }
+  if (t.__typename !== "LiquidityV2Change") {
+    throw new Error(`Unknown liquidity change __typename: "${t.__typename}"`);
+  }
   return { __typename: t.__typename, ...base };
 }
 

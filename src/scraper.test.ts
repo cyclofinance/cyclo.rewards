@@ -302,6 +302,14 @@ describe("mapSubgraphLiquidityChange", () => {
     const liq = { ...VALID_V3_LIQUIDITY, tokenId: "abc" };
     expect(() => mapSubgraphLiquidityChange(liq)).toThrow("tokenId");
   });
+
+  it("should throw on unknown __typename", () => {
+    const unknown = {
+      ...VALID_V2_LIQUIDITY,
+      __typename: "LiquidityV99Change" as any,
+    };
+    expect(() => mapSubgraphLiquidityChange(unknown)).toThrow("__typename");
+  });
 });
 
 describe("parseIntStrict", () => {

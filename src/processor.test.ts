@@ -617,6 +617,16 @@ describe("Processor", () => {
     });
   });
 
+  describe("Duplicate cheater rejection", () => {
+    it("should throw if the same cheater is reported twice", () => {
+      const reports = [
+        { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
+        { reporter: "0x0000000000000000000000000000000000000099", cheater: NORMAL_USER_2 },
+      ];
+      expect(() => new Processor(SNAPSHOTS, reports, mockClient)).toThrow("cheater");
+    });
+  });
+
   describe("Inverse-fraction reward weighting", () => {
     it("should allocate more rewards to token with less total eligible balance", async () => {
       // Token A: 100 total eligible (one user)
