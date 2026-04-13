@@ -4,3 +4,4 @@ dist/
 .DS_Store
 .fixes/
 exports/
+.pre-commit-config.yaml
