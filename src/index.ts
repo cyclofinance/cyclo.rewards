@@ -133,7 +133,7 @@ async function main() {
 
   // Write balances with per-token data
   console.log("Writing balances...");
-  const rewardsPerToken = await processor.calculateRewards(REWARD_POOL);
+  const rewardsPerToken = await processor.calculateRewards(REWARD_POOL, balances);
   for (const token of CYTOKENS) {
     const tokenRewards = rewardsPerToken.get(token.address);
     if (tokenRewards) {

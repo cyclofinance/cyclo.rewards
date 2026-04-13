@@ -752,7 +752,8 @@ describe("Processor", () => {
       await processor.processLiquidityPositions(liq2);
 
       const rewardPool = ONEn;
-      const result = await processor.calculateRewards(rewardPool);
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
 
       const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
       const user2Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_2);
@@ -782,11 +783,10 @@ describe("Processor", () => {
       await buyAndDeposit(processor, NORMAL_USER_2, "88000000000000000000", CYTOKENS[1].address, 50);
 
       const rewardPool = 1_000_000n * ONEn;
-      const result = await processor.calculateRewards(rewardPool);
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
       expect(result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)).not.toBeUndefined();
       expect(result.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)).not.toBeUndefined();
-
-      const balances = await processor.getEligibleBalances();
       expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average).toBe(50000000000000000000n);
       expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.average).toBe(0n);
       expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.average).toBe(0n);
@@ -809,7 +809,8 @@ describe("Processor", () => {
       await buyAndDeposit(processor, NORMAL_USER_2, "3000000000000000000", CYTOKENS[0].address, 50);
 
       const rewardPool = ONEn;
-      const result = await processor.calculateRewards(rewardPool);
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
 
       const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
       const user2Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_2);

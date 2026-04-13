@@ -474,10 +474,10 @@ export class Processor {
    * End-to-end reward calculation: computes eligible balances, splits the pool across tokens,
    * then distributes each token's share proportionally to account balances.
    * @param rewardPool - Total reward pool in wei
+   * @param balances - Pre-computed eligible balances (avoids redundant getEligibleBalances call)
    * @returns Token address → user address → reward amount in wei
    */
-  async calculateRewards(rewardPool: bigint): Promise<RewardsPerToken> {
-    const balances = await this.getEligibleBalances();
+  async calculateRewards(rewardPool: bigint, balances: EligibleBalances): Promise<RewardsPerToken> {
     const totalBalances = this.calculateTotalEligibleBalances(balances);
 
     const totalRewardsPerToken = this.calculateRewardsPoolsPerToken(
