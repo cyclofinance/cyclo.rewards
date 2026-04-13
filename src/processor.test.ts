@@ -7,8 +7,8 @@ import { normalizeTransfer } from "./pipeline";
 import { describe, it, expect, beforeEach, vi, afterEach, Mock } from "vitest";
 
 // Mock the liquidity module
-vi.mock('./liquidity', () => ({
-  getPoolsTick: vi.fn()
+vi.mock("./liquidity", () => ({
+  getPoolsTick: vi.fn(),
 }));
 
 describe("Processor", () => {
@@ -50,21 +50,34 @@ describe("Processor", () => {
     const buyTx = nextTxHash();
     const depositTx = nextTxHash();
     const buy: Transfer = {
-      from: APPROVED_SOURCE, to: user, value,
-      blockNumber: blockNumber - 1, timestamp: 900,
-      tokenAddress, transactionHash: buyTx,
+      from: APPROVED_SOURCE,
+      to: user,
+      value,
+      blockNumber: blockNumber - 1,
+      timestamp: 900,
+      tokenAddress,
+      transactionHash: buyTx,
     };
     const deposit: Transfer = {
-      from: user, to: LP_ADDRESS, value,
-      blockNumber, timestamp: 1000,
-      tokenAddress, transactionHash: depositTx,
+      from: user,
+      to: LP_ADDRESS,
+      value,
+      blockNumber,
+      timestamp: 1000,
+      tokenAddress,
+      transactionHash: depositTx,
     };
     const liq: LiquidityChange = {
-      tokenAddress, lpAddress: LP_ADDRESS, owner: user,
+      tokenAddress,
+      lpAddress: LP_ADDRESS,
+      owner: user,
       changeType: LiquidityChangeType.Deposit,
-      liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: value,
-      blockNumber, timestamp: 1000,
-      __typename: "LiquidityV2Change", transactionHash: depositTx,
+      liquidityChange: ARBITRARY_LIQUIDITY,
+      depositedBalanceChange: value,
+      blockNumber,
+      timestamp: 1000,
+      __typename: "LiquidityV2Change",
+      transactionHash: depositTx,
     };
     await proc.organizeLiquidityPositions(liq);
     await proc.processTransfer(buy);
@@ -82,10 +95,7 @@ describe("Processor", () => {
     txCounter = 0;
     processor = new Processor(SNAPSHOTS, [], mockClient);
     processor.isApprovedSource = async (source: string) => {
-      return (
-        source === APPROVED_SOURCE ||
-        source === FACTORY_SOURCE
-      );
+      return source === APPROVED_SOURCE || source === FACTORY_SOURCE;
     };
   });
 
@@ -114,19 +124,16 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1),
       ).toBeDefined();
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.snapshots[0]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0],
       ).toBe(0n);
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.snapshots[1]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1],
       ).toBe(0n);
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.average
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average,
       ).toBe(0n);
     });
 
@@ -170,19 +177,16 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1),
       ).toBeDefined();
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.snapshots[0]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0],
       ).toBe(ONEn);
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.snapshots[1]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1],
       ).toBe(ONEn);
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.average
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average,
       ).toBe(ONEn);
     });
 
@@ -201,8 +205,7 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)
-          ?.average
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average,
       ).toBe(0n);
     });
 
@@ -295,8 +298,12 @@ describe("Processor", () => {
       await processor.processLiquidityPositions(liquidityChangeEvent);
       const balances = await processor.getEligibleBalances();
 
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(ONEn);
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1]).toBe(ONEn);
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0],
+      ).toBe(ONEn);
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1],
+      ).toBe(ONEn);
     });
 
     it("should handle transfers between snapshots", async () => {
@@ -337,8 +344,12 @@ describe("Processor", () => {
       await processor.processLiquidityPositions(liquidityChangeEvent);
       const balances = await processor.getEligibleBalances();
 
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(0n);
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1]).toBe(ONEn);
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0],
+      ).toBe(0n);
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1],
+      ).toBe(ONEn);
     });
 
     it("should handle transfers after snapshot 2", async () => {
@@ -356,15 +367,11 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       expect(
-        balances
-          .get(CYTOKENS[0].address)
-          ?.get(NORMAL_USER_1)?.snapshots[0]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0],
       ).toBe(0n);
 
       expect(
-        balances
-          .get(CYTOKENS[0].address)
-          ?.get(NORMAL_USER_1)?.snapshots[1]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1],
       ).toBe(0n);
     });
 
@@ -408,21 +415,21 @@ describe("Processor", () => {
 
       // Transfer at block 100 (== snapshot[0]) should be included in snapshot[0] due to <= comparison
       expect(
-        balances.get(CYTOKENS[0].address)
-          ?.get(NORMAL_USER_1)?.snapshots[0]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[0],
       ).toBe(ONEn);
       expect(
-        balances.get(CYTOKENS[0].address)
-          ?.get(NORMAL_USER_1)?.snapshots[1]
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.snapshots[1],
       ).toBe(ONEn);
     });
   });
 
   describe("Blocklist", () => {
     it("should include blocklisted addresses with penalties", async () => {
-      const processor = new Processor(SNAPSHOTS, [
-        { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
-      ], mockClient);
+      const processor = new Processor(
+        SNAPSHOTS,
+        [{ reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 }],
+        mockClient,
+      );
       processor.isApprovedSource = async (source: string) =>
         source === APPROVED_SOURCE;
 
@@ -542,13 +549,21 @@ describe("Processor", () => {
 
       // Buy transfers to set boughtCap for both users
       const buy1: Transfer = {
-        from: APPROVED_SOURCE, to: NORMAL_USER_2, value: ONE,
-        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_2,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "c".repeat(64),
       };
       const buy2: Transfer = {
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "d".repeat(64),
       };
 
@@ -589,11 +604,18 @@ describe("Processor", () => {
     it("should apply penalties independently per token", async () => {
       const reports = [{ reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 }];
       const proc = new Processor(SNAPSHOTS, reports, mockClient);
-      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+      proc.isApprovedSource = async (source: string) =>
+        source === APPROVED_SOURCE;
 
       // Cheater has balance in both tokens
       await buyAndDeposit(proc, NORMAL_USER_2, ONE, CYTOKENS[0].address, 50);
-      await buyAndDeposit(proc, NORMAL_USER_2, "2000000000000000000", CYTOKENS[1].address, 50);
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_2,
+        "2000000000000000000",
+        CYTOKENS[1].address,
+        50,
+      );
 
       // Reporter has balance in token 0 only
       await buyAndDeposit(proc, NORMAL_USER_1, ONE, CYTOKENS[0].address, 50);
@@ -601,19 +623,35 @@ describe("Processor", () => {
       const balances = await proc.getEligibleBalances();
 
       // Cheater penalized in both tokens independently
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.penalty).toBe(ONEn);
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.final).toBe(0n);
-      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.penalty).toBe(2000000000000000000n);
-      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.final).toBe(0n);
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.penalty,
+      ).toBe(ONEn);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.final).toBe(
+        0n,
+      );
+      expect(
+        balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.penalty,
+      ).toBe(2000000000000000000n);
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.final).toBe(
+        0n,
+      );
 
       // Reporter gets bounty in both tokens
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.bounty).toBe(ONEn / 10n);
-      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.bounty).toBe(200000000000000000n);
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.bounty,
+      ).toBe(ONEn / 10n);
+      expect(
+        balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.bounty,
+      ).toBe(200000000000000000n);
 
       // Reporter's final in token 0 = original + bounty
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.final).toBe(ONEn + ONEn / 10n);
+      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.final).toBe(
+        ONEn + ONEn / 10n,
+      );
       // Reporter's final in token 1 = just bounty (no original balance)
-      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.final).toBe(200000000000000000n);
+      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.final).toBe(
+        200000000000000000n,
+      );
     });
   });
 
@@ -621,9 +659,14 @@ describe("Processor", () => {
     it("should throw if the same cheater is reported twice", () => {
       const reports = [
         { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
-        { reporter: "0x0000000000000000000000000000000000000099", cheater: NORMAL_USER_2 },
+        {
+          reporter: "0x0000000000000000000000000000000000000099",
+          cheater: NORMAL_USER_2,
+        },
       ];
-      expect(() => new Processor(SNAPSHOTS, reports, mockClient)).toThrow("cheater");
+      expect(() => new Processor(SNAPSHOTS, reports, mockClient)).toThrow(
+        "cheater",
+      );
     });
   });
 
@@ -634,10 +677,23 @@ describe("Processor", () => {
       // Inverse fractions: A = 500/100 = 5, B = 500/400 = 1.25
       // Pool shares: A = 5/(5+1.25) = 80%, B = 1.25/6.25 = 20%
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+      proc.isApprovedSource = async (source: string) =>
+        source === APPROVED_SOURCE;
 
-      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
-      await buyAndDeposit(proc, NORMAL_USER_2, "400000000000000000000", CYTOKENS[1].address, 50);
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_1,
+        "100000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_2,
+        "400000000000000000000",
+        CYTOKENS[1].address,
+        50,
+      );
 
       const rewardPool = 1000000000000000000000n; // 1000 tokens
       const balances = await proc.getEligibleBalances();
@@ -655,10 +711,23 @@ describe("Processor", () => {
 
     it("should split evenly when both tokens have equal total eligible", async () => {
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+      proc.isApprovedSource = async (source: string) =>
+        source === APPROVED_SOURCE;
 
-      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
-      await buyAndDeposit(proc, NORMAL_USER_2, "100000000000000000000", CYTOKENS[1].address, 50);
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_1,
+        "100000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_2,
+        "100000000000000000000",
+        CYTOKENS[1].address,
+        50,
+      );
 
       const rewardPool = 1000000000000000000000n;
       const balances = await proc.getEligibleBalances();
@@ -670,9 +739,16 @@ describe("Processor", () => {
 
     it("should give all rewards to a single token when only one has balance", async () => {
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+      proc.isApprovedSource = async (source: string) =>
+        source === APPROVED_SOURCE;
 
-      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_1,
+        "100000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
 
       const rewardPool = 1000000000000000000000n;
       const balances = await proc.getEligibleBalances();
@@ -689,12 +765,31 @@ describe("Processor", () => {
       // Sum of inverses: 11
       // Shares: A=6/11, B=3/11, C=2/11
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      proc.isApprovedSource = async (source: string) => source === APPROVED_SOURCE;
+      proc.isApprovedSource = async (source: string) =>
+        source === APPROVED_SOURCE;
 
-      await buyAndDeposit(proc, NORMAL_USER_1, "100000000000000000000", CYTOKENS[0].address, 50);
-      await buyAndDeposit(proc, NORMAL_USER_2, "200000000000000000000", CYTOKENS[1].address, 50);
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_1,
+        "100000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_2,
+        "200000000000000000000",
+        CYTOKENS[1].address,
+        50,
+      );
       // cyFXRP has 6 decimals, so 300 tokens = 300_000_000 in 6-decimal
-      await buyAndDeposit(proc, NORMAL_USER_1, "300000000", CYTOKENS[2].address, 50);
+      await buyAndDeposit(
+        proc,
+        NORMAL_USER_1,
+        "300000000",
+        CYTOKENS[2].address,
+        50,
+      );
 
       const rewardPool = 1100000000000000000000n; // 1100 tokens for clean division by 11
       const balances = await proc.getEligibleBalances();
@@ -715,40 +810,64 @@ describe("Processor", () => {
       const THREE = "3000000000000000000";
 
       const buy1: Transfer = {
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: TWO,
-        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: TWO,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "c".repeat(64),
       };
       const deposit1: Transfer = {
-        from: NORMAL_USER_1, to: "0x6000000000000000000000000000000000000000",
-        value: TWO, blockNumber: 50, timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address, transactionHash: "0x" + "a".repeat(64),
+        from: NORMAL_USER_1,
+        to: "0x6000000000000000000000000000000000000000",
+        value: TWO,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "a".repeat(64),
       };
       const liq1: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
         lpAddress: "0x6000000000000000000000000000000000000000",
-        owner: NORMAL_USER_1, changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234", depositedBalanceChange: TWO,
-        blockNumber: 50, timestamp: 1000, __typename: "LiquidityV2Change",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: TWO,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
         transactionHash: "0x" + "a".repeat(64),
       };
 
       const buy2: Transfer = {
-        from: APPROVED_SOURCE, to: NORMAL_USER_2, value: THREE,
-        blockNumber: 40, timestamp: 900, tokenAddress: CYTOKENS[0].address,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_2,
+        value: THREE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "d".repeat(64),
       };
       const deposit2: Transfer = {
-        from: NORMAL_USER_2, to: "0x6000000000000000000000000000000000000000",
-        value: THREE, blockNumber: 50, timestamp: 1000,
-        tokenAddress: CYTOKENS[0].address, transactionHash: "0x" + "e".repeat(64),
+        from: NORMAL_USER_2,
+        to: "0x6000000000000000000000000000000000000000",
+        value: THREE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "e".repeat(64),
       };
       const liq2: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
         lpAddress: "0x6000000000000000000000000000000000000000",
-        owner: NORMAL_USER_2, changeType: LiquidityChangeType.Deposit,
-        liquidityChange: "1234", depositedBalanceChange: THREE,
-        blockNumber: 50, timestamp: 1000, __typename: "LiquidityV2Change",
+        owner: NORMAL_USER_2,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: THREE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
         transactionHash: "0x" + "e".repeat(64),
       };
 
@@ -776,47 +895,107 @@ describe("Processor", () => {
     it("should treat negative bought cap as zero when calculating eligible amounts", async () => {
       // User 1: cyA: bought 50, LP 50 → eligible 50. cyB: bought 10, LP 10, sold 40 → cap -30 → eligible 0
       // User 2: cyA: bought 5, LP 5, sold 20 → cap -15 → eligible 0. cyB: bought 88, LP 88 → eligible 88
-      await buyAndDeposit(processor, NORMAL_USER_1, "50000000000000000000", CYTOKENS[0].address, 50);
-      await buyAndDeposit(processor, NORMAL_USER_1, "10000000000000000000", CYTOKENS[1].address, 50);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        "50000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        "10000000000000000000",
+        CYTOKENS[1].address,
+        50,
+      );
       await processor.processTransfer({
-        from: NORMAL_USER_1, to: NORMAL_USER_2, value: "40000000000000000000",
-        blockNumber: 50, timestamp: 1000, tokenAddress: CYTOKENS[1].address,
+        from: NORMAL_USER_1,
+        to: NORMAL_USER_2,
+        value: "40000000000000000000",
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[1].address,
         transactionHash: nextTxHash(),
       });
 
-      await buyAndDeposit(processor, NORMAL_USER_2, "5000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_2,
+        "5000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
       await processor.processTransfer({
-        from: NORMAL_USER_2, to: NORMAL_USER_1, value: "20000000000000000000",
-        blockNumber: 50, timestamp: 1000, tokenAddress: CYTOKENS[0].address,
+        from: NORMAL_USER_2,
+        to: NORMAL_USER_1,
+        value: "20000000000000000000",
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
         transactionHash: nextTxHash(),
       });
-      await buyAndDeposit(processor, NORMAL_USER_2, "88000000000000000000", CYTOKENS[1].address, 50);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_2,
+        "88000000000000000000",
+        CYTOKENS[1].address,
+        50,
+      );
 
       const rewardPool = 1_000_000n * ONEn;
       const balances = await processor.getEligibleBalances();
       const result = await processor.calculateRewards(rewardPool, balances);
-      expect(result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)).not.toBeUndefined();
-      expect(result.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)).not.toBeUndefined();
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average).toBe(50000000000000000000n);
-      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.average).toBe(0n);
-      expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.average).toBe(0n);
-      expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.average).toBe(88000000000000000000n);
+      expect(
+        result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1),
+      ).not.toBeUndefined();
+      expect(
+        result.get(CYTOKENS[1].address)?.get(NORMAL_USER_2),
+      ).not.toBeUndefined();
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average,
+      ).toBe(50000000000000000000n);
+      expect(
+        balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.average,
+      ).toBe(0n);
+      expect(
+        balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.average,
+      ).toBe(0n);
+      expect(
+        balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)?.average,
+      ).toBe(88000000000000000000n);
 
-      const rewardsPools = processor.calculateRewardsPoolsPerToken(balances, rewardPool);
+      const rewardsPools = processor.calculateRewardsPoolsPerToken(
+        balances,
+        rewardPool,
+      );
       const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
       const user2Reward = result.get(CYTOKENS[1].address)?.get(NORMAL_USER_2);
       expect(user1Reward).toBe(rewardsPools.get(CYTOKENS[0].address)!);
       expect(user2Reward).toBe(rewardsPools.get(CYTOKENS[1].address)!);
-      expect(user1Reward! + user2Reward!).toBeGreaterThanOrEqual(rewardPool - 10n);
-
+      expect(user1Reward! + user2Reward!).toBeGreaterThanOrEqual(
+        rewardPool - 10n,
+      );
     });
   });
 
   describe("Reward Calculation with Multiple Tokens", () => {
     it("should calculate rewards proportionally for multiple tokens", async () => {
       // User 1: 2 cyA. User 2: 3 cyA. Reward split: 2:3 = 0.4:0.6
-      await buyAndDeposit(processor, NORMAL_USER_1, "2000000000000000000", CYTOKENS[0].address, 50);
-      await buyAndDeposit(processor, NORMAL_USER_2, "3000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        "2000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_2,
+        "3000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
 
       const rewardPool = ONEn;
       const balances = await processor.getEligibleBalances();
@@ -834,8 +1013,20 @@ describe("Processor", () => {
   describe("Reward truncation", () => {
     it("total rewards should be <= pool due to BigInt truncation", async () => {
       // Use amounts that don't divide evenly to force truncation
-      await buyAndDeposit(processor, NORMAL_USER_1, "3000000000000000000", CYTOKENS[0].address, 50);
-      await buyAndDeposit(processor, NORMAL_USER_2, "7000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        "3000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_2,
+        "7000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
 
       const rewardPool = ONEn;
       const balances = await processor.getEligibleBalances();
@@ -858,23 +1049,39 @@ describe("Processor", () => {
     it("should recover from negative bought cap with a subsequent buy", async () => {
       const tokenAddress = CYTOKENS[0].address;
       // Buy 10, LP 10
-      await buyAndDeposit(processor, NORMAL_USER_1, "10000000000000000000", tokenAddress, 40);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        "10000000000000000000",
+        tokenAddress,
+        40,
+      );
       // Sell 20 → cap = 10 - 20 = -10
       await processor.processTransfer({
-        from: NORMAL_USER_1, to: NORMAL_USER_2, value: "20000000000000000000",
-        blockNumber: 45, timestamp: 950, tokenAddress,
+        from: NORMAL_USER_1,
+        to: NORMAL_USER_2,
+        value: "20000000000000000000",
+        blockNumber: 45,
+        timestamp: 950,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
       // Buy 30 → cap = -10 + 30 = 20
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "30000000000000000000",
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "30000000000000000000",
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
 
       const balances = await processor.getEligibleBalances();
       // boughtCap = 20, lpBalance = 10 → eligible = min(20, 10) = 10
-      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(10000000000000000000n);
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(
+        10000000000000000000n,
+      );
     });
   });
 
@@ -883,17 +1090,24 @@ describe("Processor", () => {
       const tokenAddress = CYTOKENS[0].address;
       // Buy 10 to set cap
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "10000000000000000000",
-        blockNumber: 40, timestamp: 900, tokenAddress,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "10000000000000000000",
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
       // Withdraw without prior deposit → lpBalance = -5
       const withdrawEvent: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Withdraw,
         liquidityChange: ARBITRARY_LIQUIDITY,
         depositedBalanceChange: "-5000000000000000000",
-        blockNumber: 50, timestamp: 1000,
+        blockNumber: 50,
+        timestamp: 1000,
         __typename: "LiquidityV2Change",
         transactionHash: nextTxHash(),
       };
@@ -909,26 +1123,43 @@ describe("Processor", () => {
     it("should not increase boughtCap when receiving tokens from LP withdrawal", async () => {
       const tokenAddress = CYTOKENS[0].address;
       // Buy 10, LP 10
-      await buyAndDeposit(processor, NORMAL_USER_1, "10000000000000000000", tokenAddress, 40);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        "10000000000000000000",
+        tokenAddress,
+        40,
+      );
       // Sell 5 → cap = 10 - 5 = 5
       await processor.processTransfer({
-        from: NORMAL_USER_1, to: NORMAL_USER_2, value: "5000000000000000000",
-        blockNumber: 45, timestamp: 950, tokenAddress,
+        from: NORMAL_USER_1,
+        to: NORMAL_USER_2,
+        value: "5000000000000000000",
+        blockNumber: 45,
+        timestamp: 950,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
       // Withdraw 3 from LP (pool is FACTORY_SOURCE, which is approved)
       const withdrawTx = nextTxHash();
       const withdrawTransfer: Transfer = {
-        from: FACTORY_SOURCE, to: NORMAL_USER_1, value: "3000000000000000000",
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: FACTORY_SOURCE,
+        to: NORMAL_USER_1,
+        value: "3000000000000000000",
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: withdrawTx,
       };
       const withdrawEvent: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Withdraw,
         liquidityChange: ARBITRARY_LIQUIDITY,
         depositedBalanceChange: "-3000000000000000000",
-        blockNumber: 50, timestamp: 1000,
+        blockNumber: 50,
+        timestamp: 1000,
         __typename: "LiquidityV2Change",
         transactionHash: withdrawTx,
       };
@@ -940,7 +1171,9 @@ describe("Processor", () => {
       // boughtCap should still be 5 (withdrawal is neutral, not +3)
       // lpBalance = 10 - 3 = 7
       // eligible = min(5, 7) = 5
-      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(5000000000000000000n);
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(
+        5000000000000000000n,
+      );
     });
   });
 
@@ -951,24 +1184,39 @@ describe("Processor", () => {
 
       // Buy and deposit into V3 LP
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 40, timestamp: 900, tokenAddress,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
       const depositTransfer: Transfer = {
-        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: NORMAL_USER_1,
+        to: LP_ADDRESS,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: depositTx,
       };
       const v3Event: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
-        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
-        blockNumber: 50, timestamp: 1000,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
         __typename: "LiquidityV3Change",
         transactionHash: depositTx,
-        tokenId: "42", poolAddress: POOL_ADDRESS,
-        fee: 3000, lowerTick: -100, upperTick: 100,
+        tokenId: "42",
+        poolAddress: POOL_ADDRESS,
+        fee: 3000,
+        lowerTick: -100,
+        upperTick: 100,
       };
 
       await processor.organizeLiquidityPositions(v3Event);
@@ -992,24 +1240,39 @@ describe("Processor", () => {
       const depositTx = nextTxHash();
 
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 40, timestamp: 900, tokenAddress,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
       const depositTransfer: Transfer = {
-        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: NORMAL_USER_1,
+        to: LP_ADDRESS,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: depositTx,
       };
       const v3Event: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
-        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
-        blockNumber: 50, timestamp: 1000,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
         __typename: "LiquidityV3Change",
         transactionHash: depositTx,
-        tokenId: "42", poolAddress: POOL_ADDRESS,
-        fee: 3000, lowerTick: -100, upperTick: 100,
+        tokenId: "42",
+        poolAddress: POOL_ADDRESS,
+        fee: 3000,
+        lowerTick: -100,
+        upperTick: 100,
       };
 
       await processor.organizeLiquidityPositions(v3Event);
@@ -1025,7 +1288,9 @@ describe("Processor", () => {
 
       const balances = await processor.getEligibleBalances();
       // In range → position kept → eligible = min(1, 1) = 1
-      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(ONEn);
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.average).toBe(
+        ONEn,
+      );
     });
 
     it("should treat tick exactly at upperTick as out-of-range (exclusive upper bound)", async () => {
@@ -1033,25 +1298,40 @@ describe("Processor", () => {
       const depositTx = nextTxHash();
 
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 40, timestamp: 900, tokenAddress,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
       const v3Event: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
-        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
-        blockNumber: 50, timestamp: 1000,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
         __typename: "LiquidityV3Change",
         transactionHash: depositTx,
-        tokenId: "42", poolAddress: POOL_ADDRESS,
-        fee: 3000, lowerTick: -100, upperTick: 100,
+        tokenId: "42",
+        poolAddress: POOL_ADDRESS,
+        fee: 3000,
+        lowerTick: -100,
+        upperTick: 100,
       };
 
       await processor.organizeLiquidityPositions(v3Event);
       await processor.processTransfer({
-        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: NORMAL_USER_1,
+        to: LP_ADDRESS,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: depositTx,
       });
       await processor.processLiquidityPositions(v3Event);
@@ -1074,17 +1354,26 @@ describe("Processor", () => {
       const tokenAddress = CYTOKENS[0].address;
       const txHash = nextTxHash();
       const liq: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
-        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
-        blockNumber: 50, timestamp: 1000,
-        __typename: "LiquidityV2Change", transactionHash: txHash,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: txHash,
       };
       await processor.organizeLiquidityPositions(liq);
 
       const transfer: Transfer = {
-        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: NORMAL_USER_1,
+        to: LP_ADDRESS,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: txHash,
       };
       expect(processor.transferIsDeposit(transfer)).toEqual(liq);
@@ -1092,8 +1381,11 @@ describe("Processor", () => {
 
     it("should return undefined when no matching LP event exists", () => {
       const transfer: Transfer = {
-        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
-        blockNumber: 50, timestamp: 1000,
+        from: NORMAL_USER_1,
+        to: LP_ADDRESS,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: nextTxHash(),
       };
@@ -1104,17 +1396,26 @@ describe("Processor", () => {
       const tokenAddress = CYTOKENS[0].address;
       const txHash = nextTxHash();
       const liq: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Withdraw,
-        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: `-${ONE}`,
-        blockNumber: 50, timestamp: 1000,
-        __typename: "LiquidityV2Change", transactionHash: txHash,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: `-${ONE}`,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: txHash,
       };
       await processor.organizeLiquidityPositions(liq);
 
       const transfer: Transfer = {
-        from: NORMAL_USER_1, to: LP_ADDRESS, value: ONE,
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: NORMAL_USER_1,
+        to: LP_ADDRESS,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: txHash,
       };
       expect(processor.transferIsDeposit(transfer)).toBeUndefined();
@@ -1126,17 +1427,26 @@ describe("Processor", () => {
       const tokenAddress = CYTOKENS[0].address;
       const txHash = nextTxHash();
       const liq: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Withdraw,
-        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: `-${ONE}`,
-        blockNumber: 50, timestamp: 1000,
-        __typename: "LiquidityV2Change", transactionHash: txHash,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: `-${ONE}`,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: txHash,
       };
       await processor.organizeLiquidityPositions(liq);
 
       const transfer: Transfer = {
-        from: LP_ADDRESS, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: LP_ADDRESS,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: txHash,
       };
       expect(processor.transferIsWithdraw(transfer)).toEqual(liq);
@@ -1144,8 +1454,11 @@ describe("Processor", () => {
 
     it("should return undefined when no matching LP event exists", () => {
       const transfer: Transfer = {
-        from: LP_ADDRESS, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 50, timestamp: 1000,
+        from: LP_ADDRESS,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: nextTxHash(),
       };
@@ -1156,17 +1469,26 @@ describe("Processor", () => {
       const tokenAddress = CYTOKENS[0].address;
       const txHash = nextTxHash();
       const liq: LiquidityChange = {
-        tokenAddress, lpAddress: LP_ADDRESS, owner: NORMAL_USER_1,
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
         changeType: LiquidityChangeType.Deposit,
-        liquidityChange: ARBITRARY_LIQUIDITY, depositedBalanceChange: ONE,
-        blockNumber: 50, timestamp: 1000,
-        __typename: "LiquidityV2Change", transactionHash: txHash,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: txHash,
       };
       await processor.organizeLiquidityPositions(liq);
 
       const transfer: Transfer = {
-        from: LP_ADDRESS, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 50, timestamp: 1000, tokenAddress,
+        from: LP_ADDRESS,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress,
         transactionHash: txHash,
       };
       expect(processor.transferIsWithdraw(transfer)).toBeUndefined();
@@ -1208,7 +1530,116 @@ describe("Processor", () => {
       processor.organizeLiquidityPositions(event1);
 
       // Duplicate txHash should throw
-      expect(() => processor.organizeLiquidityPositions(event2)).toThrow("Duplicate");
+      expect(() => processor.organizeLiquidityPositions(event2)).toThrow(
+        "Duplicate",
+      );
+    });
+  });
+
+  describe("organizeLiquidityPositions ineligible token", () => {
+    it("should skip events for tokens not in CYTOKENS", () => {
+      const event: LiquidityChange = {
+        tokenAddress: "0x0000000000000000000000000000000000099999", // not a cyToken
+        lpAddress: "0x0000000000000000000000000000000000000001",
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1000",
+        depositedBalanceChange: "5000000000000000000",
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xskipped",
+      };
+
+      // Should not throw, just silently skip
+      expect(() => processor.organizeLiquidityPositions(event)).not.toThrow();
+
+      // Verify no liquidity events were stored
+      const liquidityEvents = (processor as any).liquidityEvents as Map<
+        string,
+        any
+      >;
+      expect(liquidityEvents.has(NORMAL_USER_1)).toBe(false);
+    });
+  });
+
+  describe("getUniqueAddresses", () => {
+    it("includes reporter addresses even without balances", async () => {
+      const reporter = "0x0000000000000000000000000000000000000088";
+      const proc = new Processor(
+        SNAPSHOTS,
+        [{ reporter, cheater: NORMAL_USER_1 }],
+        mockClient,
+      );
+      proc.isApprovedSource = async () => false;
+
+      const addresses = proc.getUniqueAddresses();
+      expect(addresses.has(reporter)).toBe(true);
+    });
+
+    it("includes all accounts from all tokens", async () => {
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        ONE,
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_2,
+        ONE,
+        CYTOKENS[1].address,
+        50,
+      );
+
+      const addresses = processor.getUniqueAddresses();
+      expect(addresses.has(NORMAL_USER_1)).toBe(true);
+      expect(addresses.has(NORMAL_USER_2)).toBe(true);
+      expect(addresses.has(APPROVED_SOURCE)).toBe(true);
+    });
+  });
+
+  describe("calculateTotalEligibleBalances", () => {
+    it("sums final18 across all accounts per token", async () => {
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        ONE,
+        CYTOKENS[0].address,
+        50,
+      );
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_2,
+        "2000000000000000000",
+        CYTOKENS[0].address,
+        50,
+      );
+
+      const balances = await processor.getEligibleBalances();
+      const totals = processor.calculateTotalEligibleBalances(balances);
+
+      expect(totals.get(CYTOKENS[0].address)).toBe(3000000000000000000n);
+    });
+  });
+
+  describe("getTokensWithBalance", () => {
+    it("excludes tokens with zero total balance", async () => {
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        ONE,
+        CYTOKENS[0].address,
+        50,
+      );
+      // CYTOKENS[1] has no activity
+
+      const balances = await processor.getEligibleBalances();
+      const tokens = processor.getTokensWithBalance(balances);
+
+      expect(tokens.map((t) => t.address)).toContain(CYTOKENS[0].address);
+      expect(tokens.map((t) => t.address)).not.toContain(CYTOKENS[1].address);
     });
   });
 
@@ -1217,11 +1648,21 @@ describe("Processor", () => {
       const tokenAddress = CYTOKENS[0].address;
 
       // Buy 9 tokens total (enough cap for all deposits: 5 + 3 + 1) then deposit 5
-      await buyAndDeposit(processor, NORMAL_USER_1, "5000000000000000000", tokenAddress, 50);
+      await buyAndDeposit(
+        processor,
+        NORMAL_USER_1,
+        "5000000000000000000",
+        tokenAddress,
+        50,
+      );
       // Buy extra 4 for the subsequent deposits' cap
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: "4000000000000000000",
-        blockNumber: 49, timestamp: 899, tokenAddress,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: "4000000000000000000",
+        blockNumber: 49,
+        timestamp: 899,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
 
@@ -1446,12 +1887,12 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       // lpBalance = 1, but boughtCap = 0 → eligible = min(0, 1) = 0
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
-      ).toBe(0n);
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
-      ).toBe(0n);
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(
+        0n,
+      );
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]).toBe(
+        0n,
+      );
     });
 
     it("should decrease lpBalance for LiquidityChangeType.Withdraw", async () => {
@@ -1478,9 +1919,9 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       // lpBalance = 1 - 1 = 0. boughtCap = 1. eligible = min(1, 0) = 0
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
-      ).toBe(0n);
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(
+        0n,
+      );
     });
 
     it("should skip liquidity events for ineligible tokens", async () => {
@@ -1515,20 +1956,24 @@ describe("Processor", () => {
       const balances = await processor.getEligibleBalances();
 
       // Event at block 100 (== snapshot[0]) should be included due to <= comparison
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
-      ).toBe(ONEn);
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
-      ).toBe(ONEn);
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(
+        ONEn,
+      );
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]).toBe(
+        ONEn,
+      );
     });
 
     it("should track V3 liquidity positions in lp3TrackList", async () => {
       const tokenAddress = CYTOKENS[0].address;
       // Buy to set boughtCap
       await processor.processTransfer({
-        from: APPROVED_SOURCE, to: NORMAL_USER_1, value: ONE,
-        blockNumber: 40, timestamp: 900, tokenAddress,
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_1,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress,
         transactionHash: nextTxHash(),
       });
       const transfer: Transfer = {
@@ -1564,12 +2009,12 @@ describe("Processor", () => {
 
       const balances = await processor.getEligibleBalances();
 
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]
-      ).toBe(ONEn);
-      expect(
-        balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]
-      ).toBe(ONEn);
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[0]).toBe(
+        ONEn,
+      );
+      expect(balances.get(tokenAddress)?.get(NORMAL_USER_1)?.snapshots[1]).toBe(
+        ONEn,
+      );
     });
   });
 
@@ -1605,17 +2050,17 @@ describe("Processor", () => {
     });
   });
 
-  describe('Test processLpRange() method', () => {
+  describe("Test processLpRange() method", () => {
     let processor: Processor;
     const mockClient = {
       readContract: vi.fn(),
-      multicall: vi.fn()
+      multicall: vi.fn(),
     } as unknown as PublicClient;
-    
+
     const snapshots = [1000, 2000, 3000];
     const pools = [
-      '0x1111111111111111111111111111111111111111',
-      '0x2222222222222222222222222222222222222222'
+      "0x1111111111111111111111111111111111111111",
+      "0x2222222222222222222222222222222222222222",
     ] as `0x${string}`[];
 
     beforeEach(() => {
@@ -1627,22 +2072,23 @@ describe("Processor", () => {
       vi.restoreAllMocks();
     });
 
-    describe('Happy', () => {
-      it('should process LP positions correctly when they are out of range', async () => {
+    describe("Happy", () => {
+      it("should process LP positions correctly when they are out of range", async () => {
         // Setup mock pool ticks
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 100, // Pool tick at 100
-          '0x2222222222222222222222222222222222222222': 200  // Pool tick at 200
+          "0x1111111111111111111111111111111111111111": 100, // Pool tick at 100
+          "0x2222222222222222222222222222222222222222": 200, // Pool tick at 200
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
         // Setup initial account balance
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
-        
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
+
         // Access private property for testing
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -1655,7 +2101,7 @@ describe("Processor", () => {
         // Setup LP position that's out of range (tick 100, position range 150-250)
         const lpTrackList = (processor as any).lp3TrackList;
         const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
-        
+
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(lpId, {
             value: 200n,
@@ -1675,20 +2121,25 @@ describe("Processor", () => {
 
         // Verify balance was deducted for out-of-range position
         const updatedBalance = balanceMap.get(ownerAddress);
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([300n, 300n, 300n]); // 500n - 200n
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          300n,
+          300n,
+          300n,
+        ]); // 500n - 200n
       });
 
-      it('should not deduct balance when LP position is in range', async () => {
+      it("should not deduct balance when LP position is in range", async () => {
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 200, // Pool tick at 200
+          "0x1111111111111111111111111111111111111111": 200, // Pool tick at 200
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -1701,7 +2152,7 @@ describe("Processor", () => {
         // Setup LP position that's in range (tick 200, position range 150-250)
         const lpTrackList = (processor as any).lp3TrackList;
         const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
-        
+
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(lpId, {
             value: 200n,
@@ -1715,20 +2166,25 @@ describe("Processor", () => {
 
         // Verify balance was NOT deducted for in-range position
         const updatedBalance = balanceMap.get(ownerAddress);
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]); // Unchanged
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          500n,
+          500n,
+          500n,
+        ]); // Unchanged
       });
 
-      it('should handle multiple LP positions for same account', async () => {
+      it("should handle multiple LP positions for same account", async () => {
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 100,
-          '0x2222222222222222222222222222222222222222': 300,
+          "0x1111111111111111111111111111111111111111": 100,
+          "0x2222222222222222222222222222222222222222": 300,
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -1739,24 +2195,24 @@ describe("Processor", () => {
         accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         const lpTrackList = (processor as any).lp3TrackList;
-        
+
         // Two LP positions: one in range, one out of range
         const lpId1 = `${tokenAddress}-${ownerAddress}-0x1111111111111111111111111111111111111111-123`;
         const lpId2 = `${tokenAddress}-${ownerAddress}-0x2222222222222222222222222222222222222222-456`;
-        
+
         for (const snapshot of snapshots) {
           // Out of range position (tick 100, range 150-250)
           lpTrackList[snapshot].set(lpId1, {
             value: 200n,
-            pool: '0x1111111111111111111111111111111111111111',
+            pool: "0x1111111111111111111111111111111111111111",
             lowerTick: 150,
             upperTick: 250,
           });
-          
+
           // In range position (tick 300, range 250-350)
           lpTrackList[snapshot].set(lpId2, {
             value: 100n,
-            pool: '0x2222222222222222222222222222222222222222',
+            pool: "0x2222222222222222222222222222222222222222",
             lowerTick: 250,
             upperTick: 350,
           });
@@ -1766,23 +2222,28 @@ describe("Processor", () => {
 
         // Only the out-of-range position should be deducted
         const updatedBalance = balanceMap.get(ownerAddress);
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([300n, 300n, 300n]); // 500n - 200n
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          300n,
+          300n,
+          300n,
+        ]); // 500n - 200n
       });
 
-      it('should handle multiple tokens and accounts', async () => {
+      it("should handle multiple tokens and accounts", async () => {
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 100,
+          "0x1111111111111111111111111111111111111111": 100,
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const token1 = '0xtoken1';
-        const token2 = '0xtoken2';
-        const owner1 = '0xowner1';
-        const owner2 = '0xowner2';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
-        
+        const token1 = "0xtoken1";
+        const token2 = "0xtoken2";
+        const owner1 = "0xowner1";
+        const owner2 = "0xowner2";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
+
         // Setup two tokens with two owners each
         for (const token of [token1, token2]) {
           const balanceMap = new Map();
@@ -1798,7 +2259,7 @@ describe("Processor", () => {
         }
 
         const lpTrackList = (processor as any).lp3TrackList;
-        
+
         // Add out-of-range positions for all combinations
         for (const token of [token1, token2]) {
           for (const owner of [owner1, owner2]) {
@@ -1827,18 +2288,19 @@ describe("Processor", () => {
       });
     });
 
-    describe('Unhappy', () => {
-      it('should skip processing when pool tick is undefined', async () => {
+    describe("Unhappy", () => {
+      it("should skip processing when pool tick is undefined", async () => {
         const poolTicks = {
           // Missing tick for pool 0x1111111111111111111111111111111111111111
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -1850,7 +2312,7 @@ describe("Processor", () => {
 
         const lpTrackList = (processor as any).lp3TrackList;
         const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
-        
+
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(lpId, {
             value: 200n,
@@ -1864,20 +2326,25 @@ describe("Processor", () => {
 
         // Balance should remain unchanged due to undefined tick
         const updatedBalance = balanceMap.get(ownerAddress);
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          500n,
+          500n,
+          500n,
+        ]);
       });
 
-      it('should skip LP positions with zero or negative value', async () => {
+      it("should skip LP positions with zero or negative value", async () => {
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 100,
+          "0x1111111111111111111111111111111111111111": 100,
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -1890,7 +2357,7 @@ describe("Processor", () => {
         const lpTrackList = (processor as any).lp3TrackList;
         const lpId1 = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
         const lpId2 = `${tokenAddress}-${ownerAddress}-${poolAddress}-456`;
-        
+
         for (const snapshot of snapshots) {
           // Zero value position
           lpTrackList[snapshot].set(lpId1, {
@@ -1899,7 +2366,7 @@ describe("Processor", () => {
             lowerTick: 150, // Out of range
             upperTick: 250,
           });
-          
+
           // Negative value position
           lpTrackList[snapshot].set(lpId2, {
             value: -100n,
@@ -1913,19 +2380,24 @@ describe("Processor", () => {
 
         // No deductions should happen due to zero/negative values
         const updatedBalance = balanceMap.get(ownerAddress);
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          500n,
+          500n,
+          500n,
+        ]);
       });
 
-      it('should skip non related LP positions', async () => {
+      it("should skip non related LP positions", async () => {
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 100,
+          "0x1111111111111111111111111111111111111111": 100,
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -1936,14 +2408,14 @@ describe("Processor", () => {
         accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         const lpTrackList = (processor as any).lp3TrackList;
-        
+
         // LP position for different owner
         const wrongLpId = `${tokenAddress}-0xdifferentowner-0x1111111111111111111111111111111111111111-123`;
-        
+
         for (const snapshot of snapshots) {
           lpTrackList[snapshot].set(wrongLpId, {
             value: 200n,
-            pool: '0x1111111111111111111111111111111111111111',
+            pool: "0x1111111111111111111111111111111111111111",
             lowerTick: 150, // Out of range
             upperTick: 250,
           });
@@ -1953,17 +2425,22 @@ describe("Processor", () => {
 
         // No deductions should happen due to mismatched owner
         const updatedBalance = balanceMap.get(ownerAddress);
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([500n, 500n, 500n]);
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          500n,
+          500n,
+          500n,
+        ]);
       });
 
-      it('should handle getPoolsTick failures gracefully', async () => {
+      it("should handle getPoolsTick failures gracefully", async () => {
         // Mock getPoolsTick to throw an error
-        (getPoolsTick as Mock).mockRejectedValue(new Error('Network error'));
+        (getPoolsTick as Mock).mockRejectedValue(new Error("Network error"));
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -1974,21 +2451,30 @@ describe("Processor", () => {
         accountBalancesPerToken.set(tokenAddress, balanceMap);
 
         // Should throw the error from getPoolsTick
-        await expect(processor.processLpRange()).rejects.toThrow('Network error');
+        await expect(processor.processLpRange()).rejects.toThrow(
+          "Network error",
+        );
       });
 
-      it('should process different snapshots independently', async () => {
+      it("should process different snapshots independently", async () => {
         // Different ticks for different snapshots
         (getPoolsTick as Mock)
-          .mockResolvedValueOnce({ '0x1111111111111111111111111111111111111111': 100 }) // Snapshot 1000
-          .mockResolvedValueOnce({ '0x1111111111111111111111111111111111111111': 200 }) // Snapshot 2000
-          .mockResolvedValueOnce({ '0x1111111111111111111111111111111111111111': 300 }); // Snapshot 3000
+          .mockResolvedValueOnce({
+            "0x1111111111111111111111111111111111111111": 100,
+          }) // Snapshot 1000
+          .mockResolvedValueOnce({
+            "0x1111111111111111111111111111111111111111": 200,
+          }) // Snapshot 2000
+          .mockResolvedValueOnce({
+            "0x1111111111111111111111111111111111111111": 300,
+          }); // Snapshot 3000
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
-        
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
+
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -2000,7 +2486,7 @@ describe("Processor", () => {
 
         const lpTrackList = (processor as any).lp3TrackList;
         const lpId = `${tokenAddress}-${ownerAddress}-${poolAddress}-123`;
-        
+
         for (const snapshot of snapshots) {
           // Position range 150-250
           // Tick 100 (out of range), Tick 200 (in range), Tick 300 (out of range)
@@ -2016,20 +2502,25 @@ describe("Processor", () => {
 
         // Only snapshots 0 and 2 should have deductions (ticks 100 and 300 are out of range)
         const updatedBalance = balanceMap.get(ownerAddress);
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([400n, 500n, 400n]); // Deduct 100n for snapshots 0 and 2
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          400n,
+          500n,
+          400n,
+        ]); // Deduct 100n for snapshots 0 and 2
       });
 
-      it('should accumulate deductions from multiple out-of-range positions for same owner', async () => {
+      it("should accumulate deductions from multiple out-of-range positions for same owner", async () => {
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 100,
+          "0x1111111111111111111111111111111111111111": 100,
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
 
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 1000n,
@@ -2041,38 +2532,49 @@ describe("Processor", () => {
         const lpTrackList = (processor as any).lp3TrackList;
         // Two positions, both out of range
         for (const snapshot of snapshots) {
-          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-1`, {
-            value: 100n,
-            pool: poolAddress,
-            lowerTick: 150,
-            upperTick: 250,
-          });
-          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-2`, {
-            value: 150n,
-            pool: poolAddress,
-            lowerTick: 200,
-            upperTick: 300,
-          });
+          lpTrackList[snapshot].set(
+            `${tokenAddress}-${ownerAddress}-${poolAddress}-1`,
+            {
+              value: 100n,
+              pool: poolAddress,
+              lowerTick: 150,
+              upperTick: 250,
+            },
+          );
+          lpTrackList[snapshot].set(
+            `${tokenAddress}-${ownerAddress}-${poolAddress}-2`,
+            {
+              value: 150n,
+              pool: poolAddress,
+              lowerTick: 200,
+              upperTick: 300,
+            },
+          );
         }
 
         await processor.processLpRange();
 
         const updatedBalance = balanceMap.get(ownerAddress);
         // Both positions deducted: 500 - 100 - 150 = 250
-        expect(updatedBalance.netBalanceAtSnapshots).toEqual([250n, 250n, 250n]);
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([
+          250n,
+          250n,
+          250n,
+        ]);
       });
 
-      it('should clamp balance to zero when deductions exceed balance', async () => {
+      it("should clamp balance to zero when deductions exceed balance", async () => {
         const poolTicks = {
-          '0x1111111111111111111111111111111111111111': 100,
+          "0x1111111111111111111111111111111111111111": 100,
         };
         (getPoolsTick as Mock).mockResolvedValue(poolTicks);
 
-        const tokenAddress = '0xtoken123';
-        const ownerAddress = '0xowner123';
-        const poolAddress = '0x1111111111111111111111111111111111111111';
+        const tokenAddress = "0xtoken123";
+        const ownerAddress = "0xowner123";
+        const poolAddress = "0x1111111111111111111111111111111111111111";
 
-        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const accountBalancesPerToken = (processor as any)
+          .accountBalancesPerToken;
         const balanceMap = new Map();
         balanceMap.set(ownerAddress, {
           transfersInFromApproved: 100n,
@@ -2083,12 +2585,15 @@ describe("Processor", () => {
 
         const lpTrackList = (processor as any).lp3TrackList;
         for (const snapshot of snapshots) {
-          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-1`, {
-            value: 200n, // Exceeds balance of 50
-            pool: poolAddress,
-            lowerTick: 150,
-            upperTick: 250,
-          });
+          lpTrackList[snapshot].set(
+            `${tokenAddress}-${ownerAddress}-${poolAddress}-1`,
+            {
+              value: 200n, // Exceeds balance of 50
+              pool: poolAddress,
+              lowerTick: 150,
+              upperTick: 250,
+            },
+          );
         }
 
         await processor.processLpRange();
@@ -2225,7 +2730,9 @@ describe("Processor", () => {
 
     it("should return true for direct approved source with different casing", async () => {
       const proc = new Processor(SNAPSHOTS, [], mockClient);
-      const result = await proc.isApprovedSource("0x" + REWARDS_SOURCES[0].slice(2).toUpperCase());
+      const result = await proc.isApprovedSource(
+        "0x" + REWARDS_SOURCES[0].slice(2).toUpperCase(),
+      );
       expect(result).toBe(true);
     });
 
@@ -2249,7 +2756,9 @@ describe("Processor", () => {
 
     it("should return false when contract has no factory function", async () => {
       const noFactoryClient = {
-        readContract: async () => { throw { shortMessage: 'returned no data ("0x")' }; },
+        readContract: async () => {
+          throw { shortMessage: 'returned no data ("0x")' };
+        },
       } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], noFactoryClient);
       const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
@@ -2258,7 +2767,9 @@ describe("Processor", () => {
 
     it("should return false when contract reverts", async () => {
       const revertClient = {
-        readContract: async () => { throw { shortMessage: "execution reverted" }; },
+        readContract: async () => {
+          throw { shortMessage: "execution reverted" };
+        },
       } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], revertClient);
       const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
@@ -2267,7 +2778,9 @@ describe("Processor", () => {
 
     it("should return false for invalid parameters error", async () => {
       const invalidParamsClient = {
-        readContract: async () => { throw { shortMessage: "invalid parameters" }; },
+        readContract: async () => {
+          throw { shortMessage: "invalid parameters" };
+        },
       } as unknown as PublicClient;
       const proc = new Processor(SNAPSHOTS, [], invalidParamsClient);
       const result = await proc.isApprovedSource(UNKNOWN_CONTRACT);
@@ -2320,7 +2833,7 @@ describe("Processor", () => {
       const proc = new Processor(SNAPSHOTS, [], failingClient);
       // Use 1 retry to keep the test fast
       await expect(proc.isApprovedSource(NORMAL_USER_1, 1)).rejects.toThrow(
-        "Failed to check factory"
+        "Failed to check factory",
       );
     });
   });
