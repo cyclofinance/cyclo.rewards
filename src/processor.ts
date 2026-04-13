@@ -465,7 +465,8 @@ export class Processor {
       tokenInverseFractions.values()
     ).reduce((acc, inverseFraction) => acc + inverseFraction, 0n);
 
-    // Calculate each token's share of the reward pool
+    // Calculate each token's share of the reward pool.
+    // BigInt truncation means token shares sum to <= rewardPool.
     const totalRewardsPerToken = new Map<string, bigint>();
     for (const token of tokensWithBalance) {
       const tokenInverseFraction = tokenInverseFractions.get(
@@ -504,6 +505,9 @@ export class Processor {
 
       const tokenRewards = new Map<string, bigint>();
       for (const [address, balance] of tokenBalances) {
+        // BigInt division truncates toward zero, so the sum of all rewards
+        // will be slightly less than the pool. This is the correct direction
+        // (under-distribute, never over-distribute).
         const reward =
           (balance.final18 *
             totalRewardsPerToken.get(token.address)!) /

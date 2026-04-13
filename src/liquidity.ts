@@ -8,6 +8,9 @@ import { TICK_RETRY_ATTEMPTS, TICK_RETRY_DELAY_MS } from "./constants";
 /** Multicall3 canonical deployment address (same on all EVM chains) */
 export const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11" as const;
 
+/** Index of the `tick` field in the slot0 return tuple */
+const SLOT0_TICK_INDEX = 1;
+
 /** Uniswap V3 pool slot0 ABI — returns current tick and other pool state */
 const abi = [
     {
@@ -85,7 +88,7 @@ export async function getPoolsTickMulticall(
         const res = results[i];
         const pool = pools[i];
         if (res.status === "success") {
-            ticks[pool] = res.result[1];
+            ticks[pool] = res.result[SLOT0_TICK_INDEX];
         }
     }
 
