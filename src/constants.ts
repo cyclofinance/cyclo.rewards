@@ -7,13 +7,13 @@
 export const ONE_18 = 10n ** 18n;
 
 // Mar 2026 epoch: 300,000 tokens (18 decimals)
-export const MAR26_REWARD_POOL = 300_000_000_000_000_000_000_000n;
+export const MAR26_REWARD_POOL = 300_000n * ONE_18;
 // Feb 2026 epoch: 500,000 tokens (18 decimals)
-export const FEB26_REWARD_POOL = 500_000_000_000_000_000_000_000n;
+export const FEB26_REWARD_POOL = 500_000n * ONE_18;
 // Jan 2026 epoch: 500,000 tokens (18 decimals)
-export const JAN26_REWARD_POOL = 500_000_000_000_000_000_000_000n;
+export const JAN26_REWARD_POOL = 500_000n * ONE_18;
 // Dec 2025 epoch: 1,000,000 tokens (18 decimals) — used by diffCalculator for reconciliation
-export const DEC25_REWARD_POOL = 1_000_000_000_000_000_000_000_000n;
+export const DEC25_REWARD_POOL = 1_000_000n * ONE_18;
 
 export const REWARD_POOL = MAR26_REWARD_POOL;
 
@@ -38,6 +38,12 @@ export const BOUNTY_PERCENT = 10n;
 
 /** Base delay in ms for exponential backoff on RPC retries */
 export const RETRY_BASE_DELAY_MS = 500;
+
+/** Max retry attempts for tick multicall queries */
+export const TICK_RETRY_ATTEMPTS = 3;
+
+/** Fixed delay in ms between tick multicall retries */
+export const TICK_RETRY_DELAY_MS = 10_000;
 
 /** Directory for scraped data files */
 export const DATA_DIR = "data";
@@ -66,6 +72,9 @@ export const TRANSFER_CHUNK_SIZE = 270000;
 
 /** Max number of transfer data files to read */
 export const TRANSFER_FILE_COUNT = 10;
+
+/** Number of snapshot blocks sampled per epoch for reward calculation */
+export const SNAPSHOT_COUNT = 30;
 
 /** 1-indexed epoch number for the current rewards run */
 export const CURRENT_EPOCH = 22;

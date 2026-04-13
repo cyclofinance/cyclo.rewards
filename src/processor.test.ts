@@ -617,6 +617,16 @@ describe("Processor", () => {
     });
   });
 
+  describe("Duplicate cheater rejection", () => {
+    it("should throw if the same cheater is reported twice", () => {
+      const reports = [
+        { reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 },
+        { reporter: "0x0000000000000000000000000000000000000099", cheater: NORMAL_USER_2 },
+      ];
+      expect(() => new Processor(SNAPSHOTS, reports, mockClient)).toThrow("cheater");
+    });
+  });
+
   describe("Inverse-fraction reward weighting", () => {
     it("should allocate more rewards to token with less total eligible balance", async () => {
       // Token A: 100 total eligible (one user)
@@ -752,7 +762,8 @@ describe("Processor", () => {
       await processor.processLiquidityPositions(liq2);
 
       const rewardPool = ONEn;
-      const result = await processor.calculateRewards(rewardPool);
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
 
       const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
       const user2Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_2);
@@ -782,11 +793,10 @@ describe("Processor", () => {
       await buyAndDeposit(processor, NORMAL_USER_2, "88000000000000000000", CYTOKENS[1].address, 50);
 
       const rewardPool = 1_000_000n * ONEn;
-      const result = await processor.calculateRewards(rewardPool);
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
       expect(result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)).not.toBeUndefined();
       expect(result.get(CYTOKENS[1].address)?.get(NORMAL_USER_2)).not.toBeUndefined();
-
-      const balances = await processor.getEligibleBalances();
       expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_1)?.average).toBe(50000000000000000000n);
       expect(balances.get(CYTOKENS[1].address)?.get(NORMAL_USER_1)?.average).toBe(0n);
       expect(balances.get(CYTOKENS[0].address)?.get(NORMAL_USER_2)?.average).toBe(0n);
@@ -809,7 +819,8 @@ describe("Processor", () => {
       await buyAndDeposit(processor, NORMAL_USER_2, "3000000000000000000", CYTOKENS[0].address, 50);
 
       const rewardPool = ONEn;
-      const result = await processor.calculateRewards(rewardPool);
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
 
       const user1Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_1);
       const user2Reward = result.get(CYTOKENS[0].address)?.get(NORMAL_USER_2);
@@ -817,6 +828,29 @@ describe("Processor", () => {
       expect(user1Reward).toBe(400000000000000000n);
       expect(user2Reward).toBe(600000000000000000n);
       expect(user1Reward! + user2Reward!).toBe(rewardPool);
+    });
+  });
+
+  describe("Reward truncation", () => {
+    it("total rewards should be <= pool due to BigInt truncation", async () => {
+      // Use amounts that don't divide evenly to force truncation
+      await buyAndDeposit(processor, NORMAL_USER_1, "3000000000000000000", CYTOKENS[0].address, 50);
+      await buyAndDeposit(processor, NORMAL_USER_2, "7000000000000000000", CYTOKENS[0].address, 50);
+
+      const rewardPool = ONEn;
+      const balances = await processor.getEligibleBalances();
+      const result = await processor.calculateRewards(rewardPool, balances);
+
+      let totalDistributed = 0n;
+      for (const tokenRewards of result.values()) {
+        for (const reward of tokenRewards.values()) {
+          totalDistributed += reward;
+        }
+      }
+
+      expect(totalDistributed).toBeLessThanOrEqual(rewardPool);
+      // Should be very close — within 1 wei per account per token
+      expect(rewardPool - totalDistributed).toBeLessThan(10n);
     });
   });
 
@@ -1983,6 +2017,85 @@ describe("Processor", () => {
         // Only snapshots 0 and 2 should have deductions (ticks 100 and 300 are out of range)
         const updatedBalance = balanceMap.get(ownerAddress);
         expect(updatedBalance.netBalanceAtSnapshots).toEqual([400n, 500n, 400n]); // Deduct 100n for snapshots 0 and 2
+      });
+
+      it('should accumulate deductions from multiple out-of-range positions for same owner', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress, {
+          transfersInFromApproved: 1000n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [500n, 500n, 500n],
+        });
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        // Two positions, both out of range
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-1`, {
+            value: 100n,
+            pool: poolAddress,
+            lowerTick: 150,
+            upperTick: 250,
+          });
+          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-2`, {
+            value: 150n,
+            pool: poolAddress,
+            lowerTick: 200,
+            upperTick: 300,
+          });
+        }
+
+        await processor.processLpRange();
+
+        const updatedBalance = balanceMap.get(ownerAddress);
+        // Both positions deducted: 500 - 100 - 150 = 250
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([250n, 250n, 250n]);
+      });
+
+      it('should clamp balance to zero when deductions exceed balance', async () => {
+        const poolTicks = {
+          '0x1111111111111111111111111111111111111111': 100,
+        };
+        (getPoolsTick as Mock).mockResolvedValue(poolTicks);
+
+        const tokenAddress = '0xtoken123';
+        const ownerAddress = '0xowner123';
+        const poolAddress = '0x1111111111111111111111111111111111111111';
+
+        const accountBalancesPerToken = (processor as any).accountBalancesPerToken;
+        const balanceMap = new Map();
+        balanceMap.set(ownerAddress, {
+          transfersInFromApproved: 100n,
+          transfersOut: 0n,
+          netBalanceAtSnapshots: [50n, 50n, 50n],
+        });
+        accountBalancesPerToken.set(tokenAddress, balanceMap);
+
+        const lpTrackList = (processor as any).lp3TrackList;
+        for (const snapshot of snapshots) {
+          lpTrackList[snapshot].set(`${tokenAddress}-${ownerAddress}-${poolAddress}-1`, {
+            value: 200n, // Exceeds balance of 50
+            pool: poolAddress,
+            lowerTick: 150,
+            upperTick: 250,
+          });
+        }
+
+        await processor.processLpRange();
+
+        const updatedBalance = balanceMap.get(ownerAddress);
+        // Clamped to 0, not negative
+        expect(updatedBalance.netBalanceAtSnapshots).toEqual([0n, 0n, 0n]);
       });
     });
   });

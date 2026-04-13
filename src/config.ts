@@ -1,6 +1,11 @@
 import assert from "assert";
 import { CyToken } from "./types";
-import { validateAddress, EPOCHS, CURRENT_EPOCH } from "./constants";
+import {
+  validateAddress,
+  EPOCHS,
+  CURRENT_EPOCH,
+  SNAPSHOT_COUNT,
+} from "./constants";
 import seedrandom from "seedrandom";
 import { shuffle } from "./shuffle";
 
@@ -50,10 +55,6 @@ export const CYTOKENS: CyToken[] = [
   },
 ];
 
-assert(process.env.RPC_URL, "RPC_URL environment variable must be set");
-/** Flare RPC endpoint URL for on-chain queries */
-export const RPC_URL = process.env.RPC_URL;
-
 /**
  * Case-insensitive comparison of two Ethereum addresses
  * @param a - First address
@@ -71,29 +72,38 @@ export function isSameAddress(a: string, b: string): boolean {
  * @param seed - The seed phrase
  * @param start - The start block number
  * @param end - The end block number
- * @returns Sorted array of 30 unique block numbers between start and end (inclusive)
+ * @returns Sorted array of SNAPSHOT_COUNT unique block numbers between start and end (inclusive)
  */
 export function generateSnapshotBlocks(
   seed: string,
   start: number,
   end: number,
 ): number[] {
-  assert.ok(seed.length > 0, "Seed must not be empty");
-  assert.ok(Number.isInteger(start) && start >= 0, `start must be a non-negative integer, got ${start}`);
-  assert.ok(Number.isInteger(end) && end >= 0, `end must be a non-negative integer, got ${end}`);
+  assert(seed.length > 0, "Seed must not be empty");
+  assert(
+    Number.isInteger(start) && start >= 0,
+    `start must be a non-negative integer, got ${start}`,
+  );
+  assert(
+    Number.isInteger(end) && end >= 0,
+    `end must be a non-negative integer, got ${end}`,
+  );
   const rng = seedrandom(seed);
   const range = end - start + 1;
 
-  assert.ok(range >= 30, `Snapshot range must be at least 30, got ${range}`);
+  assert(
+    range >= SNAPSHOT_COUNT,
+    `Snapshot range must be at least ${SNAPSHOT_COUNT}, got ${range}`,
+  );
 
-  // Build candidate array and sample 30 via Fisher-Yates shuffle
+  // Build candidate array and sample SNAPSHOT_COUNT via Fisher-Yates shuffle
   const candidates = Array.from({ length: range }, (_, i) => start + i);
   const shuffled = shuffle(candidates, rng);
-  const snapshots = shuffled.slice(0, 30).sort((a, b) => a - b);
+  const snapshots = shuffled.slice(0, SNAPSHOT_COUNT).sort((a, b) => a - b);
 
-  assert.ok(
-    snapshots.length === 30,
-    `failed to generate expected number of snapshots, expected: 30, got: ${snapshots.length}`
+  assert(
+    snapshots.length === SNAPSHOT_COUNT,
+    `failed to generate expected number of snapshots, expected: ${SNAPSHOT_COUNT}, got: ${snapshots.length}`,
   );
 
   return snapshots;
@@ -107,7 +117,9 @@ export function generateSnapshotBlocks(
  */
 export function scaleTo18(value: bigint, decimals: number): bigint {
   if (!Number.isInteger(decimals) || decimals < 0) {
-    throw new Error(`Invalid decimals: ${decimals} (must be a non-negative integer)`);
+    throw new Error(
+      `Invalid decimals: ${decimals} (must be a non-negative integer)`,
+    );
   }
   if (decimals === 18) {
     return value;
@@ -118,11 +130,22 @@ export function scaleTo18(value: bigint, decimals: number): bigint {
   }
 }
 
-export function parseEnv(): { seed: string; startSnapshot: number; endSnapshot: number } {
+export function parseEnv(): {
+  seed: string;
+  startSnapshot: number;
+  endSnapshot: number;
+} {
   const epoch = EPOCHS[CURRENT_EPOCH - 1];
   assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
   assert(epoch.seed, `Epoch ${epoch.number} has no seed`);
-  assert(epoch.startBlock !== undefined, `Epoch ${epoch.number} has no startBlock`);
+  assert(
+    epoch.startBlock !== undefined,
+    `Epoch ${epoch.number} has no startBlock`,
+  );
   assert(epoch.endBlock !== undefined, `Epoch ${epoch.number} has no endBlock`);
-  return { seed: epoch.seed, startSnapshot: epoch.startBlock, endSnapshot: epoch.endBlock };
+  return {
+    seed: epoch.seed,
+    startSnapshot: epoch.startBlock,
+    endSnapshot: epoch.endBlock,
+  };
 }

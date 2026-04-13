@@ -6,46 +6,73 @@
 import { request, gql } from "graphql-request";
 import { writeFile } from "fs/promises";
 import { LiquidityChange, LiquidityChangeType, Transfer } from "./types";
-import { DATA_DIR, LIQUIDITY_FILE, POOLS_FILE, TRANSFER_CHUNK_SIZE, TRANSFERS_FILE_BASE, EPOCHS, CURRENT_EPOCH, validateAddress, SUBGRAPH_URL } from "./constants";
+import {
+  DATA_DIR,
+  LIQUIDITY_FILE,
+  POOLS_FILE,
+  TRANSFER_CHUNK_SIZE,
+  TRANSFER_FILE_COUNT,
+  TRANSFERS_FILE_BASE,
+  SUBGRAPH_URL,
+  validateAddress,
+} from "./constants";
+import { parseEnv } from "./config";
 import assert from "assert";
+
 const BATCH_SIZE = 1000;
 
-const epoch = EPOCHS[CURRENT_EPOCH - 1];
-assert(epoch, `No epoch found for CURRENT_EPOCH ${CURRENT_EPOCH}`);
-assert(epoch.endBlock !== undefined, `Epoch ${epoch.number} has no endBlock`);
-// +1 to make sure every transfer at the end snapshot block is gathered
-const UNTIL_SNAPSHOT = epoch.endBlock + 1;
+const { endSnapshot } = parseEnv();
+// blockNumber_lte is inclusive, so no +1 needed
+export const UNTIL_SNAPSHOT = endSnapshot;
 
 /** Raw transfer event shape from the Goldsky subgraph GraphQL response */
 export interface SubgraphTransfer {
+  /** Subgraph entity ID */
   id: string;
+  /** ERC-20 token contract address */
   tokenAddress: string;
+  /** Sender account (nested subgraph entity) */
   from: { id: string };
+  /** Receiver account (nested subgraph entity) */
   to: { id: string };
+  /** Transfer amount as a decimal string */
   value: string;
+  /** Block number as a string (subgraph returns BigInt fields as strings) */
   blockNumber: string;
+  /** Block timestamp as a string */
   blockTimestamp: string;
+  /** Transaction hash */
   transactionHash: string;
 }
 
 /** Common fields for V2/V3 liquidity change events from the subgraph */
 export type SubgraphLiquidityChangeBase = {
+  /** Subgraph entity ID */
   id: string;
+  /** LP position owner (nested subgraph entity with address field) */
   owner: { address: string };
+  /** Cy token contract address */
   tokenAddress: string;
+  /** Liquidity pool or position manager address */
   lpAddress: string;
+  /** Type of liquidity change */
   liquidityChangeType: "DEPOSIT" | "TRANSFER" | "WITHDRAW";
+  /** Change in pool liquidity units as a decimal string */
   liquidityChange: string;
+  /** Change in deposited token balance as a decimal string */
   depositedBalanceChange: string;
+  /** Block number as a string */
   blockNumber: string;
+  /** Block timestamp as a string */
   blockTimestamp: string;
+  /** Transaction hash */
   transactionHash: string;
-}
+};
 
 /** Uniswap V2 liquidity change from the subgraph */
 export type SubgraphLiquidityChangeV2 = SubgraphLiquidityChangeBase & {
   __typename: "LiquidityV2Change";
-}
+};
 
 /** Uniswap V3 liquidity change from the subgraph, with concentrated position data */
 export type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
@@ -55,10 +82,12 @@ export type SubgraphLiquidityChangeV3 = SubgraphLiquidityChangeBase & {
   fee: string;
   lowerTick: string;
   upperTick: string;
-}
+};
 
 /** Discriminated union of V2 and V3 subgraph liquidity change events */
-export type SubgraphLiquidityChange = SubgraphLiquidityChangeV2 | SubgraphLiquidityChangeV3
+export type SubgraphLiquidityChange =
+  | SubgraphLiquidityChangeV2
+  | SubgraphLiquidityChangeV3;
 
 const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
 
@@ -66,19 +95,21 @@ const VALID_CHANGE_TYPES = Object.values(LiquidityChangeType);
 export function parseIntStrict(value: string | number, field: string): number {
   const s = String(value);
   const n = Number(s);
-  if (!Number.isInteger(n) || String(n) !== s) throw new Error(`Invalid ${field}: "${value}" is not a valid integer`);
+  if (!Number.isInteger(n) || String(n) !== s)
+    throw new Error(`Invalid ${field}: "${value}" is not a valid integer`);
   return n;
 }
 
-
 /** Validate that a string is a non-negative integer (for token values) */
 function validateNumericString(value: string, field: string): void {
-  if (!/^\d+$/.test(value)) throw new Error(`Invalid ${field}: "${value}" is not a numeric string`);
+  if (!/^\d+$/.test(value))
+    throw new Error(`Invalid ${field}: "${value}" is not a numeric string`);
 }
 
 /** Validate that a string is a valid signed integer (for BigInt-convertible fields) */
 function validateIntegerString(value: string, field: string): void {
-  if (!/^-?\d+$/.test(value)) throw new Error(`Invalid ${field}: "${value}" is not an integer string`);
+  if (!/^-?\d+$/.test(value))
+    throw new Error(`Invalid ${field}: "${value}" is not an integer string`);
 }
 
 /**
@@ -107,7 +138,9 @@ export function mapSubgraphTransfer(t: SubgraphTransfer): Transfer {
  * Discriminates V2/V3 by __typename, adding V3-specific fields when present.
  * Throws on invalid data (NaN, malformed addresses, unknown change types).
  */
-export function mapSubgraphLiquidityChange(t: SubgraphLiquidityChange): LiquidityChange {
+export function mapSubgraphLiquidityChange(
+  t: SubgraphLiquidityChange,
+): LiquidityChange {
   validateAddress(t.tokenAddress, "tokenAddress");
   validateAddress(t.lpAddress, "lpAddress");
   validateAddress(t.owner.address, "owner");
@@ -140,6 +173,9 @@ export function mapSubgraphLiquidityChange(t: SubgraphLiquidityChange): Liquidit
       upperTick: parseIntStrict(t.upperTick, "upperTick"),
     };
   }
+  if (t.__typename !== "LiquidityV2Change") {
+    throw new Error(`Unknown liquidity change __typename: "${t.__typename}"`);
+  }
   return { __typename: t.__typename, ...base };
 }
 
@@ -164,9 +200,7 @@ async function scrapeTransfers() {
           first: $first
           orderBy: blockNumber
           orderDirection: asc
-          where: {
-            blockNumber_lte: $untilSnapshot
-          }
+          where: { blockNumber_lte: $untilSnapshot }
         ) {
           id
           tokenAddress
@@ -191,7 +225,7 @@ async function scrapeTransfers() {
         skip,
         first: BATCH_SIZE,
         untilSnapshot: UNTIL_SNAPSHOT,
-      }
+      },
     );
 
     const batchTransfers = response.transfers.map(mapSubgraphTransfer);
@@ -208,10 +242,17 @@ async function scrapeTransfers() {
     // if the scraper fails mid-run, previously fetched data is preserved on disk.
     // Files are split at TRANSFER_CHUNK_SIZE lines to stay under GitHub's 100MB file size limit.
     const fileCount = Math.ceil(transfers.length / TRANSFER_CHUNK_SIZE);
+    assert(
+      fileCount <= TRANSFER_FILE_COUNT,
+      `Transfer data requires ${fileCount} files but TRANSFER_FILE_COUNT is ${TRANSFER_FILE_COUNT} — increase TRANSFER_FILE_COUNT to avoid data loss`,
+    );
     for (let i = 0; i < fileCount; i++) {
       await writeFile(
         `${DATA_DIR}/${TRANSFERS_FILE_BASE}${i + 1}.dat`,
-        transfers.slice(TRANSFER_CHUNK_SIZE * i, TRANSFER_CHUNK_SIZE * (i + 1)).map((t) => JSON.stringify(t)).join("\n")
+        transfers
+          .slice(TRANSFER_CHUNK_SIZE * i, TRANSFER_CHUNK_SIZE * (i + 1))
+          .map((t) => JSON.stringify(t))
+          .join("\n"),
       );
     }
 
@@ -238,15 +279,17 @@ async function scrapeLiquidityChanges() {
     console.log(`Fetching liquidity changes batch starting at ${skip}`);
 
     const query = gql`
-      query getLiquidityChanges($skip: Int!, $first: Int!, $untilSnapshot: Int!) {
+      query getLiquidityChanges(
+        $skip: Int!
+        $first: Int!
+        $untilSnapshot: Int!
+      ) {
         liquidityChanges(
           skip: $skip
           first: $first
           orderBy: blockNumber
           orderDirection: asc
-          where: {
-            blockNumber_lte: $untilSnapshot
-          }
+          where: { blockNumber_lte: $untilSnapshot }
         ) {
           id
           __typename
@@ -272,15 +315,13 @@ async function scrapeLiquidityChanges() {
       }
     `;
 
-    const response = await request<{ liquidityChanges: SubgraphLiquidityChange[] }>(
-      SUBGRAPH_URL,
-      query,
-      {
-        skip,
-        first: BATCH_SIZE,
-        untilSnapshot: UNTIL_SNAPSHOT,
-      }
-    );
+    const response = await request<{
+      liquidityChanges: SubgraphLiquidityChange[];
+    }>(SUBGRAPH_URL, query, {
+      skip,
+      first: BATCH_SIZE,
+      untilSnapshot: UNTIL_SNAPSHOT,
+    });
 
     const batchLiquidityChanges = response.liquidityChanges.map((t) => {
       if (t.__typename === "LiquidityV3Change") {
@@ -291,7 +332,9 @@ async function scrapeLiquidityChanges() {
 
     liquidityChanges.push(...batchLiquidityChanges);
 
-    console.log(`Found ${batchLiquidityChanges.length} liquidity changes in batch`);
+    console.log(
+      `Found ${batchLiquidityChanges.length} liquidity changes in batch`,
+    );
     totalProcessed += batchLiquidityChanges.length;
 
     hasMore = batchLiquidityChanges.length === BATCH_SIZE;
@@ -301,7 +344,7 @@ async function scrapeLiquidityChanges() {
     // if the scraper fails mid-run, previously fetched data is preserved on disk.
     await writeFile(
       `${DATA_DIR}/${LIQUIDITY_FILE}`,
-      liquidityChanges.map((t) => JSON.stringify(t)).join("\n")
+      liquidityChanges.map((t) => JSON.stringify(t)).join("\n"),
     );
 
     // Log progress
@@ -311,7 +354,7 @@ async function scrapeLiquidityChanges() {
   // save v3 pools list
   await writeFile(
     `${DATA_DIR}/${POOLS_FILE}`,
-    JSON.stringify(Array.from(v3Pools))
+    JSON.stringify(Array.from(v3Pools)),
   );
 
   console.log(`\nFinished!`);
@@ -324,4 +367,7 @@ async function main() {
   await scrapeLiquidityChanges();
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

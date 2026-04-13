@@ -6,7 +6,9 @@ import {
   SubgraphTransfer,
   SubgraphLiquidityChangeV2,
   SubgraphLiquidityChangeV3,
+  UNTIL_SNAPSHOT,
 } from "./scraper";
+import { EPOCHS, CURRENT_EPOCH } from "./constants";
 
 /** Minimal valid subgraph transfer for test construction */
 const VALID_SUBGRAPH_TRANSFER: SubgraphTransfer = {
@@ -300,6 +302,14 @@ describe("mapSubgraphLiquidityChange", () => {
     const liq = { ...VALID_V3_LIQUIDITY, tokenId: "abc" };
     expect(() => mapSubgraphLiquidityChange(liq)).toThrow("tokenId");
   });
+
+  it("should throw on unknown __typename", () => {
+    const unknown = {
+      ...VALID_V2_LIQUIDITY,
+      __typename: "LiquidityV99Change" as any,
+    };
+    expect(() => mapSubgraphLiquidityChange(unknown)).toThrow("__typename");
+  });
 });
 
 describe("parseIntStrict", () => {
@@ -329,6 +339,13 @@ describe("parseIntStrict", () => {
     expect(parseIntStrict(100 as unknown as string, "test")).toBe(100);
     expect(parseIntStrict(0 as unknown as string, "test")).toBe(0);
     expect(parseIntStrict(-42 as unknown as string, "test")).toBe(-42);
+  });
+});
+
+describe("UNTIL_SNAPSHOT", () => {
+  it("equals endBlock (blockNumber_lte is inclusive, no +1 needed)", () => {
+    const epoch = EPOCHS[CURRENT_EPOCH - 1];
+    expect(UNTIL_SNAPSHOT).toBe(epoch.endBlock);
   });
 });
 

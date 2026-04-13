@@ -4,7 +4,9 @@
 
 /** Cyclo token definition with contract addresses and decimal precision */
 export interface CyToken {
+  /** Human-readable token name (e.g., "cysFLR", "cyWETH", "cyFXRP") */
   name: string;
+  /** ERC-20 contract address of the cy token */
   address: string;
   /** Address of the underlying asset (e.g., sFLR, WETH, FXRP) */
   underlyingAddress: string;
@@ -81,8 +83,11 @@ export type RewardsPerToken = Map<string, Map<string, bigint>>;
 
 /** Type of liquidity position change event from the subgraph */
 export enum LiquidityChangeType {
+  /** Tokens deposited into an LP position */
   Deposit = 'DEPOSIT',
+  /** LP position transferred to a different owner */
   Transfer = 'TRANSFER',
+  /** Tokens withdrawn from an LP position */
   Withdraw = 'WITHDRAW'
 }
 
@@ -120,12 +125,13 @@ export type RawLiquidityChange = RawLiquidityChangeV2 | RawLiquidityChangeV3;
 /** Normalized common fields — all addresses lowercased */
 export interface LiquidityChangeBase {
   tokenAddress: string;
+  /** Address of the liquidity pool contract (V2 pair or V3 NFT position manager) */
   lpAddress: string;
   owner: string;
   changeType: LiquidityChangeType;
   /** Change in pool liquidity units as a decimal string */
   liquidityChange: string;
-  /** Change in deposited token balance as a decimal string (positive for deposits, negative for withdrawals) */
+  /** Change in deposited token balance as a decimal string. Positive for deposits, negative for withdrawals and transfers out. */
   depositedBalanceChange: string;
   blockNumber: number;
   timestamp: number;
@@ -142,6 +148,7 @@ export type LiquidityChangeV3 = LiquidityChangeBase & {
   __typename: "LiquidityV3Change";
   /** NFT token ID identifying the V3 position */
   tokenId: string;
+  /** Address of the V3 pool contract this position is in */
   poolAddress: string;
   /** Pool fee tier (e.g., 3000 = 0.3%) */
   fee: number;
@@ -163,7 +170,7 @@ export interface BlocklistReport {
 /** Tracked Uniswap V3 LP position for in-range tick calculations */
 export interface LpV3Position {
   pool: string;
-  /** Deposited balance in the position */
+  /** Net cumulative deposited balance (deposits minus withdrawals/transfers) */
   value: bigint;
   lowerTick: number;
   upperTick: number;
