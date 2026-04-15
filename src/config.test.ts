@@ -135,7 +135,9 @@ describe("generateSnapshotBlocks", () => {
   });
 
   it("should throw on inverted range (start > end)", () => {
-    expect(() => generateSnapshotBlocks("test-seed", 9000, 5000)).toThrow();
+    expect(() => generateSnapshotBlocks("test-seed", 9000, 5000)).toThrow(
+      "start (9000) must be <= end (5000)",
+    );
   });
 });
 

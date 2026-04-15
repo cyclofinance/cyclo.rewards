@@ -93,6 +93,7 @@ export function generateSnapshotBlocks(
     Number.isInteger(end) && end >= 0,
     `end must be a non-negative integer, got ${end}`,
   );
+  assert(start <= end, `start (${start}) must be <= end (${end})`);
   const rng = seedrandom(seed);
   const range = end - start + 1;
 
