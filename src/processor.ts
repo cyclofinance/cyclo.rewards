@@ -661,6 +661,14 @@ export class Processor {
             lowerTick: liquidityChangeEvent.lowerTick,
             upperTick: liquidityChangeEvent.upperTick,
           };
+          if (
+            prev.lowerTick !== liquidityChangeEvent.lowerTick ||
+            prev.upperTick !== liquidityChangeEvent.upperTick
+          ) {
+            throw new Error(
+              `Tick range mismatch for V3 position ${id}: expected [${prev.lowerTick}, ${prev.upperTick}], got [${liquidityChangeEvent.lowerTick}, ${liquidityChangeEvent.upperTick}]`,
+            );
+          }
           prev.value += depositedBalanceChange;
           this.lp3TrackList[this.snapshots[i]].set(id, prev);
         }

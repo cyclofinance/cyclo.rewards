@@ -2074,6 +2074,56 @@ describe("Processor", () => {
     });
   });
 
+  describe("V3 tick range consistency", () => {
+    it("should throw if same position has mismatched tick range", async () => {
+      const tokenAddress = CYTOKENS[0].address;
+      const txHash1 = nextTxHash();
+      const txHash2 = nextTxHash();
+
+      const v3Event1: LiquidityChange = {
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV3Change",
+        transactionHash: txHash1,
+        tokenId: "42",
+        poolAddress: POOL_ADDRESS,
+        fee: 3000,
+        lowerTick: -887220,
+        upperTick: 887220,
+      };
+      const v3Event2: LiquidityChange = {
+        tokenAddress,
+        lpAddress: LP_ADDRESS,
+        owner: NORMAL_USER_1,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: ARBITRARY_LIQUIDITY,
+        depositedBalanceChange: ONE,
+        blockNumber: 60,
+        timestamp: 1010,
+        __typename: "LiquidityV3Change",
+        transactionHash: txHash2,
+        tokenId: "42",
+        poolAddress: POOL_ADDRESS,
+        fee: 3000,
+        lowerTick: -100000,
+        upperTick: 100000,
+      };
+
+      await processor.organizeLiquidityPositions(v3Event1);
+      await processor.organizeLiquidityPositions(v3Event2);
+      processor.processLiquidityPositions(v3Event1);
+      expect(() => processor.processLiquidityPositions(v3Event2)).toThrow(
+        "Tick range mismatch",
+      );
+    });
+  });
+
   describe("Mixed-case owner address in liquidity positions", () => {
     it("should handle LP Transfer event with no prior processTransfer call", async () => {
       const tokenAddress = CYTOKENS[0].address;
