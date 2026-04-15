@@ -655,6 +655,62 @@ describe("Processor", () => {
     });
   });
 
+  describe("Final balance clamp", () => {
+    it("final and final18 are never negative for penalized accounts", async () => {
+      const reports = [{ reporter: NORMAL_USER_1, cheater: NORMAL_USER_2 }];
+      const processor = new Processor(SNAPSHOTS, reports, mockClient);
+      processor.isApprovedSource = async (source: string) =>
+        source === APPROVED_SOURCE;
+
+      // Give cheater a balance
+      const buy: Transfer = {
+        from: APPROVED_SOURCE,
+        to: NORMAL_USER_2,
+        value: ONE,
+        blockNumber: 40,
+        timestamp: 900,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0x" + "a".repeat(64),
+      };
+      const deposit: Transfer = {
+        from: NORMAL_USER_2,
+        to: "0xpool",
+        value: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        tokenAddress: CYTOKENS[0].address,
+        transactionHash: "0xtxhash1",
+      };
+      const lp: LiquidityChange = {
+        tokenAddress: CYTOKENS[0].address,
+        lpAddress: "0xLpAddress",
+        owner: NORMAL_USER_2,
+        changeType: LiquidityChangeType.Deposit,
+        liquidityChange: "1234",
+        depositedBalanceChange: ONE,
+        blockNumber: 50,
+        timestamp: 1000,
+        __typename: "LiquidityV2Change",
+        transactionHash: "0xtxhash1",
+      };
+
+      await processor.organizeLiquidityPositions(lp);
+      await processor.processTransfer(buy);
+      await processor.processTransfer(deposit);
+      await processor.processLiquidityPositions(lp);
+
+      const balances = await processor.getEligibleBalances();
+
+      // Check all accounts across all tokens
+      for (const [, tokenBalances] of balances) {
+        for (const [, balance] of tokenBalances) {
+          expect(balance.final).toBeGreaterThanOrEqual(0n);
+          expect(balance.final18).toBeGreaterThanOrEqual(0n);
+        }
+      }
+    });
+  });
+
   describe("Duplicate cheater rejection", () => {
     it("should throw if the same cheater is reported twice", () => {
       const reports = [
