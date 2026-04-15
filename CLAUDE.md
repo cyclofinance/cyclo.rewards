@@ -54,10 +54,15 @@ Vitest runs in watch mode. For a single run, use
   `sortAddressesByReward`, `filterZeroRewards`.
 - **`src/liquidity.ts`** — Queries Uniswap V3 pool tick data via multicall at
   specific blocks. Uses 3 attempts with fixed 10-second delay between retries.
+- **`src/diff.ts`** — CSV reading and diff calculation for epoch reconciliation.
+  Provides `readCsv`, `calculateDiff`, and related types used by
+  `diffCalculator.ts`.
 - **`src/diffCalculator.ts`** — Standalone script (not part of `npm run start`).
   Compares new rewards CSV against a previous rewards CSV (e.g.,
   `output/rewards-*-old.csv`) to produce diff CSVs for underpaid, covered, and
   uncovered accounts. Currently configured for Dec 2025 epoch reconciliation.
+- **`src/shuffle.ts`** — Fisher-Yates shuffle used by `generateSnapshotBlocks()`
+  for deterministic snapshot block selection.
 - **`src/config.ts`** — Approved DEX routers (`REWARDS_SOURCES`), factory
   contracts (`FACTORIES`), cyToken definitions (`CYTOKENS`), RPC URL, and
   `generateSnapshotBlocks()` which uses seedrandom for deterministic block
@@ -72,6 +77,8 @@ Vitest runs in watch mode. For a single run, use
 - **`scripts/fetch-dec-2025-distributed.sh`** — Decodes on-chain distribution
   transactions to produce `output/dec-2025-distributed.csv`. Run in CI before
   the main pipeline.
+- **`scripts/find-epoch-blocks.ts`** — Looks up block numbers for epoch
+  boundaries by binary-searching Flare C-chain timestamps.
 
 ## Environment Variables
 
