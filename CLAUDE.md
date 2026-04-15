@@ -75,12 +75,14 @@ Vitest runs in watch mode. For a single run, use
 
 ## Environment Variables
 
-Set in `.env` (and mirrored in `.github/workflows/git-clean.yaml`):
+Set in `.env` (loaded via dotenv at runtime):
 
-- `SEED` — Seed phrase for deterministic snapshot block generation
-- `START_SNAPSHOT` — Starting block number
-- `END_SNAPSHOT` — Ending block number
-- `RPC_URL` — Flare RPC endpoint
+- `RPC_URL` — Flare RPC endpoint (also set as a secret in
+  `.github/workflows/git-clean.yaml`)
+
+Epoch configuration (seed, startBlock, endBlock) is defined in the `EPOCHS`
+array in `src/constants.ts`. See the epoch transition steps in `readme.md` for
+how to configure a new epoch.
 
 ## Key Concepts
 
