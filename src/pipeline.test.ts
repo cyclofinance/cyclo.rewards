@@ -1195,7 +1195,11 @@ describe("verifyRewardPoolTolerance", () => {
     expect(() => verifyRewardPoolTolerance(tooHigh, pool)).toThrow();
   });
 
-  it("should not throw at exactly the 0.1% boundary", () => {
+  it("should throw on any over-distribution even 1 wei", () => {
+    expect(() => verifyRewardPoolTolerance(pool + 1n, pool)).toThrow();
+  });
+
+  it("should not throw at exactly the 0.1% under-distribution boundary", () => {
     const atBoundary = pool - pool / 1000n;
     expect(() => verifyRewardPoolTolerance(atBoundary, pool)).not.toThrow();
   });

@@ -308,10 +308,14 @@ export function verifyRewardPoolTolerance(
   totalRewards: bigint,
   rewardPool: bigint,
 ): void {
-  const diff = totalRewards - rewardPool;
-  const absDiff = diff < 0n ? -diff : diff;
-  if (absDiff > rewardPool / 1000n) {
-    throw new Error(`Reward pool difference too large: ${diff}`);
+  if (totalRewards > rewardPool) {
+    throw new Error(
+      `Over-distribution: totalRewards ${totalRewards} > rewardPool ${rewardPool} (diff: ${totalRewards - rewardPool})`,
+    );
+  }
+  const underDistribution = rewardPool - totalRewards;
+  if (underDistribution > rewardPool / 1000n) {
+    throw new Error(`Under-distribution too large: ${underDistribution}`);
   }
 }
 
