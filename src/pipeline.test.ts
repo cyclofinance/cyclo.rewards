@@ -1216,6 +1216,12 @@ describe("parsePools", () => {
     expect(result[0]).toBe("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   });
 
+  it("should lowercase checksummed addresses", () => {
+    const data = JSON.stringify(["0xAaBbCcDdEeFf00112233445566778899AaBbCcDd"]);
+    const result = parsePools(data);
+    expect(result[0]).toBe("0xaabbccddeeff00112233445566778899aabbccdd");
+  });
+
   it("should reject non-array JSON", () => {
     expect(() => parsePools('{"a": 1}')).toThrow();
   });

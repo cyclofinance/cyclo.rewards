@@ -362,5 +362,5 @@ export function parsePools(data: string): `0x${string}`[] {
     }
     validateAddress(parsed[i], `pools entry ${i}`);
   }
-  return parsed;
+  return parsed.map((p: string) => p.toLowerCase() as `0x${string}`);
 }
