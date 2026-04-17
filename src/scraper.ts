@@ -125,6 +125,14 @@ function validateIntegerString(value: string, field: string): void {
     throw new Error(`Invalid ${field}: "${value}" is not an integer string`);
 }
 
+/** Validate that a string is a valid Ethereum transaction hash (0x + 64 hex chars) */
+function validateTxHash(value: string, field: string): void {
+  if (typeof value !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(value))
+    throw new Error(
+      `Invalid ${field}: "${value}" is not a valid transaction hash`,
+    );
+}
+
 /**
  * Maps a raw subgraph transfer event to the internal Transfer type.
  * Flattens nested from/to objects and parses numeric strings.
@@ -135,6 +143,7 @@ export function mapSubgraphTransfer(t: SubgraphTransfer): Transfer {
   validateAddress(t.from.id, "from");
   validateAddress(t.to.id, "to");
   validateNumericString(t.value, "value");
+  validateTxHash(t.transactionHash, "transactionHash");
   return {
     tokenAddress: t.tokenAddress,
     from: t.from.id,
@@ -162,6 +171,7 @@ export function mapSubgraphLiquidityChange(
   }
   validateIntegerString(t.liquidityChange, "liquidityChange");
   validateIntegerString(t.depositedBalanceChange, "depositedBalanceChange");
+  validateTxHash(t.transactionHash, "transactionHash");
   const base = {
     tokenAddress: t.tokenAddress,
     lpAddress: t.lpAddress,
