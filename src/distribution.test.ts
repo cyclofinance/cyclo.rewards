@@ -40,18 +40,30 @@ function readRewardsCsv(): Array<{ address: string; amount: bigint }> {
 describe("on-chain distribution matches CSV", () => {
   it("all distributed amounts match the rewards CSV exactly", async (ctx) => {
     const csvEntries = readRewardsCsv();
+    const epoch = EPOCHS[CURRENT_EPOCH - 1];
 
-    // Get recent txs from distributor via explorer API
-    const response = await fetch(
-      `${EXPLORER_API}?module=account&action=txlist&address=${DISTRIBUTOR}&sort=desc&page=1&offset=20`,
-    );
-    const data = await response.json();
-    const txHashes: string[] = data.result
-      .filter(
-        (tx: any) =>
-          tx.to?.toLowerCase() === "0x26d460c3cf931fb2014fa436a49e3af08619810e",
-      )
-      .map((tx: any) => tx.hash);
+    // Paginate through distributor txs (desc order) until we pass this epoch's endBlock.
+    // Distribution always happens after epoch end, so once we see txs from before endBlock
+    // we've scanned past any relevant distribution calls.
+    const PAGE_SIZE = 100;
+    const MAX_PAGES = 50;
+    const RNAT_ADDRESS = "0x26d460c3cf931fb2014fa436a49e3af08619810e";
+    const txHashes: string[] = [];
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const response = await fetch(
+        `${EXPLORER_API}?module=account&action=txlist&address=${DISTRIBUTOR}&sort=desc&page=${page}&offset=${PAGE_SIZE}`,
+      );
+      const data = await response.json();
+      const results: any[] = data.result ?? [];
+      if (results.length === 0) break;
+      for (const tx of results) {
+        if (tx.to?.toLowerCase() === RNAT_ADDRESS) txHashes.push(tx.hash);
+      }
+      // Stop when the oldest tx on this page predates this epoch's endBlock
+      const oldestBlock = Number(results[results.length - 1].blockNumber);
+      if (epoch.endBlock !== undefined && oldestBlock < epoch.endBlock) break;
+      if (results.length < PAGE_SIZE) break;
+    }
 
     const onchainEntries: Array<{ address: string; amount: bigint }> = [];
 
