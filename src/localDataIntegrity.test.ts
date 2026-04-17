@@ -20,6 +20,12 @@ interface LiquidityEvent {
 const events: LiquidityEvent[] = liquidityLines.map((line) => JSON.parse(line));
 
 describe("liquidity.dat integrity", () => {
+  it("contains a meaningful number of events", () => {
+    // Guard against truncated/empty data file — the other integrity tests
+    // vacuously pass on empty input.
+    expect(events.length).toBeGreaterThan(0);
+  });
+
   it("events are sorted by blockNumber", () => {
     for (let i = 1; i < events.length; i++) {
       expect(events[i].blockNumber).toBeGreaterThanOrEqual(

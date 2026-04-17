@@ -1195,7 +1195,11 @@ describe("verifyRewardPoolTolerance", () => {
     expect(() => verifyRewardPoolTolerance(tooHigh, pool)).toThrow();
   });
 
-  it("should not throw at exactly the 0.1% boundary", () => {
+  it("should throw on any over-distribution even 1 wei", () => {
+    expect(() => verifyRewardPoolTolerance(pool + 1n, pool)).toThrow();
+  });
+
+  it("should not throw at exactly the 0.1% under-distribution boundary", () => {
     const atBoundary = pool - pool / 1000n;
     expect(() => verifyRewardPoolTolerance(atBoundary, pool)).not.toThrow();
   });
@@ -1210,6 +1214,12 @@ describe("parsePools", () => {
     const result = parsePools(data);
     expect(result).toHaveLength(2);
     expect(result[0]).toBe("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  });
+
+  it("should lowercase checksummed addresses", () => {
+    const data = JSON.stringify(["0xAaBbCcDdEeFf00112233445566778899AaBbCcDd"]);
+    const result = parsePools(data);
+    expect(result[0]).toBe("0xaabbccddeeff00112233445566778899aabbccdd");
   });
 
   it("should reject non-array JSON", () => {

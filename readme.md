@@ -32,29 +32,21 @@ git add .
 git commit -am'move dispersed csvs'
 ```
 
-## 3. Pick a seed phrase and block range
+## 3. Configure the new epoch
 
-Pick the seed phrase and block range for the current epoch. The seed follows the
-pattern `cyclo-rewards-for-{month}-{year}`. Block range should cover the epoch
-period from the schedule below. Set these in `.env` and `.github/workflows/git-clean.yaml`.
+In `src/constants.ts`:
 
-E.g. `.env`
+1. Add the new epoch's `seed`, `startBlock`, and `endBlock` to the `EPOCHS`
+   array.
+   - Use `scripts/find-epoch-blocks.ts` to find the correct block numbers.
+   - Generate a random seed (e.g. `openssl rand -hex 16`). Do NOT use
+     predictable patterns.
+2. Update `CURRENT_EPOCH` to the new epoch number.
+3. Add a new reward pool constant (e.g. `APR26_REWARD_POOL`) and update
+   `REWARD_POOL` to point to it.
 
-```
-SEED="this-is-my-seed"
-START_SNAPSHOT=41280134
-END_SNAPSHOT=41290134
-```
-
-`git-clean.yaml`
-
-```
-      - run: nix develop -c npm run start
-        env:
-          SEED: "this-is-my-seed"
-          START_SNAPSHOT: 41280134
-          END_SNAPSHOT: 41290134
-```
+Ensure `RPC_URL` is set in `.env` locally and as a secret in
+`.github/workflows/git-clean.yaml`.
 
 ## 4. Run the script local
 
@@ -64,13 +56,14 @@ The script will fetch all transfers and build csvs of the balances and rewards.
 nix develop -c npm run start
 ```
 
-You should see updates to `data/transfers*.dat` and a new `output/balances-X-Y.csv`
-and `output/rewards-X-Y.csv` where `X` and `Y` match the block numbers in the
-environment.
+You should see updates to `data/transfers*.dat` and a new
+`output/balances-X-Y.csv` and `output/rewards-X-Y.csv` where `X` and `Y` match
+the block numbers in the environment.
 
 ## 5. Commit and setup a PR
 
-Just commit all the changes from setting up the environment and running the script.
+Just commit all the changes from setting up the environment and running the
+script.
 
 Create a PR on the repo, and check that the `git-clean` workflow passes on CI.
 
@@ -79,27 +72,28 @@ announce to the community.
 
 ## rFLR Emissions Epochs Schedule
 
-All dates are epoch end dates at 12:00 UTC (source: [Flare rFLR guide](https://flare.network/news/a-guide-to-rflr-rewards)):
+All dates are epoch end dates at 12:00 UTC (source:
+[Flare rFLR guide](https://flare.network/news/a-guide-to-rflr-rewards)):
 
-| # | Epoch End | Seed Pattern |
-|---|-----------|-------------|
-| 1 | 06 Jul 2024 12:00 | |
-| 2 | 05 Aug 2024 12:00 | |
-| 3 | 04 Sep 2024 12:00 | |
-| 4 | 04 Oct 2024 12:00 | |
-| 5 | 03 Nov 2024 12:00 | |
-| 6 | 03 Dec 2024 12:00 | |
-| 7 | 02 Jan 2025 12:00 | |
-| 8 | 01 Feb 2025 12:00 | |
-| 9 | 03 Mar 2025 12:00 | |
-| 10 | 02 Apr 2025 12:00 | |
-| 11 | 02 May 2025 12:00 | |
-| 12 | 01 Jun 2025 12:00 | |
-| 13 | 01 Jul 2025 12:00 | |
-| 14 | 31 Jul 2025 12:00 | |
-| 15 | 30 Aug 2025 12:00 | |
-| 16 | 29 Sep 2025 12:00 | |
-| 17 | 29 Oct 2025 12:00 | |
+| #  | Epoch End         | Seed Pattern                 |
+| -- | ----------------- | ---------------------------- |
+| 1  | 06 Jul 2024 12:00 |                              |
+| 2  | 05 Aug 2024 12:00 |                              |
+| 3  | 04 Sep 2024 12:00 |                              |
+| 4  | 04 Oct 2024 12:00 |                              |
+| 5  | 03 Nov 2024 12:00 |                              |
+| 6  | 03 Dec 2024 12:00 |                              |
+| 7  | 02 Jan 2025 12:00 |                              |
+| 8  | 01 Feb 2025 12:00 |                              |
+| 9  | 03 Mar 2025 12:00 |                              |
+| 10 | 02 Apr 2025 12:00 |                              |
+| 11 | 02 May 2025 12:00 |                              |
+| 12 | 01 Jun 2025 12:00 |                              |
+| 13 | 01 Jul 2025 12:00 |                              |
+| 14 | 31 Jul 2025 12:00 |                              |
+| 15 | 30 Aug 2025 12:00 |                              |
+| 16 | 29 Sep 2025 12:00 |                              |
+| 17 | 29 Oct 2025 12:00 |                              |
 | 18 | 28 Nov 2025 12:00 | `cyclo-rewards-for-nov-2025` |
 | 19 | 28 Dec 2025 12:00 | `cyclo-rewards-for-dec-2025` |
 | 20 | 27 Jan 2026 12:00 | `cyclo-rewards-for-jan-2026` |
