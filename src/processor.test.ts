@@ -57,6 +57,7 @@ describe("Processor", () => {
       timestamp: 900,
       tokenAddress,
       transactionHash: buyTx,
+      txTo: "0x1111111111111111111111111111111111111111",
     };
     const deposit: Transfer = {
       from: user,
@@ -66,6 +67,7 @@ describe("Processor", () => {
       timestamp: 1000,
       tokenAddress,
       transactionHash: depositTx,
+      txTo: "0x1111111111111111111111111111111111111111",
     };
     const liq: LiquidityChange = {
       tokenAddress,
@@ -118,6 +120,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
 
       await processor.processTransfer(transfer);
@@ -146,6 +149,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash1",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
 
       const depositTransfer: Transfer = {
@@ -156,6 +160,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash2",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -199,6 +204,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
 
       await processor.processTransfer(transfer);
@@ -220,6 +226,8 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
 
       // normalizeTransfer should have lowercased the address
@@ -243,6 +251,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: INELIGIBLE_TOKEN,
         transactionHash: "0xtxhash",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
 
       await processor.processTransfer(transfer);
@@ -268,6 +277,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "b".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       // LP deposit (returns early from processTransfer, handled by processLiquidityPositions)
       const depositTransfer: Transfer = {
@@ -278,6 +288,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -315,6 +326,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "b".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const depositTransfer: Transfer = {
         from: NORMAL_USER_1,
@@ -324,6 +336,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -361,6 +374,7 @@ describe("Processor", () => {
         timestamp: 1000, // After snapshot 2
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
 
       await processor.processTransfer(transfer);
@@ -384,6 +398,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "b".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const depositTransfer: Transfer = {
         from: NORMAL_USER_1,
@@ -393,6 +408,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -441,6 +457,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "b".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const depositTransfer: Transfer = {
         from: NORMAL_USER_2,
@@ -450,6 +467,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -510,6 +528,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash1",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent1: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -533,6 +552,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash2",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent2: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -556,6 +576,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "c".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const buy2: Transfer = {
         from: APPROVED_SOURCE,
@@ -565,6 +586,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "d".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
 
       await processor.organizeLiquidityPositions(liquidityChangeEvent1);
@@ -671,6 +693,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const deposit: Transfer = {
         from: NORMAL_USER_2,
@@ -680,6 +703,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0xtxhash1",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const lp: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -873,6 +897,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "c".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const deposit1: Transfer = {
         from: NORMAL_USER_1,
@@ -882,6 +907,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "a".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liq1: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -904,6 +930,7 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "d".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const deposit2: Transfer = {
         from: NORMAL_USER_2,
@@ -913,6 +940,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: "0x" + "e".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liq2: LiquidityChange = {
         tokenAddress: CYTOKENS[0].address,
@@ -973,6 +1001,8 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[1].address,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
 
       await buyAndDeposit(
@@ -990,6 +1020,8 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       await buyAndDeposit(
         processor,
@@ -1121,6 +1153,8 @@ describe("Processor", () => {
         timestamp: 950,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       // Buy 30 → cap = -10 + 30 = 20
       await processor.processTransfer({
@@ -1131,6 +1165,8 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
 
       const balances = await processor.getEligibleBalances();
@@ -1153,6 +1189,8 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       // Withdraw without prior deposit → lpBalance = -5
       const withdrawEvent: LiquidityChange = {
@@ -1195,6 +1233,8 @@ describe("Processor", () => {
         timestamp: 950,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       // Withdraw 3 from LP (pool is FACTORY_SOURCE, which is approved)
       const withdrawTx = nextTxHash();
@@ -1206,6 +1246,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: withdrawTx,
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const withdrawEvent: LiquidityChange = {
         tokenAddress,
@@ -1247,6 +1288,8 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       const depositTransfer: Transfer = {
         from: NORMAL_USER_1,
@@ -1256,6 +1299,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: depositTx,
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const v3Event: LiquidityChange = {
         tokenAddress,
@@ -1303,6 +1347,8 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       const depositTransfer: Transfer = {
         from: NORMAL_USER_1,
@@ -1312,6 +1358,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: depositTx,
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const v3Event: LiquidityChange = {
         tokenAddress,
@@ -1361,6 +1408,8 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       const v3Event: LiquidityChange = {
         tokenAddress,
@@ -1389,6 +1438,8 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: depositTx,
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       await processor.processLiquidityPositions(v3Event);
 
@@ -1431,6 +1482,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: txHash,
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       expect(processor.transferIsDeposit(transfer)).toEqual(liq);
     });
@@ -1444,6 +1496,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: nextTxHash(),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       expect(processor.transferIsDeposit(transfer)).toBeUndefined();
     });
@@ -1473,6 +1526,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: txHash,
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       expect(processor.transferIsDeposit(transfer)).toBeUndefined();
     });
@@ -1504,6 +1558,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: txHash,
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       expect(processor.transferIsWithdraw(transfer)).toEqual(liq);
     });
@@ -1517,6 +1572,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress: CYTOKENS[0].address,
         transactionHash: nextTxHash(),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       expect(processor.transferIsWithdraw(transfer)).toBeUndefined();
     });
@@ -1546,6 +1602,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: txHash,
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       expect(processor.transferIsWithdraw(transfer)).toBeUndefined();
     });
@@ -1720,6 +1777,8 @@ describe("Processor", () => {
         timestamp: 899,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
 
       // verify the initial deposit
@@ -1741,6 +1800,7 @@ describe("Processor", () => {
         timestamp: 1005,
         tokenAddress,
         transactionHash: "0xtxhash1",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent1: LiquidityChange = {
         tokenAddress,
@@ -1781,6 +1841,7 @@ describe("Processor", () => {
         timestamp: 1105,
         tokenAddress,
         transactionHash: "0xtxhash2",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent2: LiquidityChange = {
         tokenAddress,
@@ -1821,6 +1882,7 @@ describe("Processor", () => {
         timestamp: 1155,
         tokenAddress,
         transactionHash: "0xtxhash3",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent3: LiquidityChange = {
         tokenAddress,
@@ -1890,6 +1952,7 @@ describe("Processor", () => {
         timestamp: 1250,
         tokenAddress,
         transactionHash: "0xtxhash5",
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const liquidityChangeEvent5: LiquidityChange = {
         tokenAddress,
@@ -2031,6 +2094,8 @@ describe("Processor", () => {
         timestamp: 900,
         tokenAddress,
         transactionHash: nextTxHash(),
+
+        txTo: "0x1111111111111111111111111111111111111111",
       });
       const transfer: Transfer = {
         from: NORMAL_USER_1,
@@ -2040,6 +2105,7 @@ describe("Processor", () => {
         timestamp: 1000,
         tokenAddress,
         transactionHash: "0x" + "a".repeat(64),
+        txTo: "0x1111111111111111111111111111111111111111",
       };
       const v3Event: LiquidityChange = {
         tokenAddress,

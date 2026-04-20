@@ -28,6 +28,8 @@ export interface RawTransfer {
   timestamp: number;
   tokenAddress: string;
   transactionHash: string;
+  /** Tx-level target contract (msg.sender's target). Used to detect aggregator-routed buys where Transfer.from is an intermediate adapter. */
+  txTo: string;
 }
 
 /** Normalized transfer event — all addresses lowercased */
@@ -40,6 +42,8 @@ export interface Transfer {
   timestamp: number;
   tokenAddress: string;
   transactionHash: string;
+  /** Tx-level target contract. Lowercased. Used to detect aggregator-routed buys. */
+  txTo: string;
 }
 
 /** Per-account running balance for a single token, updated during transfer processing */
@@ -84,11 +88,11 @@ export type RewardsPerToken = Map<string, Map<string, bigint>>;
 /** Type of liquidity position change event from the subgraph */
 export enum LiquidityChangeType {
   /** Tokens deposited into an LP position */
-  Deposit = 'DEPOSIT',
+  Deposit = "DEPOSIT",
   /** LP position transferred to a different owner */
-  Transfer = 'TRANSFER',
+  Transfer = "TRANSFER",
   /** Tokens withdrawn from an LP position */
-  Withdraw = 'WITHDRAW'
+  Withdraw = "WITHDRAW",
 }
 
 /** Raw common fields for liquidity change events — addresses not yet normalized */
@@ -107,7 +111,7 @@ export interface RawLiquidityChangeBase {
 /** Raw Uniswap V2 liquidity change event */
 export type RawLiquidityChangeV2 = RawLiquidityChangeBase & {
   __typename: "LiquidityV2Change";
-}
+};
 
 /** Raw Uniswap V3 liquidity change event */
 export type RawLiquidityChangeV3 = RawLiquidityChangeBase & {
@@ -117,7 +121,7 @@ export type RawLiquidityChangeV3 = RawLiquidityChangeBase & {
   fee: number;
   lowerTick: number;
   upperTick: number;
-}
+};
 
 /** Raw discriminated union of V2 and V3 liquidity change events */
 export type RawLiquidityChange = RawLiquidityChangeV2 | RawLiquidityChangeV3;
@@ -141,7 +145,7 @@ export interface LiquidityChangeBase {
 /** Uniswap V2 liquidity change event */
 export type LiquidityChangeV2 = LiquidityChangeBase & {
   __typename: "LiquidityV2Change";
-}
+};
 
 /** Uniswap V3 liquidity change event with concentrated liquidity position data */
 export type LiquidityChangeV3 = LiquidityChangeBase & {
@@ -156,7 +160,7 @@ export type LiquidityChangeV3 = LiquidityChangeBase & {
   lowerTick: number;
   /** Upper tick boundary of the concentrated liquidity range */
   upperTick: number;
-}
+};
 
 /** Discriminated union of V2 and V3 liquidity change events */
 export type LiquidityChange = LiquidityChangeV2 | LiquidityChangeV3;

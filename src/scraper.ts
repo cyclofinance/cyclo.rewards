@@ -56,6 +56,8 @@ export interface SubgraphTransfer {
   blockTimestamp: string;
   /** Transaction hash */
   transactionHash: string;
+  /** Tx-level target (msg.sender's target). */
+  txTo: string;
 }
 
 /** Common fields for V2/V3 liquidity change events from the subgraph */
@@ -142,6 +144,7 @@ export function mapSubgraphTransfer(t: SubgraphTransfer): Transfer {
   validateAddress(t.tokenAddress, "tokenAddress");
   validateAddress(t.from.id, "from");
   validateAddress(t.to.id, "to");
+  validateAddress(t.txTo, "txTo");
   validateNumericString(t.value, "value");
   validateTxHash(t.transactionHash, "transactionHash");
   return {
@@ -152,6 +155,7 @@ export function mapSubgraphTransfer(t: SubgraphTransfer): Transfer {
     blockNumber: parseIntStrict(t.blockNumber, "blockNumber"),
     timestamp: parseIntStrict(t.blockTimestamp, "blockTimestamp"),
     transactionHash: t.transactionHash,
+    txTo: t.txTo,
   };
 }
 

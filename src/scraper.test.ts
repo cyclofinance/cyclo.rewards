@@ -19,6 +19,7 @@ const VALID_SUBGRAPH_TRANSFER: SubgraphTransfer = {
   value: "500000000000000000000",
   blockNumber: "12345678",
   blockTimestamp: "1700000000",
+  txTo: "0x1111111111111111111111111111111111111111",
   transactionHash:
     "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
 };
