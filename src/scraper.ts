@@ -241,6 +241,7 @@ async function scrapeTransfers() {
           blockNumber
           blockTimestamp
           transactionHash
+          txTo
         }
       }
     `;

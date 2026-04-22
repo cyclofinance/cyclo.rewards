@@ -65,7 +65,7 @@ export const BLOCKLIST_FILE = "blocklist.txt";
 
 /** Goldsky-hosted Cyclo subgraph endpoint for the current epoch */
 export const SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-11-7c76/gn";
+  "https://api.goldsky.com/api/public/project_cm4zggfv2trr301whddsl9vaj/subgraphs/cyclo-flare/2026-04-20-b4a8/gn";
 
 /** Max lines per transfer data file to stay under GitHub's 100MB file size limit */
 export const TRANSFER_CHUNK_SIZE = 270000;
