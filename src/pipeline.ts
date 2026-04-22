@@ -45,9 +45,12 @@ export function normalizeTransfer(item: unknown): Transfer {
     );
   if (!Number.isInteger(t.timestamp) || (t.timestamp as number) < 0)
     throw new Error(`Transfer missing or invalid 'timestamp': ${t.timestamp}`);
+  if (typeof t.txTo !== "string")
+    throw new Error(`Transfer missing or invalid 'txTo'`);
   validateAddress(t.from, "from");
   validateAddress(t.to, "to");
   validateAddress(t.tokenAddress, "tokenAddress");
+  validateAddress(t.txTo, "txTo");
   return {
     from: t.from.toLowerCase(),
     to: t.to.toLowerCase(),
@@ -56,6 +59,7 @@ export function normalizeTransfer(item: unknown): Transfer {
     value: t.value,
     blockNumber: t.blockNumber as number,
     timestamp: t.timestamp as number,
+    txTo: t.txTo.toLowerCase(),
   };
 }
 

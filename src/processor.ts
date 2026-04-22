@@ -211,7 +211,16 @@ export class Processor {
       return;
     }
 
-    const isApproved = await this.isApprovedSource(transfer.from);
+    // An approved buy is either a direct Transfer from an approved source,
+    // or a transfer where the tx's top-level target is approved (e.g. OpenOcean
+    // aggregators that route via an intermediate adapter so Transfer.from is
+    // the adapter rather than the aggregator itself).
+    const fromIsApproved = await this.isApprovedSource(transfer.from);
+    const txToIsApproved =
+      !fromIsApproved &&
+      transfer.txTo !== transfer.tokenAddress &&
+      (await this.isApprovedSource(transfer.txTo));
+    const isApproved = fromIsApproved || txToIsApproved;
     const value = BigInt(transfer.value);
 
     const accountBalances = this.accountBalancesPerToken.get(

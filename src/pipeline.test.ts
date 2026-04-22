@@ -750,6 +750,7 @@ describe("normalizeTransfer", () => {
     tokenAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
     transactionHash:
       "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    txTo: "0x1111111111111111111111111111111111111111",
   };
 
   it("accepts a valid transfer", () => {
@@ -757,75 +758,163 @@ describe("normalizeTransfer", () => {
   });
 
   it("rejects missing from", () => {
-    expect(() => normalizeTransfer({ ...valid, from: undefined })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        from: undefined,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects invalid address in from", () => {
-    expect(() => normalizeTransfer({ ...valid, from: "bad" })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        from: "bad",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects non-integer blockNumber", () => {
-    expect(() => normalizeTransfer({ ...valid, blockNumber: 1.5 })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        blockNumber: 1.5,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects non-numeric value string", () => {
-    expect(() => normalizeTransfer({ ...valid, value: "abc" })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        value: "abc",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects missing transactionHash", () => {
     expect(() =>
-      normalizeTransfer({ ...valid, transactionHash: undefined }),
+      normalizeTransfer({
+        ...valid,
+        transactionHash: undefined,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
     ).toThrow();
   });
 
   it("rejects invalid address in to", () => {
-    expect(() => normalizeTransfer({ ...valid, to: "bad" })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        to: "bad",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects invalid tokenAddress", () => {
     expect(() =>
-      normalizeTransfer({ ...valid, tokenAddress: "bad" }),
+      normalizeTransfer({
+        ...valid,
+        tokenAddress: "bad",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
     ).toThrow();
   });
 
   it("rejects non-integer timestamp", () => {
-    expect(() => normalizeTransfer({ ...valid, timestamp: 1.5 })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        timestamp: 1.5,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects missing value", () => {
-    expect(() => normalizeTransfer({ ...valid, value: undefined })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        value: undefined,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects missing blockNumber", () => {
     expect(() =>
-      normalizeTransfer({ ...valid, blockNumber: undefined }),
+      normalizeTransfer({
+        ...valid,
+        blockNumber: undefined,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
     ).toThrow();
   });
 
   it("rejects missing tokenAddress", () => {
     expect(() =>
-      normalizeTransfer({ ...valid, tokenAddress: undefined }),
+      normalizeTransfer({
+        ...valid,
+        tokenAddress: undefined,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
     ).toThrow();
   });
 
   it("rejects missing to", () => {
-    expect(() => normalizeTransfer({ ...valid, to: undefined })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        to: undefined,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects empty string value", () => {
-    expect(() => normalizeTransfer({ ...valid, value: "" })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        value: "",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects negative value", () => {
-    expect(() => normalizeTransfer({ ...valid, value: "-1" })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        value: "-1",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects NaN blockNumber", () => {
-    expect(() => normalizeTransfer({ ...valid, blockNumber: NaN })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        blockNumber: NaN,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects empty string from", () => {
-    expect(() => normalizeTransfer({ ...valid, from: "" })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        from: "",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects null input", () => {
@@ -838,26 +927,52 @@ describe("normalizeTransfer", () => {
 
   it("rejects invalid transactionHash format", () => {
     expect(() =>
-      normalizeTransfer({ ...valid, transactionHash: "not-a-hash" }),
+      normalizeTransfer({
+        ...valid,
+        transactionHash: "not-a-hash",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
     ).toThrow();
   });
 
   it("rejects short transactionHash", () => {
     expect(() =>
-      normalizeTransfer({ ...valid, transactionHash: "0xabcd" }),
+      normalizeTransfer({
+        ...valid,
+        transactionHash: "0xabcd",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
     ).toThrow();
   });
 
   it("rejects negative blockNumber", () => {
-    expect(() => normalizeTransfer({ ...valid, blockNumber: -1 })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        blockNumber: -1,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("rejects negative timestamp", () => {
-    expect(() => normalizeTransfer({ ...valid, timestamp: -1 })).toThrow();
+    expect(() =>
+      normalizeTransfer({
+        ...valid,
+        timestamp: -1,
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow();
   });
 
   it("accepts zero value", () => {
-    expect(normalizeTransfer({ ...valid, value: "0" })).toBeTruthy();
+    expect(
+      normalizeTransfer({
+        ...valid,
+        value: "0",
+        txTo: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toBeTruthy();
   });
 
   it("accepts empty object throws on first check", () => {
@@ -874,12 +989,25 @@ describe("normalizeTransfer", () => {
       value: "1000",
       blockNumber: 100,
       timestamp: 200,
+      txTo: "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
     };
     const result: Transfer = normalizeTransfer(mixed);
     expect(result.from).toBe(mixed.from.toLowerCase());
     expect(result.to).toBe(mixed.to.toLowerCase());
     expect(result.tokenAddress).toBe(mixed.tokenAddress.toLowerCase());
     expect(result.transactionHash).toBe(mixed.transactionHash.toLowerCase());
+    expect(result.txTo).toBe(mixed.txTo.toLowerCase());
+  });
+
+  it("rejects missing txTo", () => {
+    const { txTo: _, ...rest } = valid;
+    expect(() => normalizeTransfer(rest)).toThrow("txTo");
+  });
+
+  it("rejects invalid txTo", () => {
+    expect(() =>
+      normalizeTransfer({ ...valid, txTo: "not-an-address" }),
+    ).toThrow("txTo");
   });
 });
 
