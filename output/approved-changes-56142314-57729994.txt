@@ -34,6 +34,19 @@
 0xfd6597554f07daf3c1f1d408d1eef3caa0dab8d9  prior position — no epoch LP activity
 0x1aa9f1d63f6fb2f59b52ff4d14e35d554ea50774  1 LP deposit during epoch
 
+# tx.to fix (cyclofinance/cyclo.rewards#215, #218) — aggregator-routed buys now credited
+0xb70fe3afc4d9c1e118db5ba8f341f6e51ab9f795  cysFLR OpenOcean-routed buys now credit boughtCap (+36,444 rFLR)
+0xa607b4f45c57c3078ee313fc4ceed372f1e6cccd  aggregator-routed buys now credit boughtCap
+
+# tx.to fix — redistributive dilution
+0xc16d2e43904d5359f6c2f2e9b5417f09b84702c1  diluted by other accounts' newly credited buys
+0x517864ca89a6de02502b45e70294dce2016a49e0  diluted by other accounts' newly credited buys
+0x36ec6329994b2391f3de82199a1386f7147f4b94  diluted by other accounts' newly credited buys
+0x57d539ad75e1ae12ece5a405d898916a6fb68faa  diluted by other accounts' newly credited buys
+0x77e45b1034b32f05f60f0df9d7182633f1f621ee  diluted by other accounts' newly credited buys
+0x002ab7e9fdd61a4e64541a786034f5e36693a627  diluted by other accounts' newly credited buys
+0x13d211560571a5e065f0fa4195456949085135d4  diluted by other accounts' newly credited buys
+
 # Exited accounts
 0x93acbf50da57390fd1dddff40178920636b686e0  no LP activity — boughtCap exhausted
 0xe94ca2d70d1d8b8abf6e244119598bfc9536eca1  1 LP withdrawal — exited position
